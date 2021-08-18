@@ -38,11 +38,10 @@ func Run(ctx context.Context, rg string) error {
 		return err
 	}
 
-	_ = configs
-
-	//////////////////////////
-	// Markup the dependencies
-	//////////////////////////
+	configs, err = meta.ResolveDependency(ctx, configs)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

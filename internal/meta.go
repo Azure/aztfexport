@@ -3,25 +3,28 @@ package internal
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/magodo/tfy/internal/armtemplate"
+
+	"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2020-06-01/resources"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform-exec/tfexec"
-	"github.com/hashicorp/terraform-schema/earlydecoder"
-	"github.com/hashicorp/terraform-schema/module"
 )
 
 type Meta struct {
-	resourceGroup string
-	workspace     string
-	tf            *tfexec.Terraform
-	auth          *Authorizer
+	subscriptionId string
+	resourceGroup  string
+	workspace      string
+	tf             *tfexec.Terraform
+	auth           *Authorizer
 }
 
 func NewMeta(ctx context.Context, rg string) (*Meta, error) {
@@ -68,10 +71,11 @@ func NewMeta(ctx context.Context, rg string) (*Meta, error) {
 	}
 
 	return &Meta{
-		resourceGroup: rg,
-		workspace:     wsp,
-		tf:            tf,
-		auth:          auth,
+		subscriptionId: auth.Config.SubscriptionID,
+		resourceGroup:  rg,
+		workspace:      wsp,
+		tf:             tf,
+		auth:           auth,
 	}, nil
 }
 
@@ -248,6 +252,10 @@ type ConfigInfo struct {
 	hcl *hclwrite.File
 }
 
+func (cfg ConfigInfo) DumpHCL(w io.Writer) (int, error) {
+	return w.Write(hclwrite.Format(cfg.hcl.Bytes()))
+}
+
 func (meta *Meta) StateToConfig(ctx context.Context, list ImportList) (ConfigInfos, error) {
 	out := ConfigInfos{}
 	for _, item := range list {
@@ -276,27 +284,96 @@ func (meta *Meta) StateToConfig(ctx context.Context, list ImportList) (ConfigInf
 		})
 	}
 
-	// var buf strings.Builder
-	// for _, cfg := range out {
-	// 	if _, err := cfg.hcl.WriteTo(&buf); err != nil {
-	// 		return nil, err
-	// 	}
-	// }
-	// fmt.Println(buf.String())
-
 	return out, nil
 }
 
-func tfschemaModule(filename string, b []byte) (*module.Meta, error) {
-	f, diags := hclsyntax.ParseConfig(b, filename, hcl.InitialPos)
-	if diags.HasErrors() {
-		return nil, fmt.Errorf("parsing HCL for %q: %s", filename, diags.Error())
-	}
-	meta, diags := earlydecoder.LoadModule("root", map[string]*hcl.File{
-		filename: f,
+func (meta *Meta) ResolveDependency(ctx context.Context, configs ConfigInfos) (ConfigInfos, error) {
+	client := meta.auth.NewResourceGroupClient()
+
+	exportOpt := "SkipAllParameterization"
+	future, err := client.ExportTemplate(ctx, meta.resourceGroup, resources.ExportTemplateRequest{
+		ResourcesProperty: &[]string{"*"},
+		Options:           &exportOpt,
 	})
-	if diags.HasErrors() {
-		return nil, fmt.Errorf("loading module: %s", diags.Error())
+	if err != nil {
+		return nil, fmt.Errorf("exporting arm template of resource group %s: %w", meta.resourceGroup, err)
 	}
-	return meta, nil
+
+	if err := future.WaitForCompletionRef(ctx, client.Client); err != nil {
+		return nil, fmt.Errorf("waiting for exporting arm template of resource group %s: %w", meta.resourceGroup, err)
+	}
+
+	result, err := future.Result(client)
+	if err != nil {
+		return nil, fmt.Errorf("getting the arm template of resource group %s: %w", meta.resourceGroup, err)
+	}
+
+	// The response has been read into the ".Template" field as an interface, and the reader has been drained.
+	// As we have defined some (useful) types for the arm template, so we will do a json marshal then unmarshal here
+	// to convert the ".Template" (interface{}) into that artificial type.
+	raw, err := json.Marshal(result.Template)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling the template: %w", err)
+	}
+	var tpl armtemplate.Template
+	if err := json.Unmarshal(raw, &tpl); err != nil {
+		return nil, fmt.Errorf("unmarshalling the template: %w", err)
+	}
+
+	depInfo := tpl.DependencyInfo(meta.resourceGroup)
+
+	configSet := map[armtemplate.ResourceId]ConfigInfo{}
+	for _, cfg := range configs {
+		armId, err := armtemplate.NewResourceId(cfg.ResourceID)
+		if err != nil {
+			return nil, fmt.Errorf("new arm tempalte resource id from azure resource id: %w", err)
+		}
+		configSet[*armId] = cfg
+	}
+
+	// Iterate each config to add dependency by querying the dependency info from arm template.
+	var out ConfigInfos
+	for armId, cfg := range configSet {
+		if armId == armtemplate.ResourceGroupId {
+			out = append(out, cfg)
+			continue
+		}
+		// This should never happen
+		if _, ok := depInfo[armId]; !ok {
+			return nil, fmt.Errorf("resource %q appeared in the list result of resource group %q, but didn't show up in the arm template", armId.ID(meta.subscriptionId, meta.resourceGroup), meta.resourceGroup)
+		}
+
+		meta.hclBlockAppendDependency(cfg.hcl.Body().Blocks()[0].Body(), depInfo[armId], configSet)
+		out = append(out, cfg)
+	}
+
+	for _, cfg := range out {
+		cfg.DumpHCL(os.Stdout)
+	}
+	return out, nil
+}
+
+func (meta *Meta) hclBlockAppendDependency(body *hclwrite.Body, armIds []armtemplate.ResourceId, cfgset map[armtemplate.ResourceId]ConfigInfo) error {
+	blk := hclwrite.NewBlock("lifecycle", nil)
+	dependencies := []string{}
+	for _, armid := range armIds {
+		cfg, ok := cfgset[armid]
+		if !ok {
+			dependencies = append(dependencies, fmt.Sprintf("# Depending on %q, but it is not imported by Terraform. Please fix it manually.", armid.ID(meta.subscriptionId, meta.resourceGroup)))
+			continue
+		}
+		dependencies = append(dependencies, cfg.TFAddr()+",")
+	}
+	if len(dependencies) > 0 {
+		src := []byte("depends_on = [\n" + strings.Join(dependencies, "\n") + "\n]")
+		expr, err := hclwrite.ParseConfig(src, "generate_depends_on", hcl.InitialPos)
+		if err != nil {
+			return fmt.Errorf(`building "depends_on" attribute: %w`, err)
+		}
+
+		blk.Body().SetAttributeRaw("depends_on", expr.BuildTokens(nil))
+		body.AppendBlock(blk)
+	}
+
+	return nil
 }
