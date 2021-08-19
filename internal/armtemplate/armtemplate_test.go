@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/magodo/tfy/internal/armtemplate"
+	"github.com/magodo/aztfy/internal/armtemplate"
 	"github.com/stretchr/testify/require"
 )
 

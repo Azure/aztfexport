@@ -1,4 +1,4 @@
-module github.com/magodo/tfy
+module github.com/magodo/aztfy
 
 go 1.16
 

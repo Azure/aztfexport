@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/magodo/tfy/internal/armtemplate"
+	"github.com/magodo/aztfy/internal/armtemplate"
 
 	"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2020-06-01/resources"
 	"github.com/hashicorp/go-version"
@@ -35,7 +35,7 @@ func NewMeta(ctx context.Context, rg string) (*Meta, error) {
 	}
 
 	// Initialize the workspace
-	rootDir := filepath.Join(cachedir, "tfy")
+	rootDir := filepath.Join(cachedir, "aztfy")
 	if err := os.MkdirAll(rootDir, 0755); err != nil {
 		return nil, fmt.Errorf("creating workspace root %q: %w", rootDir, err)
 	}

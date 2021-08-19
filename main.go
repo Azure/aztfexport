@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/magodo/tfy/internal"
+	"github.com/magodo/aztfy/internal"
 )
 
 func main() {
 	if len(os.Args) != 2 {
-		fmt.Fprintln(os.Stderr, `Usage: tfy <resource_group_name>`)
+		fmt.Fprintln(os.Stderr, `Usage: aztfy <resource_group_name>`)
 		os.Exit(1)
 	}
 
