@@ -43,5 +43,9 @@ func Run(ctx context.Context, rg string) error {
 		return err
 	}
 
+	if err := meta.GenerateConfig(configs); err != nil {
+		return err
+	}
+
 	return nil
 }
