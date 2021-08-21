@@ -88,6 +88,7 @@ func fromProviderSchemaAttribute(ps *schema.Schema) *SchemaAttribute {
 		Optional:      opt,
 		Required:      reqd,
 		Computed:      ps.Computed,
+		Default:       ps.Default,
 	}
 }
 
