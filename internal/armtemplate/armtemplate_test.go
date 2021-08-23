@@ -322,7 +322,7 @@ func TestDependencyInfo(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		require.Equal(t, c.expect, c.input.DependencyInfo("rg"), c.name)
+		require.Equal(t, c.expect, c.input.DependencyInfo(), c.name)
 	}
 }
 
@@ -373,6 +373,14 @@ func TestNewResourceId(t *testing.T) {
 			name:  "invalid subnet id",
 			input: "/subscriptions/1234/resourceGroups/rg1/providers/Microsoft.Network/virtualNetworks/vnet1/subnets",
 			error: true,
+		},
+		{
+			name:  "valid subnet id",
+			input: "/subscriptions/1234/resourcegroups/rg1/providers/Microsoft.Network/virtualNetworks/vnet1/subnets/subnet1",
+			expect: armtemplate.ResourceId{
+				Type: "Microsoft.Network/virtualNetworks/subnets",
+				Name: "vnet1/subnet1",
+			},
 		},
 	}
 

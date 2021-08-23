@@ -19,12 +19,11 @@ func Run(ctx context.Context, rg string) error {
 		return err
 	}
 
-	ids, err := meta.ListResources(ctx)
-	if err != nil {
+	if err := meta.ExportArmTemplate(ctx); err != nil {
 		return err
 	}
 
-	importList, err := meta.ResolveImportList(ctx, ids)
+	importList, err := meta.ResolveImportList(ctx)
 	if err != nil {
 		return err
 	}

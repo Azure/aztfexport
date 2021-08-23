@@ -58,8 +58,8 @@ func NewResourceId(id string) (*ResourceId, error) {
 	n := []string{}
 
 	for i := 0; i < len(segs); i += 2 {
-		t = append(t, segs[0])
-		n = append(n, segs[1])
+		t = append(t, segs[i])
+		n = append(n, segs[i+1])
 	}
 
 	return &ResourceId{
@@ -73,12 +73,12 @@ func (res ResourceId) ID(sub, rg string) string {
 	typeSegs := strings.Split(res.Type, "/")
 	nameSegs := strings.Split(res.Name, "/")
 
-	out := []string{"subscriptions", sub, "resourceGroups", rg}
-	if len(typeSegs) != 0 {
+	out := []string{"/subscriptions", sub, "resourceGroups", rg}
+	if len(typeSegs) != 1 {
 		if len(typeSegs)-1 != len(nameSegs) {
 			panic(fmt.Sprintf("The resource of type %q and name %q is not a valid identifier", res.Type, res.Name))
 		}
-		out = append(out, typeSegs[0])
+		out = append(out, "providers", typeSegs[0])
 		for i := 0; i < len(nameSegs); i++ {
 			out = append(out, typeSegs[i+1])
 			out = append(out, nameSegs[i])
@@ -125,7 +125,7 @@ func (deps *Dependencies) UnmarshalJSON(b []byte) error {
 
 type DependencyInfo map[ResourceId][]ResourceId
 
-func (tpl Template) DependencyInfo(rgName string) DependencyInfo {
+func (tpl Template) DependencyInfo() DependencyInfo {
 	s := map[ResourceId][]ResourceId{}
 	for _, res := range tpl.Resources {
 		if len(res.DependsOn) == 0 {

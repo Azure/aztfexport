@@ -27,6 +27,7 @@ type Meta struct {
 	workspace      string
 	tf             *tfexec.Terraform
 	auth           *Authorizer
+	armTemplate    armtemplate.Template
 }
 
 func NewMeta(ctx context.Context, rg string) (*Meta, error) {
@@ -112,39 +113,52 @@ func (meta *Meta) InitProvider(ctx context.Context) error {
 	return nil
 }
 
-func (meta *Meta) ListResources(ctx context.Context) ([]string, error) {
-	rgc := meta.auth.NewResourceGroupClient()
-	resp, err := rgc.Get(ctx, meta.resourceGroup)
+func (meta *Meta) ExportArmTemplate(ctx context.Context) error {
+	client := meta.auth.NewResourceGroupClient()
+
+	exportOpt := "SkipAllParameterization"
+	future, err := client.ExportTemplate(ctx, meta.resourceGroup, resources.ExportTemplateRequest{
+		ResourcesProperty: &[]string{"*"},
+		Options:           &exportOpt,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("getting resource group %q: %w", meta.resourceGroup, err)
-	}
-	if resp.ID == nil || *resp.ID == "" {
-		return nil, fmt.Errorf("unexpected nil/empty ID for resource group %q", meta.resourceGroup)
+		return fmt.Errorf("exporting arm template of resource group %s: %w", meta.resourceGroup, err)
 	}
 
-	ids := []string{*resp.ID}
+	if err := future.WaitForCompletionRef(ctx, client.Client); err != nil {
+		return fmt.Errorf("waiting for exporting arm template of resource group %s: %w", meta.resourceGroup, err)
+	}
 
-	// Retrieve the IDs of the embedded resources
-	rc := meta.auth.NewResourceClient()
-	results, err := rc.ListByResourceGroupComplete(ctx, meta.resourceGroup, "", "", nil)
+	result, err := future.Result(client)
 	if err != nil {
-		return nil, fmt.Errorf("listing resources in resource group %q: %w", meta.resourceGroup, err)
-	}
-	for results.NotDone() {
-		val := results.Value()
-		if val.ID != nil && *val.ID != "" {
-			ids = append(ids, *val.ID)
-		}
-
-		if err := results.NextWithContext(ctx); err != nil {
-			return nil, fmt.Errorf("retrieving next page of nested resources in resource group %q: %w", meta.resourceGroup, err)
-		}
+		return fmt.Errorf("getting the arm template of resource group %s: %w", meta.resourceGroup, err)
 	}
 
-	return ids, nil
+	// The response has been read into the ".Template" field as an interface, and the reader has been drained.
+	// As we have defined some (useful) types for the arm template, so we will do a json marshal then unmarshal here
+	// to convert the ".Template" (interface{}) into that artificial type.
+	raw, err := json.Marshal(result.Template)
+	if err != nil {
+		return fmt.Errorf("marshalling the template: %w", err)
+	}
+	if err := json.Unmarshal(raw, &meta.armTemplate); err != nil {
+		return fmt.Errorf("unmarshalling the template: %w", err)
+	}
+	return nil
 }
 
 type ImportList []ImportItem
+
+func (l ImportList) NonSkipped() ImportList {
+	var out ImportList
+	for _, item := range l {
+		if item.Skip {
+			continue
+		}
+		out = append(out, item)
+	}
+	return out
+}
 
 type ImportItem struct {
 	ResourceID     string
@@ -160,16 +174,19 @@ func (item *ImportItem) TFAddr() string {
 	return item.TFResourceType + "." + item.TFResourceName
 }
 
-func (meta *Meta) ResolveImportList(ctx context.Context, ids []string) (ImportList, error) {
-	if len(ids) == 0 {
-		return nil, nil
+func (meta *Meta) ResolveImportList(ctx context.Context) (ImportList, error) {
+	var ids []string
+	for _, res := range meta.armTemplate.Resources {
+		ids = append(ids, res.ID(meta.subscriptionId, meta.resourceGroup))
 	}
+	ids = append(ids, armtemplate.ResourceGroupId.ID(meta.subscriptionId, meta.resourceGroup))
 
 	// schema, err := meta.tf.ProvidersSchema(ctx)
 	// if err != nil {
 	// 	return nil, fmt.Errorf("getting provider schema: %w", err)
 	// }
 	// tfResourceMap := schema.Schemas["registry.terraform.io/hashicorp/azurerm"].ResourceSchemas
+
 	tfResourceMap := schema.ProviderSchemaInfo.ResourceSchemas
 
 	var list ImportList
@@ -228,11 +245,9 @@ func (meta *Meta) Import(ctx context.Context, list ImportList) error {
 	// Generate a temp Terraform config to include the empty template for each resource.
 	// This is required for the following importing.
 	cfgFile := filepath.Join(meta.workspace, "main.tf")
+
 	var tpls []string
-	for _, item := range list {
-		if item.Skip {
-			continue
-		}
+	for _, item := range list.NonSkipped() {
 		tpl, err := meta.tf.Add(ctx, item.TFAddr())
 		if err != nil {
 			return fmt.Errorf("generating resource template for %s: %w", item.TFAddr(), err)
@@ -248,11 +263,8 @@ func (meta *Meta) Import(ctx context.Context, list ImportList) error {
 	defer os.Remove(cfgFile)
 
 	// Import resources
-	for idx, item := range list {
-		if item.Skip {
-			continue
-		}
-		fmt.Printf("[%d/%d] Importing %q as %s\n", idx+1, len(list), item.ResourceID, item.TFAddr())
+	for idx, item := range list.NonSkipped() {
+		fmt.Printf("[%d/%d] Importing %q as %s\n", idx+1, len(list.NonSkipped()), item.ResourceID, item.TFAddr())
 		if err := meta.tf.Import(ctx, item.TFAddr(), item.ResourceID); err != nil {
 			return err
 		}
@@ -274,7 +286,8 @@ func (cfg ConfigInfo) DumpHCL(w io.Writer) (int, error) {
 
 func (meta *Meta) StateToConfig(ctx context.Context, list ImportList) (ConfigInfos, error) {
 	out := ConfigInfos{}
-	for _, item := range list {
+
+	for _, item := range list.NonSkipped() {
 		if item.Skip {
 			continue
 		}
@@ -301,39 +314,7 @@ func (meta *Meta) StateToConfig(ctx context.Context, list ImportList) (ConfigInf
 }
 
 func (meta *Meta) ResolveDependency(ctx context.Context, configs ConfigInfos) (ConfigInfos, error) {
-	client := meta.auth.NewResourceGroupClient()
-
-	exportOpt := "SkipAllParameterization"
-	future, err := client.ExportTemplate(ctx, meta.resourceGroup, resources.ExportTemplateRequest{
-		ResourcesProperty: &[]string{"*"},
-		Options:           &exportOpt,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("exporting arm template of resource group %s: %w", meta.resourceGroup, err)
-	}
-
-	if err := future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return nil, fmt.Errorf("waiting for exporting arm template of resource group %s: %w", meta.resourceGroup, err)
-	}
-
-	result, err := future.Result(client)
-	if err != nil {
-		return nil, fmt.Errorf("getting the arm template of resource group %s: %w", meta.resourceGroup, err)
-	}
-
-	// The response has been read into the ".Template" field as an interface, and the reader has been drained.
-	// As we have defined some (useful) types for the arm template, so we will do a json marshal then unmarshal here
-	// to convert the ".Template" (interface{}) into that artificial type.
-	raw, err := json.Marshal(result.Template)
-	if err != nil {
-		return nil, fmt.Errorf("marshalling the template: %w", err)
-	}
-	var tpl armtemplate.Template
-	if err := json.Unmarshal(raw, &tpl); err != nil {
-		return nil, fmt.Errorf("unmarshalling the template: %w", err)
-	}
-
-	depInfo := tpl.DependencyInfo(meta.resourceGroup)
+	depInfo := meta.armTemplate.DependencyInfo()
 
 	configSet := map[armtemplate.ResourceId]ConfigInfo{}
 	for _, cfg := range configs {
@@ -353,7 +334,7 @@ func (meta *Meta) ResolveDependency(ctx context.Context, configs ConfigInfos) (C
 		}
 		// This should never happen
 		if _, ok := depInfo[armId]; !ok {
-			return nil, fmt.Errorf("resource %q appeared in the list result of resource group %q, but didn't show up in the arm template", armId.ID(meta.subscriptionId, meta.resourceGroup), meta.resourceGroup)
+			return nil, fmt.Errorf("can't find resource %q in the arm template", armId.ID(meta.subscriptionId, meta.resourceGroup))
 		}
 
 		meta.hclBlockAppendDependency(cfg.hcl.Body().Blocks()[0].Body(), depInfo[armId], configSet)
