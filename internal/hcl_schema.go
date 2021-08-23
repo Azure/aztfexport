@@ -3,6 +3,7 @@ package internal
 import (
 	"fmt"
 	"github.com/hashicorp/hcl/v2"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2/hclwrite"
@@ -16,9 +17,11 @@ import (
 func tuneHCLSchemaForResource(rb *hclwrite.Body, sch *schema.Schema) error {
 	rb.RemoveAttribute("id")
 	rb.RemoveBlock(rb.FirstMatchingBlock("timeouts", nil))
-	return removeComputedForBody(rb, sch.Block)
+
+	return tuneForBlock(rb, sch.Block, nil)
 }
-func removeComputedForBody(rb *hclwrite.Body, sch *schema.SchemaBlock) error {
+
+func tuneForBlock(rb *hclwrite.Body, sch *schema.SchemaBlock, parentAttrNames []string) error {
 	for attrName, attrVal := range rb.Attributes() {
 		schAttr := sch.Attributes[attrName]
 		if schAttr.Required {
@@ -26,8 +29,23 @@ func removeComputedForBody(rb *hclwrite.Body, sch *schema.SchemaBlock) error {
 		}
 
 		if schAttr.Computed {
-			rb.RemoveAttribute(attrName)
-			continue
+			// Especially, we will keep O+C attribute who has "ExactlyOneOf" constraint, but only keep one.
+			// The one got picked is the first one in alphabetic order.
+			// TODO: We should tackle more cases for different kinds of constraints.
+			if schAttr.Optional && len(schAttr.ExactlyOneOf) != 0 {
+				l := make([]string, len(schAttr.ExactlyOneOf))
+				copy(l, schAttr.ExactlyOneOf)
+				sort.Strings(l)
+
+				addrs := append(parentAttrNames, attrName)
+				if l[0] != strings.Join(addrs, ".0.") {
+					rb.RemoveAttribute(attrName)
+					continue
+				}
+			} else {
+				rb.RemoveAttribute(attrName)
+				continue
+			}
 		}
 
 		// For optional only attributes, remove it from the output config if it holds the default value
@@ -68,7 +86,9 @@ func removeComputedForBody(rb *hclwrite.Body, sch *schema.SchemaBlock) error {
 			rb.RemoveBlock(blkVal)
 			continue
 		}
-		removeComputedForBody(blkVal.Body(), sch.NestedBlocks[blkVal.Type()].Block)
+		if err := tuneForBlock(blkVal.Body(), sch.NestedBlocks[blkVal.Type()].Block, append(parentAttrNames, blkVal.Type())); err != nil {
+			return err
+		}
 	}
 	return nil
 }

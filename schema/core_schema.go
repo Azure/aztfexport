@@ -89,6 +89,11 @@ func fromProviderSchemaAttribute(ps *schema.Schema) *SchemaAttribute {
 		Required:      reqd,
 		Computed:      ps.Computed,
 		Default:       ps.Default,
+
+		ConflictsWith: ps.ConflictsWith,
+		ExactlyOneOf:  ps.ExactlyOneOf,
+		AtLeastOneOf:  ps.AtLeastOneOf,
+		RequiredWith:  ps.RequiredWith,
 	}
 }
 
@@ -97,6 +102,11 @@ func fromProviderSchemaBlock(ps *schema.Schema) *SchemaBlockType {
 		Required: ps.Required,
 		Optional: ps.Optional,
 		Computed: ps.Computed,
+
+		ConflictsWith: ps.ConflictsWith,
+		ExactlyOneOf:  ps.ExactlyOneOf,
+		AtLeastOneOf:  ps.AtLeastOneOf,
+		RequiredWith:  ps.RequiredWith,
 	}
 
 	if nested := fromProviderResource(ps.Elem.(*schema.Resource)); nested != nil {
