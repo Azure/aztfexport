@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -19,7 +20,7 @@ func FindTerraform(ctx context.Context, tfDir string, minVersion *version.Versio
 
 	opts := []tfinstall.ExecPathFinder{
 		tfinstall.LookPath(),
-		tfinstall.ExactPath(tfDir),
+		tfinstall.ExactPath(filepath.Join(tfDir, "terraform")),
 		tfinstall.ExactVersion(minVersion.String(), tfDir),
 	}
 
