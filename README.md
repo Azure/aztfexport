@@ -1,6 +1,6 @@
 ## Azure Terrafy
 
-A tool to bring your existing Azure resources into the management of Terraform.
+A tool to bring your existing Azure resources under the management of Terraform.
 
 ## Install
 
