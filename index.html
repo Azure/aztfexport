@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Title</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body { font-family: 'Droid Serif'; }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: normal;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+      blockquote {
+        border-left: 0.3em solid #ccc;
+        padding: 0 15px;
+        font-style: italic;
+        color: #ccc;
+        quotes: "\201C""\201D""\2018""\2019";
+      }
+      a, a > code {
+        color: rgb(249, 38, 114);
+        text-decoration: none;
+      }
+      .inverse {
+        background: #272822;
+        color: #777872;
+        text-shadow: 0 0 20px #333;
+      }
+      .inverse h1, .inverse h2 {
+        color: #f3f3f3;
+        line-height: 0.8em;
+      }
+      img {
+		max-width:100%;
+	  }
+      /* Two-column layout */
+      .left-column {
+        color: #777;
+        width: 20%;
+        height: 92%;
+        float: left;
+      }
+        .left-column h2:last-of-type, .left-column h3:last-child {
+          color: #000;
+        }
+      .right-column {
+        width: 75%;
+        float: right;
+        padding-top: 1em;
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+layout: true
+class: center, middle, inverse
+
+---
+
+# Azure Terrafy
+
+*A tool brings existing Azure resources under the management of [Terraform](https://terraform.io/)*
+
+---
+
+## Terraform Intro
+
+---
+
+layout: false
+.left-column[
+    ## Terraform Intro   
+### - Typical Workflow
+]
+.right-column[
+An open-source infrastructure as code software tool that provides a consistent CLI workflow to manage hundreds of cloud services. Terraform codifies cloud APIs into declarative configuration files.
+]
+
+--
+
+.right-column[![workflow](https://learn.hashicorp.com/img/terraform/terraform-workflow-diagram.png)
+]
+
+---
+
+.left-column[
+    ## Terraform Intro   
+### - Typical Workflow
+### - Import
+]
+.right-column[
+`terraofrm import` imports an existing resource into your Terraform state. While it **DOES NOT** generate the Terraform configuration to manage the infrastructure.
+]
+
+--
+
+.right-column[![import](https://learn.hashicorp.com/img/terraform/terraform-import-workflow-diagram.png)]
+
+--
+
+.right-column[
+1. Identify the existing infrastructure to be imported (manual)
+2. Import infrastructure into your Terraform state (`terraform import`)
+3. Write Terraform configuration that matches the infrastructure (mannual)
+4. Review the Terraform plan to ensure the configuration matches state of the infrastructure (manual)
+]
+
+---
+
+layout: true
+class: center, middle, inverse
+
+---
+
+# Azure Terrafy
+
+---
+
+layout: false
+
+.left-column[
+    ## Azure Terrafy
+]
+
+
+.right-column[
+A tool to bring your existing Azure resources under the management of Terraform.
+]
+
+---
+
+.left-column[
+    ## Azure Terrafy
+### - Workflow
+]
+
+.right-column[
+Steps:
+
+1. Run `aztfy <resource group name>` from command line
+2. `aztfy` *automatically* identify existing resources reside in the resource group
+3. `aztfy` asks the user to input the Terraform resource identifier for each Azure resource (manual now, but can improve)
+4. `aztfy` *automatically* import each resource to the state, and convert the state to a **valid** terraform configuration
+]
+
+--
+
+.right-column[
+Users then go on taking the generated Terraform *state* and the *configuration* to manage the infrastructures.
+]
+
+---
+
+.left-column[
+    ## Azure Terrafy
+### - Workflow
+### - Demo
+]
+
+.right-column[![demo](https://camo.githubusercontent.com/2b507540e2681c1a25698f246b9dca69c30548ed66a7323075b0224cbb1bf058/68747470733a2f2f676f6c616e672e6f72672f646f632f676f706865722f6669766579656172732e6a7067) .center[*Gopher image by Renee French*]]
+
+    </textarea>
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    <script>
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
