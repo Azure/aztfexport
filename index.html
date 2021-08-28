@@ -1,60 +1,87 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Title</title>
-    <meta charset="utf-8">
-    <style>
-      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
-      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
-      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
 
-      body { font-family: 'Droid Serif'; }
-      h1, h2, h3 {
-        font-family: 'Yanone Kaffeesatz';
-        font-weight: normal;
-      }
-      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
-      blockquote {
-        border-left: 0.3em solid #ccc;
-        padding: 0 15px;
-        font-style: italic;
-        color: #ccc;
-        quotes: "\201C""\201D""\2018""\2019";
-      }
-      a, a > code {
-        color: rgb(249, 38, 114);
-        text-decoration: none;
-      }
-      .inverse {
-        background: #272822;
-        color: #777872;
-        text-shadow: 0 0 20px #333;
-      }
-      .inverse h1, .inverse h2 {
-        color: #f3f3f3;
-        line-height: 0.8em;
-      }
-      img {
-		max-width:100%;
-	  }
-      /* Two-column layout */
-      .left-column {
-        color: #777;
-        width: 20%;
-        height: 92%;
-        float: left;
-      }
-        .left-column h2:last-of-type, .left-column h3:last-child {
-          color: #000;
-        }
-      .right-column {
-        width: 75%;
-        float: right;
-        padding-top: 1em;
-    </style>
-  </head>
-  <body>
-    <textarea id="source">
+<head>
+  <title>Title</title>
+  <meta charset="utf-8">
+  <style>
+    @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+    @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+    @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+    body {
+      font-family: 'Droid Serif';
+    }
+
+    h1,
+    h2,
+    h3 {
+      font-family: 'Yanone Kaffeesatz';
+      font-weight: normal;
+    }
+
+    .remark-code,
+    .remark-inline-code {
+      font-family: 'Ubuntu Mono';
+      color: hotpink;
+    }
+
+    blockquote {
+      border-left: 0.3em solid #ccc;
+      padding: 0 15px;
+      font-style: italic;
+      color: #ccc;
+      quotes: "\201C""\201D""\2018""\2019";
+    }
+
+    a,
+    a>code {
+      color: rgb(249, 38, 114);
+      text-decoration: none;
+    }
+
+    .inverse {
+      background: #272822;
+      color: #777872;
+      text-shadow: 0 0 20px #333;
+    }
+
+    .inverse h1,
+    .inverse h2 {
+      color: #f3f3f3;
+      line-height: 0.8em;
+    }
+
+    img {
+      max-width: 100%;
+    }
+
+    /* Two-column layout */
+    .left-column {
+      color: #777;
+      width: 25%;
+      height: 92%;
+      float: left;
+    }
+
+    .left-column h2:last-of-type,
+    .left-column h3:last-child {
+      color: #000;
+    }
+
+    .right-column {
+      width: 70%;
+      float: right;
+    }
+
+    .red {
+      color: crimson;
+    }
+  </style>
+</head>
+
+<body>
+  <textarea id="source">
 
 layout: true
 class: center, middle, inverse
@@ -77,12 +104,17 @@ layout: false
 ### - Typical Workflow
 ]
 .right-column[
-An open-source infrastructure as code software tool that provides a consistent CLI workflow to manage hundreds of cloud services. Terraform codifies cloud APIs into declarative configuration files.
+### Intro
+
+An open-source infrastructure as code software tool that provides a consistent CLI workflow to manage hundreds of cloud services.
 ]
 
 --
 
-.right-column[![workflow](https://learn.hashicorp.com/img/terraform/terraform-workflow-diagram.png)
+.right-column[
+#### Typical Workflow
+
+![workflow](https://learn.hashicorp.com/img/terraform/terraform-workflow-diagram.png)
 ]
 
 ---
@@ -93,12 +125,16 @@ An open-source infrastructure as code software tool that provides a consistent C
 ### - Import
 ]
 .right-column[
+### Import
+
 `terraofrm import` imports an existing resource into your Terraform state. While it **DOES NOT** generate the Terraform configuration to manage the infrastructure.
 ]
 
 --
 
-.right-column[![import](https://learn.hashicorp.com/img/terraform/terraform-import-workflow-diagram.png)]
+.right-column[
+![import](https://learn.hashicorp.com/img/terraform/terraform-import-workflow-diagram.png)
+]
 
 --
 
@@ -106,9 +142,359 @@ An open-source infrastructure as code software tool that provides a consistent C
 1. Identify the existing infrastructure to be imported (manual)
 2. Import infrastructure into your Terraform state (`terraform import`)
 3. Write Terraform configuration that matches the infrastructure (mannual)
-4. Review the Terraform plan to ensure the configuration matches state of the infrastructure (manual)
+4. Review the Terraform plan to ensure the configuration matches state of the infra (manual)
 ]
 
+---
+
+layout: true
+class: center, middle, inverse
+
+---
+
+# Requirement
+
+---
+
+layout: false
+
+.left-column[
+    ## Requirement
+]
+
+--
+
+.right-column[
+### Goals
+
+* Automatically identify resources to be imported
+* Automatically generate the Terraform state file
+* Automatically generate the **valid** Terraform configuration file:
+  * Pins version on the provider under used
+  * The resource should match its state in the remote platform (verified via `terraform plan`)
+  * Defines the cross resource dependencies
+* Up-to-date support to the provider 
+]
+
+--
+
+.right-column[
+### Non Goals
+
+* Infrastructure 100% reproducible via the generated configuration (due to feature gaps between the provider and the platform)
+* Configuration files do not need to be elegent (e.g. `for_each`, implicit dependencies, etc.)
+* Modules do not need to be generated
+]
+
+
+---
+
+layout: true
+class: center, middle, inverse
+
+---
+
+# Exist Tools
+
+---
+
+layout: false
+
+.left-column[
+    ## Exist Tools
+### - Overview
+]
+
+
+.right-column[
+### Overview
+
+A bunch of existing tools in the community:
+
+- Terraform Team
+  - Terraform v1.1+ (currently in alpha)
+  - apparentlymart/terrafy (experimental purpose)
+
+- 3rd Party
+  - dtan4/terraforming
+  - GoogleCloudPlatform/terraformer
+  - cycloidio/terracognita
+]
+
+---
+.left-column[
+    ## Exist Tools
+### - Overview
+### - Terraform Team
+]
+
+
+.right-column[
+### Terraform v1.1+
+
+A new command `terraform add` is introduced in version: `v1.1.0-alpha20210811`
+]
+
+--
+
+.right-column[
+
+```hcl
+» terraform add random_pet.meow 
+resource "random_pet" "meow" {
+}
+
+» terraform add -optional random_pet.meow
+resource "random_pet" "meow" {
+  keepers   = null
+  length    = 3
+  prefix    = "add"
+  separator = "-"
+}
+
+» terraform add -from-state=random_pet.example random_pet.meow
+resource "random_pet" "meow" {
+  id        = "add-vigorously-refined-doe"
+  keepers   = null
+  length    = 3
+  prefix    = "add"
+  separator = "-"
+}
+```
+]
+
+---
+
+.left-column[
+    ## Exist Tools
+### - Overview
+### - Terraform Team
+]
+
+.right-column[
+### Terraform v1.1+
+
+Limitations:
+
+- One resource only, i.e. no cross resource dependencies
+- The generated configuration not guarantee to be valid, but as a starting point
+]
+
+---
+
+.left-column[
+    ## Exist Tools
+### - Overview
+### - Terraform Team
+]
+
+.right-column[
+### Terrafy (@apparentlymart)
+]
+
+--
+
+.right-column[
+> ...
+> I wrote it primarily to explore the problem space of implementing these features generically using the current provider featureset
+> ...
+]
+
+---
+
+.left-column[
+    ## Exist Tools
+### - Overview
+### - Terraform Team
+]
+
+.right-column[
+### Terrafy (@apparentlymart)
+
+```hcl
+# main.tfy
+
+data "aws_instances" "existing" {
+  instance_tags = {
+    Subsystem   = "renderer"
+    Environment = "production"
+  }
+}
+
+import "aws_instance" "example" {
+  id = tolist(data.aws_instances.existing.ids)
+}
+```
+
+Workflow:
+
+1. Write **.tfy** files
+2. `terrafy` imports the resources
+3. `terrafy` converts the state to configuration
+]
+
+---
+
+.left-column[
+    ## Exist Tools
+### - Overview
+### - Terraform Team
+]
+
+.right-column[
+### Terrafy (@apparentlymart)
+
+Limitations:
+
+- The users need terraform background to write the **.tfy** files
+- The users need to identify the resources to import
+- The generated configuration not guarantee to be valid
+- No cross resource dependencies
+]
+
+---
+
+.left-column[
+    ## Exist Tools
+### - Overview
+### - Terraform Team
+### - 3rd Party
+]
+
+.right-column[
+### dtan4/terraforming
+
+![terraforming](https://img.shields.io/github/stars/dtan4/terraforming)
+
+Template based implementation.
+
+Terraforming gets all attributes from cloud APIs and creates HCL and tfstate files with templating.
+]
+
+--
+.right-column[
+Limitations:
+
+- AWS only
+- Not scalable: When a provider adds new attributes the terraforming code needs to be updated
+- Invalid configuration/state: Generated files from templating can be broken with illegal syntax
+- Not actively maintained (last commit is on 2019)
+]
+
+---
+
+.left-column[
+    ## Exist Tools
+### - Overview
+### - Terraform Team
+### - 3rd Party
+]
+
+.right-column[
+### GoogleCloudPlatform/terraformer
+
+![terraformer](https://img.shields.io/github/stars/GoogleCloudPlatform/terraformer)
+
+Terraformer uses Terraform providers and is designed to easily support newly added resources.
+
+Terraformer supports major clouds.
+
+Workflow:
+
+1. Users specify the resources to import (either one by one, or by specifying a scope, with some filter capabilities)
+2. `terraformer` imports the resources into state
+3. `terraformer` converts the state into configuration based on the *provider schema* (`terraform providers schema`)
+4. Add cross resource dependencies into the configuration
+]
+
+---
+
+.left-column[
+    ## Exist Tools
+### - Overview
+### - Terraform Team
+### - 3rd Party
+]
+
+.right-column[
+### GoogleCloudPlatform/terraformer
+
+![terraformer](https://img.shields.io/github/stars/GoogleCloudPlatform/terraformer)
+
+Limitations:
+
+- Manual code needed to support a new resource. i.e., users can only import the supported resources by terraformer, even though it is supported by the provider
+- The generated configuration is not guaranteed to be **valid**
+- The cross resource dependencies needs to manually maintain per resource, per provider. This is also not reliable and might be incorrect (see issue: [#587](https://github.com/GoogleCloudPlatform/terraformer/issues/587))
+]
+
+---
+
+.left-column[
+    ## Exist Tools
+### - Overview
+### - Terraform Team
+### - 3rd Party
+]
+
+.right-column[
+### cycloidio/terracognita
+
+![terracognita](https://img.shields.io/github/stars/cycloidio/terracognita)
+
+Almost the same as `terraformer`
+
+> About Terraformer, it almost does the same things than what we did and globally the same way. We already started to work on our project (Terracognita) when they published their own/we heard about it.
+
+*From one of the developer in this [reddit comment](https://www.reddit.com/r/Terraform/comments/c4jhy7/cycloid_opensource_terracognita_project/erxi21f/)*
+]
+
+---
+
+.left-column[
+    ## Exist Tools
+### - Overview
+### - Terraform Team
+### - 3rd Party
+### - Summary
+]
+
+.right-column[
+### Requirement (review)
+
+* Automatically identify resources to be imported
+* Automatically generate the Terraform state file
+* Automatically generate the **valid** Terraform configuration file
+* Up-to-date support to the provider 
+]
+
+---
+
+.left-column[
+    ## Exist Tools
+### - Overview
+### - Terraform Team
+### - 3rd Party
+### - Summary
+]
+
+.right-column[
+### Requirement (review)
+
+* Automatically identify resources to be imported
+* Automatically generate the Terraform state file
+* .red[Automatically generate the **valid** Terraform configuration file]
+* .red[Up-to-date support to the provider]
+]
+
+--
+
+.right-column[
+### Reason
+
+- The conversion from state to configuration doesn't have enough knowledge
+- Manual support for each resource
+]
 ---
 
 layout: true
@@ -124,22 +510,20 @@ layout: false
 
 .left-column[
     ## Azure Terrafy
+### - Intro
 ]
 
-
 .right-column[
+
+### Intro
+
 A tool to bring your existing Azure resources under the management of Terraform.
 ]
 
----
-
-.left-column[
-    ## Azure Terrafy
-### - Workflow
-]
-
+--
 .right-column[
-Steps:
+
+Workflow:
 
 1. Run `aztfy <resource group name>` from command line
 2. `aztfy` *automatically* identify existing resources reside in the resource group
@@ -147,27 +531,100 @@ Steps:
 4. `aztfy` *automatically* import each resource to the state, and convert the state to a **valid** terraform configuration
 ]
 
+---
+
+.left-column[
+    ## Azure Terrafy
+### - Intro
+### - Deep Dive
+]
+
+.right-column[
+### Provider Schema
+
+![arch](https://www.terraform.io/docs/plugin/images/terraform-plugin-overview-d42962f7.png)
+]
+
 --
 
 .right-column[
-Users then go on taking the generated Terraform *state* and the *configuration* to manage the infrastructures.
+**Terraform Core*** has a definition for the provider schema (go package: `hashicorp/terraform-json`). This is what you got via `terraform providers schema`.
+]
+
+--
+
+.right-column[
+**Provider** has a similar definition for the provider schema (go package: `hashicorp/hashicorp-plugin-sdk/v2`)
+]
+--
+
+.right-column[
+**Terraform Core** Schema
+<span>
+  &sub;
+</span>
+**Provider** Schema
+]
+---
+
+.left-column[
+    ## Azure Terrafy
+### - Intro
+### - Deep Dive
+]
+
+.right-column[
+### ARM Template
+]
+
+--
+.right-column[
+**A**zure **R**esource **M**anagement Template is the Azure specific IaC toolset.
+
+![arm](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/media/overview/template-processing.png)
+]
+
+--
+
+.right-column[
+Why using ARM template?
+
+- Listing resources inside a resource group, flattening the resource hierarchy
+- Retrieve cross resource dependencies
 ]
 
 ---
 
 .left-column[
     ## Azure Terrafy
-### - Workflow
+### - Intro
+### - Deep Dive
 ### - Demo
 ]
 
-.right-column[![demo](https://camo.githubusercontent.com/2b507540e2681c1a25698f246b9dca69c30548ed66a7323075b0224cbb1bf058/68747470733a2f2f676f6c616e672e6f72672f646f632f676f706865722f6669766579656172732e6a7067) .center[*Gopher image by Renee French*]]
+.right-column[
+### Demo
+
+![demo](https://camo.githubusercontent.com/2b507540e2681c1a25698f246b9dca69c30548ed66a7323075b0224cbb1bf058/68747470733a2f2f676f6c616e672e6f72672f646f632f676f706865722f6669766579656172732e6a7067) .center[*Gopher image by Renee French*]
+]
+
+---
+
+layout: true
+class: center, middle, inverse
+
+---
+
+# Enjoy
 
     </textarea>
-    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
-    </script>
-    <script>
-      var slideshow = remark.create();
-    </script>
-  </body>
+  <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+  </script>
+  <script>
+    var slideshow = remark.create({
+      highlightStyle: 'monokai',
+    });
+  </script>
+</body>
+
 </html>
