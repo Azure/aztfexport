@@ -5,15 +5,10 @@ jobs:
     name: test
     runs-on: ubuntu-latest
     steps:
-      - name: Setup env
-        run: |
-          echo "::set-env name=GOPATH::$HOME/go"
-          echo "::set-env name=PATH::$PATH:$HOME/go/bin"
       - name: Set up Go
         uses: actions/setup-go@v1
         with:
           go-version: 1.17
-        id: go
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
@@ -25,15 +20,10 @@ jobs:
     name: depscheck
     runs-on: ubuntu-latest
     steps:
-      - name: Setup env
-        run: |
-          echo "::set-env name=GOPATH::$HOME/go"
-          echo "::set-env name=PATH::$PATH:$HOME/go/bin"
       - name: Set up Go
         uses: actions/setup-go@v1
         with:
           go-version: 1.17
-        id: go
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
