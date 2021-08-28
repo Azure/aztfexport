@@ -8,7 +8,6 @@ import (
 	"flag"
 
 	"github.com/magodo/aztfy/internal"
-	"github.com/magodo/aztfy/internal/version"
 )
 
 var (
@@ -30,7 +29,7 @@ func main() {
 	flag.Parse()
 
 	if *flagVersion {
-		fmt.Println(version.GetVersion())
+		fmt.Println(getVersion())
 		os.Exit(0)
 	}
 
