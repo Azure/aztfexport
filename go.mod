@@ -13,5 +13,6 @@ require (
 	github.com/hashicorp/terraform-exec v0.14.1-0.20210812105923-7fa6ba66697a
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.7.0
 	github.com/stretchr/testify v1.7.0
+	github.com/urfave/cli/v2 v2.3.0 // indirect
 	github.com/zclconf/go-cty v1.9.0
 )
