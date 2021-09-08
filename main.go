@@ -15,7 +15,7 @@ var (
 )
 
 func init() {
-	flagVersion = flag.Bool("v", false, "print version")
+	flagVersion = flag.Bool("v", false, "Print version")
 }
 
 const usage = `aztfy [option] <resource group name>

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/magodo/aztfy/internal/armtemplate"
 	"github.com/magodo/aztfy/schema"
 
@@ -147,7 +148,17 @@ func (meta *Meta) ExportArmTemplate(ctx context.Context) error {
 	if err := json.Unmarshal(raw, &meta.armTemplate); err != nil {
 		return fmt.Errorf("unmarshalling the template: %w", err)
 	}
+
 	return nil
+}
+
+func (meta *Meta) ListAzureResourceIDs() []string {
+	var ids []string
+	for _, res := range meta.armTemplate.Resources {
+		ids = append(ids, res.ID(meta.subscriptionId, meta.resourceGroup))
+	}
+	ids = append(ids, armtemplate.ResourceGroupId.ID(meta.subscriptionId, meta.resourceGroup))
+	return ids
 }
 
 type ImportList []ImportItem
@@ -163,10 +174,42 @@ func (l ImportList) NonSkipped() ImportList {
 	return out
 }
 
+func (l ImportList) ImportErrored() ImportList {
+	var out ImportList
+	for _, item := range l {
+		if item.ImportError == nil {
+			continue
+		}
+		out = append(out, item)
+	}
+	return out
+}
+
+func (l ImportList) Imported() ImportList {
+	var out ImportList
+	for _, item := range l.NonSkipped() {
+		if item.ImportError != nil {
+			continue
+		}
+		out = append(out, item)
+	}
+	return out
+}
+
 type ImportItem struct {
-	ResourceID     string
-	Skip           bool
+	// The azure resource id
+	ResourceID string
+
+	// Wether this azure resource should be skipped from importing
+	Skip bool
+
+	// Whether this azure resource failed to import into terraform (this might due to the TFResourceType doesn't match the resource)
+	ImportError error
+
+	// The terraform resource type
 	TFResourceType string
+
+	// The terraform resource name
 	TFResourceName string
 }
 
@@ -177,12 +220,7 @@ func (item *ImportItem) TFAddr() string {
 	return item.TFResourceType + "." + item.TFResourceName
 }
 
-func (meta *Meta) ResolveImportList(ctx context.Context) (ImportList, error) {
-	var ids []string
-	for _, res := range meta.armTemplate.Resources {
-		ids = append(ids, res.ID(meta.subscriptionId, meta.resourceGroup))
-	}
-	ids = append(ids, armtemplate.ResourceGroupId.ID(meta.subscriptionId, meta.resourceGroup))
+func (meta *Meta) ResolveImportList(ids []string, ctx context.Context) (ImportList, error) {
 
 	// schema, err := meta.tf.ProvidersSchema(ctx)
 	// if err != nil {
@@ -196,7 +234,7 @@ func (meta *Meta) ResolveImportList(ctx context.Context) (ImportList, error) {
 	// userResourceMap is used to track the resource types and resource names that are specified by users.
 	userResourceMap := map[string]map[string]bool{}
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Println(`Please input the Terraform resource type and name for each Azure resource in form of "<resource type>.<resource name>. Press enter with no input will skip importing that resource.`)
+	color.Cyan("\nPlease input either the Terraform resource type and name in the form of \"<resource type>.<resource name>\", or simply enter to skip\n")
 	for idx, id := range ids {
 		item := ImportItem{
 			ResourceID: id,
@@ -244,7 +282,13 @@ func (meta *Meta) ResolveImportList(ctx context.Context) (ImportList, error) {
 	return list, nil
 }
 
-func (meta *Meta) Import(ctx context.Context, list ImportList) error {
+func (meta *Meta) Import(ctx context.Context, list ImportList) (ImportList, error) {
+	if len(list.NonSkipped()) == 0 {
+		return nil, nil
+	}
+
+	color.Cyan("\nImport Azure Resources\n")
+
 	// Generate a temp Terraform config to include the empty template for each resource.
 	// This is required for the following importing.
 	cfgFile := filepath.Join(meta.workspace, "main.tf")
@@ -253,12 +297,12 @@ func (meta *Meta) Import(ctx context.Context, list ImportList) error {
 	for _, item := range list.NonSkipped() {
 		tpl, err := meta.tf.Add(ctx, item.TFAddr())
 		if err != nil {
-			return fmt.Errorf("generating resource template for %s: %w", item.TFAddr(), err)
+			return nil, fmt.Errorf("generating resource template for %s: %w", item.TFAddr(), err)
 		}
 		tpls = append(tpls, tpl)
 	}
 	if err := os.WriteFile(cfgFile, []byte(strings.Join(tpls, "\n")), 0644); err != nil {
-		return fmt.Errorf("generating resource template cfgFile file: %w", err)
+		return nil, fmt.Errorf("generating resource template cfgFile file: %w", err)
 	}
 	// Remove the temp Terraform config once resources are imported.
 	// This is due to the fact that "terraform add" will complain the resource to be added already exist in the config, even we are outputting to stdout.
@@ -266,14 +310,26 @@ func (meta *Meta) Import(ctx context.Context, list ImportList) error {
 	defer os.Remove(cfgFile)
 
 	// Import resources
+	out := ImportList{}
 	for idx, item := range list.NonSkipped() {
-		fmt.Printf("[%d/%d] Importing %q as %s\n", idx+1, len(list.NonSkipped()), item.ResourceID, item.TFAddr())
-		if err := meta.tf.Import(ctx, item.TFAddr(), item.ResourceID); err != nil {
-			return err
+		fmt.Printf("[%d/%d] Importing %q as %s...\n", idx+1, len(list.NonSkipped()), item.ResourceID, item.TFAddr())
+		err := meta.tf.Import(ctx, item.TFAddr(), item.ResourceID)
+		if err != nil {
+			emsg := []string{}
+			for _, el := range strings.Split(err.Error(), "\n") {
+				el := strings.TrimSpace(el)
+				if el == "" {
+					continue
+				}
+				emsg = append(emsg, "\t"+el)
+			}
+			color.Red(strings.Join(emsg, "\n"))
 		}
+		item.ImportError = err
+		out = append(out, item)
 	}
 
-	return nil
+	return out, nil
 }
 
 type ConfigInfos []ConfigInfo
@@ -290,10 +346,7 @@ func (cfg ConfigInfo) DumpHCL(w io.Writer) (int, error) {
 func (meta *Meta) StateToConfig(ctx context.Context, list ImportList) (ConfigInfos, error) {
 	out := ConfigInfos{}
 
-	for _, item := range list.NonSkipped() {
-		if item.Skip {
-			continue
-		}
+	for _, item := range list.Imported() {
 		tpl, err := meta.tf.Add(ctx, item.TFAddr(), tfexec.FromState(true))
 		if err != nil {
 			return nil, fmt.Errorf("converting terraform state to config for resource %s: %w", item.TFAddr(), err)
@@ -335,7 +388,7 @@ func (meta *Meta) ResolveDependency(ctx context.Context, configs ConfigInfos) (C
 			out = append(out, cfg)
 			continue
 		}
-		// This should never happen
+		// This should never happen as we always ensure there is at least one implicit dependency on the resource group for each resource.
 		if _, ok := depInfo[armId]; !ok {
 			return nil, fmt.Errorf("can't find resource %q in the arm template", armId.ID(meta.subscriptionId, meta.resourceGroup))
 		}
@@ -360,7 +413,6 @@ func (meta *Meta) GenerateConfig(cfgs ConfigInfos) error {
 		return fmt.Errorf("generating main configuration file: %w", err)
 	}
 
-	fmt.Printf("Please find the Terraform state and the config at: %s\n", meta.workspace)
 	return nil
 }
 
@@ -369,7 +421,7 @@ func (meta *Meta) hclBlockAppendDependency(body *hclwrite.Body, armIds []armtemp
 	for _, armid := range armIds {
 		cfg, ok := cfgset[armid]
 		if !ok {
-			dependencies = append(dependencies, fmt.Sprintf("# Depending on %q, but it is not imported by Terraform. Please fix it manually.", armid.ID(meta.subscriptionId, meta.resourceGroup)))
+			dependencies = append(dependencies, fmt.Sprintf("# Depending on %q, which is not imported by Terraform.", armid.ID(meta.subscriptionId, meta.resourceGroup)))
 			continue
 		}
 		dependencies = append(dependencies, cfg.TFAddr()+",")
