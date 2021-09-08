@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/Azure/azure-sdk-for-go v56.1.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.19
+	github.com/fatih/color v1.12.0
 	github.com/hashicorp/go-azure-helpers v0.16.5
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-version v1.3.0
