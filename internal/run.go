@@ -25,12 +25,13 @@ func Run(ctx context.Context, rg string) error {
 		return err
 	}
 
-	ids := meta.ListAzureResourceIDs()
+	l := meta.ImportList()
 
 	// Repeat importing resources here to avoid the user incorrectly maps an azure resource to an incorrect terraform resource
 	var importedList ImportList
-	for len(ids) != 0 {
-		l, err := meta.ResolveImportList(ids, ctx)
+	for len(l) != 0 {
+		var err error
+		l, err = meta.ResolveImportList(l)
 		if err != nil {
 			return err
 		}
@@ -45,9 +46,9 @@ func Run(ctx context.Context, rg string) error {
 		}
 
 		importErroredList := l.ImportErrored()
-		ids = make([]string, 0, len(importErroredList))
+		l = make(ImportList, 0, len(importErroredList))
 		for _, item := range importErroredList {
-			ids = append(ids, item.ResourceID)
+			l = append(l, item)
 		}
 	}
 

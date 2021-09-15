@@ -152,13 +152,20 @@ func (meta *Meta) ExportArmTemplate(ctx context.Context) error {
 	return nil
 }
 
-func (meta *Meta) ListAzureResourceIDs() []string {
+func (meta *Meta) ImportList() ImportList {
 	var ids []string
 	for _, res := range meta.armTemplate.Resources {
 		ids = append(ids, res.ID(meta.subscriptionId, meta.resourceGroup))
 	}
 	ids = append(ids, armtemplate.ResourceGroupId.ID(meta.subscriptionId, meta.resourceGroup))
-	return ids
+
+	l := make(ImportList, 0, len(ids))
+	for _, id := range ids {
+		l = append(l, ImportItem{
+			ResourceID:     id,
+		})
+	}
+	return l
 }
 
 type ImportList []ImportItem
@@ -220,30 +227,19 @@ func (item *ImportItem) TFAddr() string {
 	return item.TFResourceType + "." + item.TFResourceName
 }
 
-func (meta *Meta) ResolveImportList(ids []string, ctx context.Context) (ImportList, error) {
-
-	// schema, err := meta.tf.ProvidersSchema(ctx)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("getting provider schema: %w", err)
-	// }
-	// tfResourceMap := schema.Schemas["registry.terraform.io/hashicorp/azurerm"].ResourceSchemas
-
+func (meta *Meta) ResolveImportList(l ImportList) (ImportList, error) {
 	tfResourceMap := schema.ProviderSchemaInfo.ResourceSchemas
-
-	var list ImportList
+	var ol ImportList
 	// userResourceMap is used to track the resource types and resource names that are specified by users.
 	userResourceMap := map[string]map[string]bool{}
 	reader := bufio.NewReader(os.Stdin)
 	color.Cyan("\nPlease input either the Terraform resource type and name in the form of \"<resource type>.<resource name>\", or simply enter to skip\n")
-	for idx, id := range ids {
-		item := ImportItem{
-			ResourceID: id,
-		}
+	for idx, item := range l {
 		for {
-			fmt.Printf("[%d/%d] %q: ", idx+1, len(ids), id)
+			fmt.Printf("[%d/%d] %q: ", idx+1, len(l), item.ResourceID)
 			input, err := reader.ReadString('\n')
 			if err != nil {
-				return nil, fmt.Errorf("reading for resource %q: %w", id, err)
+				return nil, fmt.Errorf("reading for resource %q: %w", item.ResourceID, err)
 			}
 			input = strings.TrimSpace(input)
 			if input == "" {
@@ -276,10 +272,10 @@ func (meta *Meta) ResolveImportList(ids []string, ctx context.Context) (ImportLi
 			item.TFResourceName = rn
 			break
 		}
-		list = append(list, item)
+		ol = append(ol, item)
 	}
 
-	return list, nil
+	return ol, nil
 }
 
 func (meta *Meta) Import(ctx context.Context, list ImportList) (ImportList, error) {
@@ -302,7 +298,7 @@ func (meta *Meta) Import(ctx context.Context, list ImportList) (ImportList, erro
 		tpls = append(tpls, tpl)
 	}
 	if err := os.WriteFile(cfgFile, []byte(strings.Join(tpls, "\n")), 0644); err != nil {
-		return nil, fmt.Errorf("generating resource template cfgFile file: %w", err)
+		return nil, fmt.Errorf("generating resource template file: %w", err)
 	}
 	// Remove the temp Terraform config once resources are imported.
 	// This is due to the fact that "terraform add" will complain the resource to be added already exist in the config, even we are outputting to stdout.
