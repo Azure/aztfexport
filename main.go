@@ -1,13 +1,14 @@
 package main
 
 import (
-	"context"
 	"fmt"
+	"log"
 	"os"
 
 	"flag"
 
-	"github.com/magodo/aztfy/internal"
+	"github.com/magodo/aztfy/internal/config"
+	"github.com/magodo/aztfy/internal/ui"
 )
 
 var (
@@ -38,8 +39,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := internal.Run(context.TODO(), flag.Args()[0]); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+	cfg, err := config.NewConfig(flag.Args()[0])
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	prog, err := ui.NewProgram(*cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := prog.Start(); err != nil {
+		log.Fatal(err)
 	}
 }
