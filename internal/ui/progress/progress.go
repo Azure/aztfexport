@@ -2,6 +2,7 @@ package progress
 
 import (
 	"fmt"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/magodo/aztfy/internal/meta"
 	"github.com/magodo/aztfy/internal/ui/aztfyclient"
@@ -14,13 +15,13 @@ type result struct {
 }
 
 type Model struct {
-	c   *meta.Meta
-	l   meta.ImportList
-	idx int
+	c       meta.Meta
+	l       meta.ImportList
+	idx     int
 	results []result
 }
 
-func NewModel(c *meta.Meta, l meta.ImportList) Model {
+func NewModel(c meta.Meta, l meta.ImportList) Model {
 	return Model{
 		c:       c,
 		l:       l,

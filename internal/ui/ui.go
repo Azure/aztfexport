@@ -2,14 +2,15 @@ package ui
 
 import (
 	"fmt"
+	"io"
+	"log"
+	"os"
+
 	"github.com/magodo/aztfy/internal/config"
 	"github.com/magodo/aztfy/internal/meta"
 	"github.com/magodo/aztfy/internal/ui/aztfyclient"
 	"github.com/magodo/aztfy/internal/ui/common"
 	"github.com/mitchellh/go-wordwrap"
-	"io"
-	"log"
-	"os"
 
 	"github.com/muesli/reflow/indent"
 
@@ -70,7 +71,7 @@ func (s status) String() string {
 
 type model struct {
 	cfg    config.Config
-	meta   *meta.Meta
+	meta   meta.Meta
 	status status
 	err    error
 	logger *log.Logger
@@ -98,7 +99,7 @@ func newModel(cfg config.Config, logger *log.Logger) model {
 
 func (m model) Init() tea.Cmd {
 	return tea.Batch(
-		aztfyclient.NewClient(m.cfg.ResourceGroupName),
+		aztfyclient.NewClient(m.cfg),
 		spinner.Tick,
 	)
 }

@@ -1,13 +1,13 @@
 package aztfyclient
 
 import (
-	"context"
+	"github.com/magodo/aztfy/internal/config"
 	"github.com/magodo/aztfy/internal/meta"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type NewClientMsg *meta.Meta
+type NewClientMsg meta.Meta
 
 type ErrMsg error
 
@@ -39,9 +39,9 @@ type GenerateCfgDoneMsg struct{}
 
 type QuitMsg struct{}
 
-func NewClient(rg string) tea.Cmd {
+func NewClient(cfg config.Config) tea.Cmd {
 	return func() tea.Msg {
-		c, err := meta.NewMeta(context.TODO(), rg)
+		c, err := meta.NewMeta(cfg)
 		if err != nil {
 			return ErrMsg(err)
 		}
@@ -49,9 +49,9 @@ func NewClient(rg string) tea.Cmd {
 	}
 }
 
-func Init(c *meta.Meta) tea.Cmd {
+func Init(c meta.Meta) tea.Cmd {
 	return func() tea.Msg {
-		err := c.Init(context.TODO())
+		err := c.Init()
 		if err != nil {
 			return ErrMsg(err)
 		}
@@ -59,7 +59,7 @@ func Init(c *meta.Meta) tea.Cmd {
 	}
 }
 
-func ListResource(c *meta.Meta) tea.Cmd {
+func ListResource(c meta.Meta) tea.Cmd {
 	return func() tea.Msg {
 		return ListResourceDoneMsg{List: c.ListResource()}
 	}
@@ -71,17 +71,17 @@ func ShowImportError(item meta.ImportItem, idx int, l meta.ImportList) tea.Cmd {
 	}
 }
 
-func StartImport(c *meta.Meta, l meta.ImportList) tea.Cmd {
+func StartImport(c meta.Meta, l meta.ImportList) tea.Cmd {
 	return func() tea.Msg {
 		c.CleanTFState()
 		return StartImportMsg{List: l}
 	}
 }
 
-func ImportOneItem(c *meta.Meta, item meta.ImportItem) tea.Cmd {
+func ImportOneItem(c meta.Meta, item meta.ImportItem) tea.Cmd {
 	return func() tea.Msg {
 		if !item.Skip() {
-			item.ImportError = c.Import(context.TODO(), item)
+			item.ImportError = c.Import(item)
 		}
 		return ImportOneItemDoneMsg{Item: item}
 	}
@@ -93,9 +93,9 @@ func FinishImport(l meta.ImportList) tea.Cmd {
 	}
 }
 
-func GenerateCfg(c *meta.Meta, l meta.ImportList) tea.Cmd {
+func GenerateCfg(c meta.Meta, l meta.ImportList) tea.Cmd {
 	return func() tea.Msg {
-		if err := c.GenerateCfg(context.TODO(), l); err != nil {
+		if err := c.GenerateCfg(l); err != nil {
 			return ErrMsg(err)
 		}
 		return GenerateCfgDoneMsg{}

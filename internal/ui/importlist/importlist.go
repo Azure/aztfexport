@@ -2,12 +2,13 @@ package importlist
 
 import (
 	"fmt"
+	"sort"
+	"time"
+
 	"github.com/magodo/aztfy/internal/meta"
 	"github.com/magodo/aztfy/internal/ui/aztfyclient"
 	"github.com/magodo/aztfy/internal/ui/common"
 	"github.com/magodo/aztfy/schema"
-	"sort"
-	"time"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -16,13 +17,13 @@ import (
 )
 
 type Model struct {
-	c        *meta.Meta
+	c        meta.Meta
 	listkeys listKeyMap
 
 	list list.Model
 }
 
-func NewModel(c *meta.Meta, l meta.ImportList, idx int) Model {
+func NewModel(c meta.Meta, l meta.ImportList, idx int) Model {
 	// Build candidate words for the textinput
 	candidates := make([]string, 0, len(schema.ProviderSchemaInfo.ResourceSchemas))
 	for rt := range schema.ProviderSchemaInfo.ResourceSchemas {
