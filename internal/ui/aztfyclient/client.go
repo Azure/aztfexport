@@ -1,6 +1,8 @@
 package aztfyclient
 
 import (
+	"time"
+
 	"github.com/magodo/aztfy/internal/config"
 	"github.com/magodo/aztfy/internal/meta"
 
@@ -82,6 +84,9 @@ func ImportOneItem(c meta.Meta, item meta.ImportItem) tea.Cmd {
 	return func() tea.Msg {
 		if !item.Skip() {
 			item.ImportError = c.Import(item)
+		} else {
+			// This explicit minor delay is for the sake of a visual effect of the progress bar.
+			time.Sleep(100 * time.Millisecond)
 		}
 		return ImportOneItemDoneMsg{Item: item}
 	}

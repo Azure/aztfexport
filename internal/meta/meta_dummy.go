@@ -49,7 +49,7 @@ func (m MetaDummy) CleanTFState() {
 }
 
 func (m MetaDummy) Import(item ImportItem) error {
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(time.Second)
 	return nil
 }
 

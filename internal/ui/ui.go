@@ -146,7 +146,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case aztfyclient.StartImportMsg:
 		m.status = statusImporting
 		m.progress = progress.NewModel(m.meta, msg.List)
-		return m, m.progress.Init()
+		return m, tea.Batch(
+			m.progress.Init(),
+			// Resize the progress bar
+			func() tea.Msg { return m.winsize },
+		)
 	case aztfyclient.ImportDoneMsg:
 		for idx, item := range msg.List {
 			if item.ImportError != nil {
