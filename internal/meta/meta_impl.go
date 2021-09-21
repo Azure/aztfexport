@@ -1,17 +1,15 @@
-package internal
+package meta
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
-	"github.com/fatih/color"
 	"github.com/magodo/aztfy/internal/armtemplate"
 	"github.com/magodo/aztfy/schema"
 
@@ -25,7 +23,7 @@ import (
 // The minimun required terraform version that has the `terraform add` command.
 var minRequiredTFVersion = version.Must(version.NewSemver("1.1.0-alpha20210811"))
 
-type Meta struct {
+type MetaImpl struct {
 	subscriptionId string
 	resourceGroup  string
 	workspace      string
@@ -34,7 +32,9 @@ type Meta struct {
 	armTemplate    armtemplate.Template
 }
 
-func NewMeta(ctx context.Context, rg string) (*Meta, error) {
+func newMetaImpl(rg string) (Meta, error) {
+	ctx := context.TODO()
+
 	// Initialize the workspace
 	cachedir, err := os.UserCacheDir()
 	if err != nil {
@@ -77,13 +77,85 @@ func NewMeta(ctx context.Context, rg string) (*Meta, error) {
 		return nil, fmt.Errorf("error running NewTerraform: %w", err)
 	}
 
-	return &Meta{
+	return &MetaImpl{
 		subscriptionId: auth.Config.SubscriptionID,
 		resourceGroup:  rg,
 		workspace:      wsp,
 		tf:             tf,
 		auth:           auth,
 	}, nil
+}
+
+func (meta MetaImpl) ResourceGroupName() string {
+	return meta.resourceGroup
+}
+
+func (meta MetaImpl) Workspace() string {
+	return meta.workspace
+}
+
+func (meta *MetaImpl) Init() error {
+	ctx := context.TODO()
+	if err := meta.initProvider(ctx); err != nil {
+		return err
+	}
+	if err := meta.exportArmTemplate(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (meta MetaImpl) ListResource() ImportList {
+	var ids []string
+	for _, res := range meta.armTemplate.Resources {
+		ids = append(ids, res.ID(meta.subscriptionId, meta.resourceGroup))
+	}
+	ids = append(ids, armtemplate.ResourceGroupId.ID(meta.subscriptionId, meta.resourceGroup))
+
+	l := make(ImportList, 0, len(ids))
+	for _, id := range ids {
+		l = append(l, ImportItem{
+			ResourceID: id,
+		})
+	}
+	return l
+}
+
+func (meta *MetaImpl) CleanTFState() {
+	os.Remove(path.Join(meta.Workspace(), "terraform.tfstate"))
+}
+
+func (meta MetaImpl) Import(item ImportItem) error {
+	ctx := context.TODO()
+
+	// Generate a temp Terraform config to include the empty template for each resource.
+	// This is required for the following importing.
+	cfgFile := filepath.Join(meta.workspace, "main.tf")
+	tpl, err := meta.tf.Add(ctx, item.TFAddr())
+	if err != nil {
+		return fmt.Errorf("generating resource template for %s: %w", item.TFAddr(), err)
+	}
+	if err := os.WriteFile(cfgFile, []byte(tpl), 0644); err != nil {
+		return fmt.Errorf("generating resource template file: %w", err)
+	}
+	defer os.Remove(cfgFile)
+
+	// Import resources
+	return meta.tf.Import(ctx, item.TFAddr(), item.ResourceID)
+}
+
+func (meta MetaImpl) GenerateCfg(l ImportList) error {
+	ctx := context.TODO()
+
+	cfginfos, err := meta.stateToConfig(ctx, l)
+	if err != nil {
+		return fmt.Errorf("converting from state to configurations: %w", err)
+	}
+	cfginfos, err = meta.resolveDependency(cfginfos)
+	if err != nil {
+		return fmt.Errorf("resolving cross resource dependencies: %w", err)
+	}
+	return meta.generateConfig(cfginfos)
 }
 
 func providerConfig() string {
@@ -102,7 +174,7 @@ provider "azurerm" {
 `, schema.ProviderVersion)
 }
 
-func (meta *Meta) InitProvider(ctx context.Context) error {
+func (meta *MetaImpl) initProvider(ctx context.Context) error {
 	cfgFile := filepath.Join(meta.workspace, "provider.tf")
 
 	// Always use the latest provider version here, as this is a one shot tool, which should guarantees to work with the latest version.
@@ -117,7 +189,7 @@ func (meta *Meta) InitProvider(ctx context.Context) error {
 	return nil
 }
 
-func (meta *Meta) ExportArmTemplate(ctx context.Context) error {
+func (meta *MetaImpl) exportArmTemplate(ctx context.Context) error {
 	client := meta.auth.NewResourceGroupClient()
 
 	exportOpt := "SkipAllParameterization"
@@ -152,198 +224,7 @@ func (meta *Meta) ExportArmTemplate(ctx context.Context) error {
 	return nil
 }
 
-func (meta *Meta) ListAzureResourceIDs() []string {
-	var ids []string
-	for _, res := range meta.armTemplate.Resources {
-		ids = append(ids, res.ID(meta.subscriptionId, meta.resourceGroup))
-	}
-	ids = append(ids, armtemplate.ResourceGroupId.ID(meta.subscriptionId, meta.resourceGroup))
-	return ids
-}
-
-type ImportList []ImportItem
-
-func (l ImportList) NonSkipped() ImportList {
-	var out ImportList
-	for _, item := range l {
-		if item.Skip {
-			continue
-		}
-		out = append(out, item)
-	}
-	return out
-}
-
-func (l ImportList) ImportErrored() ImportList {
-	var out ImportList
-	for _, item := range l {
-		if item.ImportError == nil {
-			continue
-		}
-		out = append(out, item)
-	}
-	return out
-}
-
-func (l ImportList) Imported() ImportList {
-	var out ImportList
-	for _, item := range l.NonSkipped() {
-		if item.ImportError != nil {
-			continue
-		}
-		out = append(out, item)
-	}
-	return out
-}
-
-type ImportItem struct {
-	// The azure resource id
-	ResourceID string
-
-	// Wether this azure resource should be skipped from importing
-	Skip bool
-
-	// Whether this azure resource failed to import into terraform (this might due to the TFResourceType doesn't match the resource)
-	ImportError error
-
-	// The terraform resource type
-	TFResourceType string
-
-	// The terraform resource name
-	TFResourceName string
-}
-
-func (item *ImportItem) TFAddr() string {
-	if item.Skip {
-		return ""
-	}
-	return item.TFResourceType + "." + item.TFResourceName
-}
-
-func (meta *Meta) ResolveImportList(ids []string, ctx context.Context) (ImportList, error) {
-
-	// schema, err := meta.tf.ProvidersSchema(ctx)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("getting provider schema: %w", err)
-	// }
-	// tfResourceMap := schema.Schemas["registry.terraform.io/hashicorp/azurerm"].ResourceSchemas
-
-	tfResourceMap := schema.ProviderSchemaInfo.ResourceSchemas
-
-	var list ImportList
-	// userResourceMap is used to track the resource types and resource names that are specified by users.
-	userResourceMap := map[string]map[string]bool{}
-	reader := bufio.NewReader(os.Stdin)
-	color.Cyan("\nPlease input either the Terraform resource type and name in the form of \"<resource type>.<resource name>\", or simply enter to skip\n")
-	for idx, id := range ids {
-		item := ImportItem{
-			ResourceID: id,
-		}
-		for {
-			fmt.Printf("[%d/%d] %q: ", idx+1, len(ids), id)
-			input, err := reader.ReadString('\n')
-			if err != nil {
-				return nil, fmt.Errorf("reading for resource %q: %w", id, err)
-			}
-			input = strings.TrimSpace(input)
-			if input == "" {
-				item.Skip = true
-				break
-			}
-			segs := strings.Split(input, ".")
-			if len(segs) != 2 {
-				fmt.Println(`Invalid input format, should be "<resource type>.<resource name>". Please input again...`)
-				continue
-			}
-			rt, rn := segs[0], segs[1]
-			if _, ok := tfResourceMap[rt]; !ok {
-				fmt.Printf("Invalid resource type %q. Please input again...\n", rt)
-				continue
-			}
-
-			rnMap, ok := userResourceMap[rt]
-			if !ok {
-				rnMap = map[string]bool{}
-				userResourceMap[rt] = rnMap
-			}
-			if _, ok := rnMap[rn]; ok {
-				fmt.Printf("There exists a %s with the name %q. Please choose another name...\n", rt, rn)
-				continue
-			}
-			rnMap[rn] = true
-
-			item.TFResourceType = rt
-			item.TFResourceName = rn
-			break
-		}
-		list = append(list, item)
-	}
-
-	return list, nil
-}
-
-func (meta *Meta) Import(ctx context.Context, list ImportList) (ImportList, error) {
-	if len(list.NonSkipped()) == 0 {
-		return nil, nil
-	}
-
-	color.Cyan("\nImport Azure Resources\n")
-
-	// Generate a temp Terraform config to include the empty template for each resource.
-	// This is required for the following importing.
-	cfgFile := filepath.Join(meta.workspace, "main.tf")
-
-	var tpls []string
-	for _, item := range list.NonSkipped() {
-		tpl, err := meta.tf.Add(ctx, item.TFAddr())
-		if err != nil {
-			return nil, fmt.Errorf("generating resource template for %s: %w", item.TFAddr(), err)
-		}
-		tpls = append(tpls, tpl)
-	}
-	if err := os.WriteFile(cfgFile, []byte(strings.Join(tpls, "\n")), 0644); err != nil {
-		return nil, fmt.Errorf("generating resource template cfgFile file: %w", err)
-	}
-	// Remove the temp Terraform config once resources are imported.
-	// This is due to the fact that "terraform add" will complain the resource to be added already exist in the config, even we are outputting to stdout.
-	// This should be resolved once hashicorp/terraform#29220 is addressed.
-	defer os.Remove(cfgFile)
-
-	// Import resources
-	out := ImportList{}
-	for idx, item := range list.NonSkipped() {
-		fmt.Printf("[%d/%d] Importing %q as %s...\n", idx+1, len(list.NonSkipped()), item.ResourceID, item.TFAddr())
-		err := meta.tf.Import(ctx, item.TFAddr(), item.ResourceID)
-		if err != nil {
-			emsg := []string{}
-			for _, el := range strings.Split(err.Error(), "\n") {
-				el := strings.TrimSpace(el)
-				if el == "" {
-					continue
-				}
-				emsg = append(emsg, "\t"+el)
-			}
-			color.Red(strings.Join(emsg, "\n"))
-		}
-		item.ImportError = err
-		out = append(out, item)
-	}
-
-	return out, nil
-}
-
-type ConfigInfos []ConfigInfo
-
-type ConfigInfo struct {
-	ImportItem
-	hcl *hclwrite.File
-}
-
-func (cfg ConfigInfo) DumpHCL(w io.Writer) (int, error) {
-	return w.Write(hclwrite.Format(cfg.hcl.Bytes()))
-}
-
-func (meta *Meta) StateToConfig(ctx context.Context, list ImportList) (ConfigInfos, error) {
+func (meta MetaImpl) stateToConfig(ctx context.Context, list ImportList) (ConfigInfos, error) {
 	out := ConfigInfos{}
 
 	for _, item := range list.Imported() {
@@ -358,7 +239,9 @@ func (meta *Meta) StateToConfig(ctx context.Context, list ImportList) (ConfigInf
 
 		rb := f.Body().Blocks()[0].Body()
 		sch := schema.ProviderSchemaInfo.ResourceSchemas[item.TFResourceType]
-		tuneHCLSchemaForResource(rb, sch)
+		if err := tuneHCLSchemaForResource(rb, sch); err != nil {
+			return nil, err
+		}
 
 		out = append(out, ConfigInfo{
 			ImportItem: item,
@@ -369,7 +252,7 @@ func (meta *Meta) StateToConfig(ctx context.Context, list ImportList) (ConfigInf
 	return out, nil
 }
 
-func (meta *Meta) ResolveDependency(ctx context.Context, configs ConfigInfos) (ConfigInfos, error) {
+func (meta MetaImpl) resolveDependency(configs ConfigInfos) (ConfigInfos, error) {
 	depInfo := meta.armTemplate.DependencyInfo()
 
 	configSet := map[armtemplate.ResourceId]ConfigInfo{}
@@ -393,30 +276,16 @@ func (meta *Meta) ResolveDependency(ctx context.Context, configs ConfigInfos) (C
 			return nil, fmt.Errorf("can't find resource %q in the arm template", armId.ID(meta.subscriptionId, meta.resourceGroup))
 		}
 
-		meta.hclBlockAppendDependency(cfg.hcl.Body().Blocks()[0].Body(), depInfo[armId], configSet)
+		if err := meta.hclBlockAppendDependency(cfg.hcl.Body().Blocks()[0].Body(), depInfo[armId], configSet); err != nil {
+			return nil, err
+		}
 		out = append(out, cfg)
 	}
 
 	return out, nil
 }
 
-func (meta *Meta) GenerateConfig(cfgs ConfigInfos) error {
-	cfgFile := filepath.Join(meta.workspace, "main.tf")
-	buf := bytes.NewBuffer([]byte{})
-	for i, cfg := range cfgs {
-		cfg.DumpHCL(buf)
-		if i != len(cfgs)-1 {
-			buf.Write([]byte("\n"))
-		}
-	}
-	if err := os.WriteFile(cfgFile, buf.Bytes(), 0644); err != nil {
-		return fmt.Errorf("generating main configuration file: %w", err)
-	}
-
-	return nil
-}
-
-func (meta *Meta) hclBlockAppendDependency(body *hclwrite.Body, armIds []armtemplate.ResourceId, cfgset map[armtemplate.ResourceId]ConfigInfo) error {
+func (meta MetaImpl) hclBlockAppendDependency(body *hclwrite.Body, armIds []armtemplate.ResourceId, cfgset map[armtemplate.ResourceId]ConfigInfo) error {
 	dependencies := []string{}
 	for _, armid := range armIds {
 		cfg, ok := cfgset[armid]
@@ -434,6 +303,24 @@ func (meta *Meta) hclBlockAppendDependency(body *hclwrite.Body, armIds []armtemp
 		}
 
 		body.SetAttributeRaw("depends_on", expr.Body().GetAttribute("depends_on").Expr().BuildTokens(nil))
+	}
+
+	return nil
+}
+
+func (meta MetaImpl) generateConfig(cfgs ConfigInfos) error {
+	cfgFile := filepath.Join(meta.workspace, "main.tf")
+	buf := bytes.NewBuffer([]byte{})
+	for i, cfg := range cfgs {
+		if _, err := cfg.DumpHCL(buf); err != nil {
+			return err
+		}
+		if i != len(cfgs)-1 {
+			buf.Write([]byte("\n"))
+		}
+	}
+	if err := os.WriteFile(cfgFile, buf.Bytes(), 0644); err != nil {
+		return fmt.Errorf("generating main configuration file: %w", err)
 	}
 
 	return nil
