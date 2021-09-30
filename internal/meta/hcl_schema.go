@@ -26,7 +26,7 @@ func tuneForBlock(rb *hclwrite.Body, sch *schema.SchemaBlock, parentAttrNames []
 		schAttr, ok := sch.Attributes[attrName]
 		if !ok {
 			// This might because the provider under used is a newer one than the version where we ingest the schema information.
-			// This might happen when the user have some newer version provider installed in its local fs.
+			// This might happen when the user has a newer version provider installed in its local fs, and has set the "dev_overrides" for that provider.
 			// We simply remove that attribute from the config.
 			rb.RemoveAttribute(attrName)
 			continue
