@@ -2,6 +2,10 @@
 
 A tool to bring your existing Azure resources under the management of Terraform.
 
+## Goal
+
+Import all the AzureRM provider supported resources inside the resource group that the user specifies into to Terraform state, and generate a valid Terraform configuration. After running this tool, the Terraform state and configuration should be consistent with the resources' remote state, i.e. `terraform plan` shows no diff. The user then is able to use Terraform to manage these resources.
+
 ## Install
 
 ```bash
@@ -28,4 +32,14 @@ As a last step, `aztfy` will leverage the ARM template to inject dependencies be
 
 ## Demo
 
-[![asciicast](https://asciinema.org/a/432117.svg)](https://asciinema.org/a/432117)
+[![asciicast](https://asciinema.org/a/iPTGS6E2CSxpYPtbPQhWmxLdu.svg)](https://asciinema.org/a/iPTGS6E2CSxpYPtbPQhWmxLdu)
+
+## Limitation
+
+Some Azure resources are modeled differently in AzureRM provider, which means there might be N:M mapping between the Azure resources and the Terraform resources.
+
+For example, the `azurerm_lb_backend_address_pool_address` is actually a property of `azurerm_lb_backend_address_pool`, whilst in the AzureRM provider, it has its own resource and a synthetic resource ID as `/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.Network/loadBalancers/loadBalancer1/backendAddressPools/backendAddressPool1/addresses/address1`.
+
+Another popular case is that in the AzureRM provider, there are a bunch of "association" resources, e.g. the `azurerm_network_interface_security_group_association`. These "association" resources represent the association relationship between two Terraform resources (in this case they are `azurerm_network_interface` and `azurerm_network_security_group`). They also have some synthetic resource ID, e.g. `/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/microsoft.network/networkInterfaces/example|/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.Network/networkSecurityGroups/group1`.
+
+Currently, this tool only works on the assumption that there is 1:1 mapping between Azure resources and the Terraform resources.
