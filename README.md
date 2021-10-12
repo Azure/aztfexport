@@ -12,6 +12,9 @@ Import all the AzureRM provider supported resources inside the resource group th
 go install github.com/magodo/aztfy@latest
 ```
 
+### How to get a precompiled binary
+Precompiled binaries for Windows, OS X, Linux are available at [Releases](https://github.com/magodo/aztfy/releases).
+
 ## Usage
 
 Follow the [authentication guide](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs#authenticating-to-azure) from the Terraform AzureRM provider to authenticate to Azure. The simplist way is to [install and login via the Azure CLI](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/azure_cli).
