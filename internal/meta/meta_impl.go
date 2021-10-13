@@ -56,7 +56,7 @@ func newMetaImpl(rg string, outputDir string) (Meta, error) {
 		rootDir = filepath.Join(currentWorkingDirectory, outputDir)
 	}
 
-	tfDir := filepath.Join(rootDir, "terraform")
+	tfDir := filepath.Join(filepath.Join(cachedir, "aztfy"), "terraform")
 	if err := os.MkdirAll(tfDir, 0755); err != nil {
 		return nil, fmt.Errorf("creating terraform cache dir %q: %w", tfDir, err)
 	}
