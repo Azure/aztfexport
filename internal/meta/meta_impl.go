@@ -47,6 +47,11 @@ func newMetaImpl(rg string, outputDir string) (Meta, error) {
 		return nil, fmt.Errorf("creating workspace root %q: %w", rootDir, err)
 	}
 
+	tfDir := filepath.Join(rootDir, "aztfy"), "terraform")
+	if err := os.MkdirAll(tfDir, 0755); err != nil {
+		return nil, fmt.Errorf("creating terraform cache dir %q: %w", tfDir, err)
+	}
+
 	if outputDir != "" {
 		currentWorkingDirectory, err := os.Getwd()
 		if err != nil {
@@ -54,11 +59,6 @@ func newMetaImpl(rg string, outputDir string) (Meta, error) {
 		}
 
 		rootDir = filepath.Join(currentWorkingDirectory, outputDir)
-	}
-
-	tfDir := filepath.Join(filepath.Join(cachedir, "aztfy"), "terraform")
-	if err := os.MkdirAll(tfDir, 0755); err != nil {
-		return nil, fmt.Errorf("creating terraform cache dir %q: %w", tfDir, err)
 	}
 
 	wsp := filepath.Join(rootDir, rg)
