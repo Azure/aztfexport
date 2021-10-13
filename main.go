@@ -12,11 +12,13 @@ import (
 )
 
 var (
-	flagVersion *bool
+	flagVersion   *bool
+	flagOutputDir *string
 )
 
 func init() {
 	flagVersion = flag.Bool("v", false, "Print version")
+	flagOutputDir = flag.String("o", "", "Specify output dir. Default is user cache dir.")
 }
 
 const usage = `aztfy [option] <resource group name>
@@ -39,7 +41,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	cfg, err := config.NewConfig(flag.Args()[0])
+	cfg, err := config.NewConfig(flag.Args()[0], *flagOutputDir)
 	if err != nil {
 		log.Fatal(err)
 	}

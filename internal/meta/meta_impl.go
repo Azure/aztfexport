@@ -32,7 +32,7 @@ type MetaImpl struct {
 	armTemplate    armtemplate.Template
 }
 
-func newMetaImpl(rg string) (Meta, error) {
+func newMetaImpl(rg string, outputDir string) (Meta, error) {
 	ctx := context.TODO()
 
 	// Initialize the workspace
@@ -45,6 +45,15 @@ func newMetaImpl(rg string) (Meta, error) {
 	rootDir := filepath.Join(cachedir, "aztfy")
 	if err := os.MkdirAll(rootDir, 0755); err != nil {
 		return nil, fmt.Errorf("creating workspace root %q: %w", rootDir, err)
+	}
+
+	if outputDir != "" {
+		currentWorkingDirectory, err := os.Getwd()
+		if err != nil {
+			return nil, fmt.Errorf("error finding the current working directory: %w", err)
+		}
+
+		rootDir = filepath.Join(currentWorkingDirectory, outputDir)
 	}
 
 	tfDir := filepath.Join(rootDir, "terraform")
