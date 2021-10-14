@@ -11,7 +11,7 @@ func newListKeyMap() listKeyMap {
 	return listKeyMap{
 		apply: key.NewBinding(
 			key.WithKeys("w"),
-			key.WithHelp("w", "apply"),
+			key.WithHelp("w", "save"),
 		),
 		error: key.NewBinding(
 			key.WithKeys("e"),
