@@ -61,6 +61,10 @@ func newMetaImpl(rg string, outputDir string) (Meta, error) {
 		}
 
 		wsp = filepath.Join(currentWorkingDirectory, outputDir)
+		_, err = os.Stat(wsp)
+		if !os.IsNotExist(err) {
+			return nil, fmt.Errorf("already existing workspace %q: %w", wsp, err)
+		}
 	}
 
 	if err := os.RemoveAll(wsp); err != nil {
