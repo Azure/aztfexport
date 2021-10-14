@@ -52,16 +52,17 @@ func newMetaImpl(rg string, outputDir string) (Meta, error) {
 		return nil, fmt.Errorf("creating terraform cache dir %q: %w", tfDir, err)
 	}
 
+	wsp := filepath.Join(rootDir, rg)
+
 	if outputDir != "" {
 		currentWorkingDirectory, err := os.Getwd()
 		if err != nil {
 			return nil, fmt.Errorf("error finding the current working directory: %w", err)
 		}
 
-		rootDir = filepath.Join(currentWorkingDirectory, outputDir)
+		wsp = filepath.Join(currentWorkingDirectory, outputDir)
 	}
 
-	wsp := filepath.Join(rootDir, rg)
 	if err := os.RemoveAll(wsp); err != nil {
 		return nil, fmt.Errorf("removing existing workspace %q: %w", wsp, err)
 	}
