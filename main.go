@@ -18,7 +18,7 @@ var (
 
 func init() {
 	flagVersion = flag.Bool("v", false, "Print version")
-	flagOutputDir = flag.String("o", "", "Specify output dir. Default is user cache dir.")
+	flagOutputDir = flag.String("o", "", "Specify output dir. Default is a dir under the user cache dir, which is named after the resource group name")
 }
 
 const usage = `aztfy [option] <resource group name>
