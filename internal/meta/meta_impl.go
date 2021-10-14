@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -55,23 +56,33 @@ func newMetaImpl(rg string, outputDir string) (Meta, error) {
 	wsp := filepath.Join(rootDir, rg)
 
 	if outputDir != "" {
-		currentWorkingDirectory, err := os.Getwd()
+		wsp = outputDir
+
+		// Ensure wsp is an empty directory
+		stat, err := os.Stat(wsp)
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("the output directory %q doesn't exist", wsp)
+		}
+		if !stat.IsDir() {
+			return nil, fmt.Errorf("the output path %q is not a directory", wsp)
+		}
+
+		f, err := os.Open(wsp)
 		if err != nil {
-			return nil, fmt.Errorf("error finding the current working directory: %w", err)
+			return nil, err
 		}
-
-		wsp = filepath.Join(currentWorkingDirectory, outputDir)
-		_, err = os.Stat(wsp)
-		if !os.IsNotExist(err) {
-			return nil, fmt.Errorf("already existing workspace %q: %w", wsp, err)
+		_, err = f.Readdirnames(1) // Or f.Readdir(1)
+		f.Close()
+		if err != io.EOF {
+			return nil, fmt.Errorf("the output directory %q is not empty", wsp)
 		}
-	}
-
-	if err := os.RemoveAll(wsp); err != nil {
-		return nil, fmt.Errorf("removing existing workspace %q: %w", wsp, err)
-	}
-	if err := os.MkdirAll(wsp, 0755); err != nil {
-		return nil, fmt.Errorf("creating workspace %q: %w", wsp, err)
+	} else {
+		if err := os.RemoveAll(wsp); err != nil {
+			return nil, fmt.Errorf("removing existing workspace %q: %w", wsp, err)
+		}
+		if err := os.MkdirAll(wsp, 0755); err != nil {
+			return nil, fmt.Errorf("creating workspace %q: %w", wsp, err)
+		}
 	}
 
 	// Authentication
