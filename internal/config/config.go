@@ -7,7 +7,7 @@ type Config struct {
 	Logfile           string `env:"AZTFY_LOGFILE" default:""`
 	Debug             bool   `env:"AZTFY_DEBUG" default:"false"`
 	MockClient        bool   `env:"AZTFY_MOCK_CLIENT" default:"false"`
-	OutputDir         string // specified via flagOutputDir
+	OutputDir         string // specified via CLI option
 }
 
 func NewConfig(rg string, outputDir string) (*Config, error) {
