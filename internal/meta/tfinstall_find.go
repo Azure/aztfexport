@@ -3,7 +3,6 @@ package meta
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -17,19 +16,10 @@ import (
 // FindTerraform finds the path to the terraform executable whose version meets the min version constraint.
 // It first tries to find from the local OS PATH. If there is no match, it will then download the release of the minVersion from hashicorp to the tfDir.
 func FindTerraform(ctx context.Context, tfDir string, minVersion *version.Version) (string, error) {
-	var terraformPath, terraformExe string
-
-	log.Println("FindTerraform loaded")
-
-	if os.PathSeparator == '\\' { // windows
-		terraformExe = "terraform.exe"
-	} else {
-		terraformExe = "terraform"
-	}
-
+	var terraformPath string
 	opts := []tfinstall.ExecPathFinder{
 		tfinstall.LookPath(),
-		tfinstall.ExactPath(filepath.Join(tfDir, terraformExe)),
+		tfinstall.ExactPath(filepath.Join(tfDir, terraformBinary)),
 		tfinstall.ExactVersion(minVersion.String(), tfDir),
 	}
 

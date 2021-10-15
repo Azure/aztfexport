@@ -19,22 +19,10 @@ func init() {
 	flagVersion = flag.Bool("v", false, "Print version")
 }
 
-// var reader = bufio.NewReader(os.Stdin)
-
 const usage = `aztfy [option] <resource group name>
 `
 
 func main() {
-	// os.Setenv("AZTFY_DEBUG", "true")
-	// os.Setenv("AZTFY_MOCK_CLIENT", "false")
-	// os.Setenv("AZTFY_LOGFILE", "aztfylogs.log")
-
-	// log.Println("Main hitted")
-
-	// input, _ := reader.ReadString('\n')
-	// value := strings.TrimSpace(input)
-	// fmt.Printf("input: %v", value)
-
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "%s\n", usage)
 		flag.PrintDefaults()
