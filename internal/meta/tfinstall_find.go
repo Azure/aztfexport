@@ -17,10 +17,9 @@ import (
 // It first tries to find from the local OS PATH. If there is no match, it will then download the release of the minVersion from hashicorp to the tfDir.
 func FindTerraform(ctx context.Context, tfDir string, minVersion *version.Version) (string, error) {
 	var terraformPath string
-
 	opts := []tfinstall.ExecPathFinder{
 		tfinstall.LookPath(),
-		tfinstall.ExactPath(filepath.Join(tfDir, "terraform")),
+		tfinstall.ExactPath(filepath.Join(tfDir, terraformBinary)),
 		tfinstall.ExactVersion(minVersion.String(), tfDir),
 	}
 
