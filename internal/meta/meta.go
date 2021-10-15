@@ -16,5 +16,5 @@ func NewMeta(cfg config.Config) (Meta, error) {
 	if cfg.MockClient {
 		return newMetaDummy(cfg.ResourceGroupName)
 	}
-	return newMetaImpl(cfg.ResourceGroupName)
+	return newMetaImpl(cfg.ResourceGroupName, cfg.OutputDir)
 }
