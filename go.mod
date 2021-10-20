@@ -20,4 +20,5 @@ require (
 	github.com/muesli/reflow v0.3.0
 	github.com/stretchr/testify v1.7.0
 	github.com/zclconf/go-cty v1.9.0
+	golang.org/x/tools v0.0.0-20200713011307-fd294ab11aed // indirect
 )
