@@ -4,16 +4,21 @@ A tool to bring your existing Azure resources under the management of Terraform.
 
 ## Goal
 
-Import all the AzureRM provider supported resources inside the resource group that the user specifies into to Terraform state, and generate a valid Terraform configuration. After running this tool, the Terraform state and configuration should be consistent with the resources' remote state, i.e. `terraform plan` shows no diff. The user then is able to use Terraform to manage these resources.
+Azure Terrafy imports the resources inside a resource group, which are supported by the Terraform provider, into the Terraform state, and generates the valid Terraform configuration. Both the Terraform state and configuration should be consistent with the resources' remote state, i.e., `terraform plan` shows no diff. The user then is able to use Terraform to manage these resources.
 
 ## Install
+
+### From Release
+
+Precompiled binaries for Windows, OS X, Linux are available at [Releases](https://github.com/magodo/aztfy/releases).
+
+Note: The release is in the format of `.tar.gz`, Windows users might want to have [7zip](https://www.7-zip.org/download.html) installed to extract the files.
+
+### From Go toolchain
 
 ```bash
 go install github.com/magodo/aztfy@latest
 ```
-
-### How to get a precompiled binary
-Precompiled binaries for Windows, OS X, Linux are available at [Releases](https://github.com/magodo/aztfy/releases).
 
 ## Usage
 
@@ -25,13 +30,15 @@ Then you can go ahead and run:
 $ aztfy <resource_group_name>
 ```
 
-The tool will then list all the resources resides in the specified resource group. For each of them, it will ask the user to input the Terraform resource type and name for each Azure resource in the form of `<resource type>.<resource name>` (e.g. `azurerm_linux_virtual_machine.example`).
+The tool will then list all the resources resides in the specified resource group.
 
-Especially, in some cases there are resources that have no corresponding terraform resource (e.g. due to lacks of Terraform support), or some resource might be created as a side effect of provisioning another resource (e.g. the Disk resource is created automatically when provisioning a VM). In these cases, you can directly press enter without typing anything to skip that resource.
+For each resource, `aztfy` will ask the user to input the Terraform resource type and name for each Azure resource in the form of `<resource type>.<resource name>` (e.g. `azurerm_linux_virtual_machine.example`).
 
-After getting the input from user, `aztfy` will run `terraform import` to import each resource. Then it will run `terraform add -from-state` to generate the Terraform template for each imported resource. Where as there are kinds of [limitations](https://github.com/apparentlymart/terrafy/blob/main/docs/quirks.md) causing the output of `terraform add` to be an invalid Terraform template in most cases. `aztfy` will leverage extra knowledge from the provider (which is generated from the provider codebase) to further manipulate the template, to make it pass the terraform validations against the provider.
+In some cases, there are Azure resources that have no corresponding Terraform resource (e.g. due to lacks of Terraform support), or some resource might be created as a side effect of provisioning another resource (e.g. the Disk resource is created automatically when provisioning a VM). In these cases, you can skip these resources without typing anything.
 
-As a last step, `aztfy` will leverage the ARM template to inject dependencies between each resource. This makes the generated Terraform template to be useful.
+After getting the input from user, `aztfy` will run `terraform import` under the hood to import each resource. Then it will run `terraform add -from-state` to generate the Terraform template for each imported resource. Whereas there are kinds of [limitations](https://github.com/apparentlymart/terrafy/blob/main/docs/quirks.md) causing the output of `terraform add` to be an invalid Terraform template in most cases. `aztfy` will leverage extra knowledge from the provider (which is generated from the provider codebase) to further manipulate the template, to make it pass the Terraform validations against the provider.
+
+As the last step, `aztfy` will leverage the ARM template to inject dependencies between each resource. This makes the generated Terraform template to be useful.
 
 ## Demo
 
