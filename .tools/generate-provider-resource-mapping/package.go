@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"go/token"
 	"golang.org/x/tools/go/callgraph"
 	"golang.org/x/tools/go/callgraph/cha"
 
@@ -14,6 +15,14 @@ type Package struct {
 	GoPackage  *packages.Package
 	SSAPackage *ssa.Package
 	CallGraph  *callgraph.Graph
+}
+
+func (pkg *Package) Position(pos positioner) string {
+	return pkg.GoPackage.Fset.Position(pos.Pos()).String()
+}
+
+type positioner interface {
+	Pos() token.Pos
 }
 
 func loadPackage(dir string, args []string) ([]*Package, error) {

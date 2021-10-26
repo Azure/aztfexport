@@ -9,6 +9,16 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
+func hasMethod(nt *types.Named, methodName string) bool {
+	for i:=0; i < nt.NumMethods(); i++ {
+		method := nt.Method(i)
+		if method.Name() == methodName {
+			return true
+		}
+	}
+	return false
+}
+
 func functionDeclOfMethod(pkg *packages.Package, nt *types.Named, methodName string) (*ast.FuncDecl, error) {
 	fileMap := map[*token.File]*ast.File{}
 	for _, f := range pkg.Syntax {
@@ -30,4 +40,18 @@ func functionDeclOfMethod(pkg *packages.Package, nt *types.Named, methodName str
 	}
 
 	return nil, fmt.Errorf("failed to find the method %q in type %q", methodName, nt.Obj().Name())
+}
+
+func functionDeclOfFunc(pkg *packages.Package, fun *types.Func) *ast.FuncDecl {
+	fileMap := map[*token.File]*ast.File{}
+	for _, f := range pkg.Syntax {
+		fileMap[pkg.Fset.File(f.Pos())] = f
+	}
+
+	f := fileMap[pkg.Fset.File(fun.Pos())]
+	// Lookup the function declaration from the method identifier position.
+	// The returned enclosing interval starts from the identifier node, then the function declaration node.
+	nodes, _ := astutil.PathEnclosingInterval(f, fun.Pos(), fun.Pos())
+	fdecl := nodes[1].(*ast.FuncDecl)
+	return fdecl
 }

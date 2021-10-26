@@ -1,6 +1,9 @@
 package main
 
-import "golang.org/x/tools/go/callgraph"
+import (
+	"go/types"
+	"golang.org/x/tools/go/callgraph"
+)
 
 func AllCalleesOf(root *callgraph.Node) map[*callgraph.Node]bool {
 	s := map[*callgraph.Node]bool{}
@@ -26,4 +29,17 @@ func AllCalleesOf(root *callgraph.Node) map[*callgraph.Node]bool {
 	}
 	delete(s, root)
 	return s
+}
+
+// DeduplicateInterfaceMethod deduplicate the interface method resulting from CHA callgraph spurious call edges.
+func DeduplicateInterfaceMethod(in map[*callgraph.Node]bool) map[*types.Func]bool {
+	out := map[*types.Func]bool{}
+	for k := range in {
+		// Skipping the anonymous functions, which has no corresponding type object
+		if k.Func.Object() == nil {
+			continue
+		}
+		out[k.Func.Object().(*types.Func)] = true
+	}
+	return out
 }
