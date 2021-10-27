@@ -36,7 +36,7 @@ func (m MetaDummy) ListResource() ImportList {
 			ResourceID: "/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg/providers/Microsoft.Network/networkInterfaces/example-nic",
 		},
 		ImportItem{
-			ResourceID: "/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg/providers/virtualNetworks/example-network/subnets/internal",
+			ResourceID: "/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg/providers/Microsoft.Network/virtualNetworks/example-network/subnets/internal",
 		},
 		ImportItem{
 			ResourceID: "/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg",
