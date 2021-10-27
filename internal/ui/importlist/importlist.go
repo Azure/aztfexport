@@ -2,12 +2,15 @@ package importlist
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/magodo/aztfy/internal/meta"
 	"github.com/magodo/aztfy/internal/ui/aztfyclient"
 	"github.com/magodo/aztfy/internal/ui/common"
+	"github.com/magodo/aztfy/mapping"
 	"github.com/magodo/aztfy/schema"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -17,8 +20,9 @@ import (
 )
 
 type Model struct {
-	c        meta.Meta
-	listkeys listKeyMap
+	c               meta.Meta
+	listkeys        listKeyMap
+	recommendations [][]string
 
 	list list.Model
 }
@@ -30,6 +34,9 @@ func NewModel(c meta.Meta, l meta.ImportList, idx int) Model {
 		candidates = append(candidates, rt)
 	}
 	sort.Strings(candidates)
+
+	// Build the recommendation for each list item
+	recommendations := buildResourceRecommendations(l)
 
 	// Build list items
 	var items []list.Item
@@ -62,8 +69,9 @@ func NewModel(c meta.Meta, l meta.ImportList, idx int) Model {
 	)
 
 	return Model{
-		c:        c,
-		listkeys: newListKeyMap(),
+		c:               c,
+		listkeys:        newListKeyMap(),
+		recommendations: recommendations,
 
 		list: list,
 	}
@@ -78,7 +86,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		// Don't intercept the apply key (i.e. "w") when user is inputting.
+		// Don't intercept the keys (e.g. "w") when user is inputting.
 		if m.isUserTyping() {
 			break
 		}
@@ -111,6 +119,18 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				return m, nil
 			}
 			return m, aztfyclient.ShowImportError(selItem.v, selItem.idx, m.importList(false))
+		case key.Matches(msg, m.listkeys.recommendation):
+			sel := m.list.SelectedItem()
+			if sel == nil {
+				return m, nil
+			}
+			selItem := sel.(Item)
+
+			recs := m.recommendations[selItem.idx]
+			if len(recs) == 0 {
+				return m, m.list.NewStatusMessage(common.InfoStyle.Render("No resource type recommendation is avaialble..."))
+			}
+			return m, m.list.NewStatusMessage(common.InfoStyle.Render(fmt.Sprintf("Possible resource type(s): %s", strings.Join(recs, ","))))
 		}
 	case tea.WindowSizeMsg:
 		// The height here minus the height occupied by the title
@@ -179,4 +199,35 @@ func (m Model) importList(clearErr bool) meta.ImportList {
 		out = append(out, item.v)
 	}
 	return out
+}
+
+func buildResourceRecommendations(l meta.ImportList) [][]string {
+	resourceToAzureIdMapping := mapping.ProviderResourceMapping
+	azureIdToResourcesMapping := map[string][]string{}
+	for k, v := range resourceToAzureIdMapping {
+		resources, ok := azureIdToResourcesMapping[v]
+		if !ok {
+			resources = []string{}
+		}
+		resources = append(resources, k)
+		azureIdToResourcesMapping[v] = resources
+	}
+	azureIdPatternToResourcesMapping := map[*regexp.Regexp][]string{}
+	for path, resources := range azureIdToResourcesMapping {
+		p := regexp.MustCompile("^" + strings.ReplaceAll(path, "{}", "[^/]+") + "$")
+		azureIdPatternToResourcesMapping[p] = resources
+	}
+
+	recommendations := [][]string{}
+	for _, item := range l {
+		var recommendation []string
+		for pattern, resources := range azureIdPatternToResourcesMapping {
+			if pattern.MatchString(strings.ToUpper(item.ResourceID)) {
+				recommendation = resources
+				break
+			}
+		}
+		recommendations = append(recommendations, recommendation)
+	}
+	return recommendations
 }

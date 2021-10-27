@@ -23,6 +23,7 @@ var (
 var (
 	TitleStyle    = lipgloss.NewStyle().Foreground(Cream).Background(Indigo)
 	SubtitleStyle = lipgloss.NewStyle().Foreground(Cream).Background(SubtleIndigo)
+	InfoStyle     = lipgloss.NewStyle().Foreground(Cream).Background(NoColor)
 	QuitMsgStyle  = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#DDDADA", Dark: "#3C3C3C"})
 	ErrorMsgStyle = lipgloss.NewStyle().Foreground(Red)
 )

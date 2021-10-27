@@ -3,6 +3,7 @@ install:
 
 gen:
 	@./.tools/generate-provider-schema/run.sh $(PROVIDER_DIR) $(PROVIDER_VERSION)
+	@./.tools/generate-provider-resource-mapping/run.sh $(PROVIDER_DIR)
 
 depscheck:
 	@echo "==> Checking source code with go mod tidy..."

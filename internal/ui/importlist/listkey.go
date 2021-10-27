@@ -3,8 +3,9 @@ package importlist
 import "github.com/charmbracelet/bubbles/key"
 
 type listKeyMap struct {
-	apply key.Binding
-	error key.Binding
+	apply          key.Binding
+	error          key.Binding
+	recommendation key.Binding
 }
 
 func newListKeyMap() listKeyMap {
@@ -17,6 +18,10 @@ func newListKeyMap() listKeyMap {
 			key.WithKeys("e"),
 			key.WithHelp("e", "show error"),
 		),
+		recommendation: key.NewBinding(
+			key.WithKeys("r"),
+			key.WithHelp("r", "show recommendation"),
+		),
 	}
 }
 
@@ -24,5 +29,6 @@ func (m listKeyMap) ToBindings() []key.Binding {
 	return []key.Binding{
 		m.apply,
 		m.error,
+		m.recommendation,
 	}
 }
