@@ -57,3 +57,31 @@ For example, the `azurerm_lb_backend_address_pool_address` is actually a propert
 Another popular case is that in the AzureRM provider, there are a bunch of "association" resources, e.g. the `azurerm_network_interface_security_group_association`. These "association" resources represent the association relationship between two Terraform resources (in this case they are `azurerm_network_interface` and `azurerm_network_security_group`). They also have some synthetic resource ID, e.g. `/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/microsoft.network/networkInterfaces/example|/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.Network/networkSecurityGroups/group1`.
 
 Currently, this tool only works on the assumption that there is 1:1 mapping between Azure resources and the Terraform resources.
+
+## How to develop with vscode 
+
+### vs pre requiries 
+1. Install Go extension from "Go Team at Google"
+
+1. Install dependencies when ask in the editor.
+
+1. Build without optimision  
+   go build -gcflags=all="-N -l"
+  (To run, in context of the folder)
+
+1. Run app 
+    ./aztfy rg-my-demo
+
+1. Get pid of the app
+    - Linux : pgrep aztfy
+    - Windows : Task manager / tab detail 
+
+1. Update launch setting processId with pid 
+
+1. launch debug session
+
+1. Press enter
+
+
+
+
