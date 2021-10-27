@@ -69,14 +69,19 @@ Currently, this tool only works on the assumption that there is 1:1 mapping betw
    go build -gcflags=all="-N -l"
   (To run, in context of the folder)
 
-1. Run app 
-    ./aztfy rg-my-demo
+1. Add some code in the main.go to stop the init.
+   
+
+1. Run app
+
+    `./aztfy rg-my-demo`
 
 1. Get pid of the app
     - Linux : pgrep aztfy
     - Windows : Task manager / tab detail 
 
 1. Update launch setting processId with pid 
+   (Sample in folder .vscode\launch.json)
 
 1. launch debug session
 
