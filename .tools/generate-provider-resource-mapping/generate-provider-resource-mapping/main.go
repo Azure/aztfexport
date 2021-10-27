@@ -17,6 +17,10 @@ var (
 	pEmbeddedSDK = regexp.MustCompile(`github.com/hashicorp/terraform-provider-azurerm/internal/services/\w+/sdk`)
 )
 
+var (
+	flagDir = flag.String("dir", ".", "The root directory used when loading the Go packages")
+)
+
 const usage = `Terraform resource to Azure API path mapping generator.
 Usage: generate-provider-resource-mapping package...
 
@@ -30,7 +34,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	pkgs, err := loadPackage(".", flag.Args())
+	pkgs, err := loadPackage(*flagDir, flag.Args())
 
 	if err != nil {
 		log.Fatal(err)
