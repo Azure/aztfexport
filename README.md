@@ -70,22 +70,35 @@ Currently, this tool only works on the assumption that there is 1:1 mapping betw
   (To run, in context of the folder)
 
 1. Add some code in the main.go to stop the init.
-   
 
-1. Run app
+```
+var reader = bufio.NewReader(os.Stdin)
+os.Setenv("AZTFY_DEBUG", "true")
+os.Setenv("AZTFY_MOCK_CLIENT", "false")
+os.Setenv("AZTFY_LOGFILE", "aztfylogs.log")
 
-    `./aztfy rg-my-demo`
+log.Println("Main hitted")
+
+input, _ := reader.ReadString('\n')
+value := strings.TrimSpace(input)
+fmt.Printf("input: %v", value)
+```
+
+2. Run app
+```
+./aztfy rg-my-demo
+```
 
 1. Get pid of the app
     - Linux : pgrep aztfy
     - Windows : Task manager / tab detail 
 
-1. Update launch setting processId with pid 
+2. Update launch setting processId with pid 
    (Sample in folder .vscode\launch.json)
 
-1. launch debug session
+3. launch debug session
 
-1. Press enter
+4. Press enter
 
 
 
