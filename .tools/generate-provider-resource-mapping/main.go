@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"go/types"
@@ -19,7 +20,7 @@ var (
 const usage = `Terraform resource to Azure API path mapping generator.
 Usage: generate-provider-resource-mapping package...
 
-The first package has to be the internal/sdk package. The following packages are the ones under internal/services.
+Note that the first package has to be the internal/sdk package. The following packages are the ones under internal/services.
 `
 
 func main() {
@@ -72,7 +73,7 @@ func main() {
 				continue
 			}
 			if types.Implements(obj.Type(), typedRegistration) {
-				mappings, err := handleTypedRegistration(pkg, obj)
+				mappings, err := NewTypedRegistration(pkg, obj).run()
 				if err != nil {
 					log.Println(err)
 				} else {
@@ -82,7 +83,7 @@ func main() {
 				}
 			}
 			if types.Implements(obj.Type(), untypedRegistration) {
-				mappings, err := handleUntypedRegistration(pkg, obj)
+				mappings, err := NewUntypedRegistration(pkg, obj).run()
 				if err != nil {
 					log.Println(err)
 				} else {
@@ -94,7 +95,9 @@ func main() {
 		}
 	}
 
-	for k, v := range result {
-		fmt.Printf("%s => %s\n", k, v)
+	out, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		log.Fatal(err)
 	}
+	fmt.Println(string(out))
 }

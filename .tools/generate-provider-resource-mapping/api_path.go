@@ -6,7 +6,6 @@ import (
 	"go/types"
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/tools/go/ssa"
-	"log"
 	"strconv"
 	"strings"
 )
@@ -189,7 +188,7 @@ func findApiPathFromDeleteFunc(pkg *Package, deleteFunc *ssa.Function) (string, 
 		}
 
 		calleeType := callee.Type().(*types.Signature)
-		calleePkg := pkg.GoPackage.Imports[callee.Pkg().Path()]
+		calleePkg := pkg.GoPackages[callee.Pkg().Path()]
 		calleeRecv := calleeType.Recv()
 		if calleeRecv == nil {
 			// In both SDKs, the CRUD are defined as method on some named receiver.
@@ -229,11 +228,9 @@ func findApiPathFromDeleteFunc(pkg *Package, deleteFunc *ssa.Function) (string, 
 		}
 	}
 	if len(apiPaths) == 0 {
-		log.Printf("[WARN] no API path found from the delete method of %s", pkg.Position(deleteFunc))
-		return "", nil
+		return "", fmt.Errorf("no API path found from the delete method of %s", pkg.Position(deleteFunc))
 	} else if len(apiPaths) > 1 {
-		log.Printf("[WARN] more than one API paths found from the delete method of %s", pkg.Position(deleteFunc))
-		return "", nil
+		return "", fmt.Errorf("more than one API paths found from the delete method of %s", pkg.Position(deleteFunc))
 	}
 	return apiPaths[0], nil
 }

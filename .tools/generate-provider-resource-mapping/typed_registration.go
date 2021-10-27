@@ -5,46 +5,64 @@ import (
 	"go/ast"
 	"go/types"
 	"golang.org/x/tools/go/ssa"
+	"log"
 	"strconv"
 )
 
-func handleTypedRegistration(pkg *Package, regObj types.Object) (map[string]string, error) {
+type TypedRegistration struct {
+	pkg *Package
+	obj types.Object
+}
+
+func NewTypedRegistration(pkg *Package, obj types.Object) TypedRegistration {
+	return TypedRegistration{
+		pkg: pkg,
+		obj: obj,
+	}
+}
+
+func (reg TypedRegistration) run() (map[string]string, error) {
 	// TF resource type -> Azure api path
 	resourceMapping := map[string]string{}
 
 	// Iterate each sdk.Resource as defined in the Resources() method.
-	nt, ok := regObj.Type().(*types.Named)
+	nt, ok := reg.obj.Type().(*types.Named)
 	if !ok {
-		return nil, fmt.Errorf("%s is not a named type", regObj.Type())
+		return nil, fmt.Errorf("%s is not a named type", reg.obj.Type())
 	}
-	f, err := functionDeclOfMethod(pkg.GoPackage, nt, "Resources")
+	f, err := functionDeclOfMethod(reg.pkg.GoPackage, nt, "Resources")
 	if err != nil {
 		return nil, err
 	}
 	retStmt, ok := f.Body.List[0].(*ast.ReturnStmt)
 	if !ok {
-		return nil, fmt.Errorf("the function %s doesn't contain only a return", pkg.Position(f))
+		return nil, fmt.Errorf("the function %s doesn't contain only a return", reg.pkg.Position(f))
 	}
 
-	result, ok := retStmt.Results[0].(*ast.CompositeLit)
+	resourceList, ok := retStmt.Results[0].(*ast.CompositeLit)
 	if !ok {
-		return nil, fmt.Errorf("return value of function %s is not a composite literal", pkg.Position(f))
+		return nil, fmt.Errorf("return value of function %s is not a composite literal", reg.pkg.Position(f))
 	}
 
-	for _, resExpr := range result.Elts {
+	// Iterating each resource in the resource list to analyze and retrieve the TF resource and api path.
+	// Note that if any step ends for processing the current resource up with an error,
+	// it will be skipped and continue processing the next resource.
+	for _, resExpr := range resourceList.Elts {
 		resComplit, ok := resExpr.(*ast.CompositeLit)
 		if !ok {
-			return nil, fmt.Errorf("the returned resource %s is not a composite literal", pkg.Position(resExpr))
+			log.Printf("the returned resource %s is not a composite literal", reg.pkg.Position(resExpr))
+			continue
 		}
-
-		resTypeObj, ok := pkg.GoPackage.TypesInfo.Uses[resComplit.Type.(*ast.Ident)]
+		resTypeObj, ok := reg.pkg.GoPackage.TypesInfo.Uses[resComplit.Type.(*ast.Ident)]
 		if !ok {
-			return nil, fmt.Errorf("failed to find type info for %s", pkg.Position(resExpr))
+			log.Printf("failed to find type info for %s", reg.pkg.Position(resExpr))
+			continue
 		}
 
-		tfName, apiPath, err := handleTypedResource(pkg, resTypeObj)
+		tfName, apiPath, err := reg.processResource(resTypeObj)
 		if err != nil {
-			return nil, err
+			log.Println(err)
+			continue
 		}
 		resourceMapping[tfName] = apiPath
 	}
@@ -52,20 +70,20 @@ func handleTypedRegistration(pkg *Package, regObj types.Object) (map[string]stri
 	return resourceMapping, nil
 }
 
-func handleTypedResource(pkg *Package, obj types.Object) (string, string, error) {
+func (reg TypedRegistration) processResource(resTypeObj types.Object) (string, string, error) {
 	// Identify the TF resource type.
 	// The TF resource type is defined in its ResourceType() method
-	f, err := functionDeclOfMethod(pkg.GoPackage, obj.Type().(*types.Named), "ResourceType")
+	f, err := functionDeclOfMethod(reg.pkg.GoPackage, resTypeObj.Type().(*types.Named), "ResourceType")
 	if err != nil {
 		return "", "", err
 	}
 	retStmt, ok := f.Body.List[0].(*ast.ReturnStmt)
 	if !ok {
-		return "", "", fmt.Errorf("the function %s doesn't contain only a return", pkg.Position(f))
+		return "", "", fmt.Errorf("the function %s doesn't contain only a return", reg.pkg.Position(f))
 	}
 	result, ok := retStmt.Results[0].(*ast.BasicLit)
 	if !ok {
-		return "", "", fmt.Errorf("return value of the function %s is not a basic literal", pkg.Position(f))
+		return "", "", fmt.Errorf("return value of the function %s is not a basic literal", reg.pkg.Position(f))
 	}
 	tfResourceType, err := strconv.Unquote(result.Value)
 	if err != nil {
@@ -74,19 +92,19 @@ func handleTypedResource(pkg *Package, obj types.Object) (string, string, error)
 
 	// Identify the Azure API path.
 	// The API path comes from its Delete() method
-	deleteMethod := pkg.SSAPackage.Prog.LookupMethod(obj.Type(), obj.Pkg(), "Delete")
+	deleteMethod := reg.pkg.SSAPackage.Prog.LookupMethod(resTypeObj.Type(), resTypeObj.Pkg(), "Delete")
 	if deleteMethod == nil {
-		return "", "", fmt.Errorf(`failed to find the "Delete" method for object %s in the SSA program`, pkg.Position(obj))
+		return "", "", fmt.Errorf(`failed to find the "Delete" method for object %s in the SSA program`, reg.pkg.Position(resTypeObj))
 	}
 
-	deleteFunc, err := getRealFunc(pkg, deleteMethod)
+	deleteFunc, err := getRealFunc(reg.pkg, deleteMethod)
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf(`getting the real "Delete" function: %w`, err)
 	}
 
-	apiPath, err := findApiPathFromDeleteFunc(pkg, deleteFunc)
+	apiPath, err := findApiPathFromDeleteFunc(reg.pkg, deleteFunc)
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf(`finding api path from delete function: %w`, err)
 	}
 	return tfResourceType, apiPath, nil
 }

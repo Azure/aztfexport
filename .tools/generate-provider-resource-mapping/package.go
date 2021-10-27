@@ -13,6 +13,7 @@ import (
 
 type Package struct {
 	GoPackage  *packages.Package
+	GoPackages map[string]*packages.Package
 	SSAPackage *ssa.Package
 	CallGraph  *callgraph.Graph
 }
@@ -37,6 +38,14 @@ func loadPackage(dir string, args []string) ([]*Package, error) {
 		return nil, errors.New("go packages contain errors during loading")
 	}
 
+	pkgMap := map[string]*packages.Package{}
+	for _, pkg := range gopkgs {
+		pkgMap[pkg.PkgPath] = pkg
+		for _, imported := range pkg.Imports {
+			pkgMap[imported.PkgPath] = imported
+		}
+	}
+
 	prog, ssapkgs := ssautil.Packages(gopkgs, 0)
 	for _, p := range ssapkgs {
 		if p != nil {
@@ -54,6 +63,7 @@ func loadPackage(dir string, args []string) ([]*Package, error) {
 		pkgs = append(pkgs,
 			&Package{
 				GoPackage:  gopkgs[idx],
+				GoPackages: pkgMap,
 				SSAPackage: ssapkgs[idx],
 				CallGraph:  graph,
 			},
