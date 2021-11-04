@@ -21,8 +21,9 @@ import (
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
-// The minimun required terraform version that has the `terraform add` command.
-var minRequiredTFVersion = version.Must(version.NewSemver("1.1.0-alpha20210811"))
+// The required terraform version that has the `terraform add` command.
+var minRequiredTFVersion = version.Must(version.NewSemver("v1.1.0-alpha20210630"))
+var maxRequiredTFVersion = version.Must(version.NewSemver("v1.1.0-alpha20211006"))
 
 type MetaImpl struct {
 	subscriptionId string
@@ -92,7 +93,7 @@ func newMetaImpl(rg string, outputDir string) (Meta, error) {
 	}
 
 	// Initialize the Terraform
-	execPath, err := FindTerraform(ctx, tfDir, minRequiredTFVersion)
+	execPath, err := FindTerraform(ctx, tfDir, minRequiredTFVersion, maxRequiredTFVersion)
 	if err != nil {
 		return nil, fmt.Errorf("error finding a terraform exectuable: %w", err)
 	}

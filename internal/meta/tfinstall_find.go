@@ -5,22 +5,20 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/hashicorp/terraform-exec/tfinstall"
 )
 
-// FindTerraform finds the path to the terraform executable whose version meets the min version constraint.
+// FindTerraform finds the path to the terraform executable whose version meets the min/max version constraint.
 // It first tries to find from the local OS PATH. If there is no match, it will then download the release of the minVersion from hashicorp to the tfDir.
-func FindTerraform(ctx context.Context, tfDir string, minVersion *version.Version) (string, error) {
+func FindTerraform(ctx context.Context, tfDir string, minVersion, maxVersion *version.Version) (string, error) {
 	var terraformPath string
 	opts := []tfinstall.ExecPathFinder{
 		tfinstall.LookPath(),
 		tfinstall.ExactPath(filepath.Join(tfDir, terraformBinary)),
-		tfinstall.ExactVersion(minVersion.String(), tfDir),
+		tfinstall.ExactVersion(maxVersion.String(), tfDir),
 	}
 
 	// go through the options in order
@@ -41,7 +39,7 @@ func FindTerraform(ctx context.Context, tfDir string, minVersion *version.Versio
 			return "", fmt.Errorf("error getting terraform version for executable found at path %s: %w", p, err)
 		}
 
-		if stripPrereleaseAndMeta(v).LessThan(stripPrereleaseAndMeta(minVersion)) {
+		if v.LessThan(minVersion) || v.GreaterThan(maxVersion) {
 			continue
 		}
 
@@ -66,17 +64,4 @@ func getTerraformVersion(ctx context.Context, execPath string) (*version.Version
 		return nil, fmt.Errorf("error running terraform version: %w", err)
 	}
 	return ver, nil
-}
-
-func stripPrereleaseAndMeta(v *version.Version) *version.Version {
-	if v == nil {
-		return nil
-	}
-	segs := []string{}
-	for _, s := range v.Segments() {
-		segs = append(segs, strconv.Itoa(s))
-	}
-	vs := strings.Join(segs, ".")
-	clean, _ := version.NewVersion(vs)
-	return clean
 }
