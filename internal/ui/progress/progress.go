@@ -3,11 +3,11 @@ package progress
 import (
 	"fmt"
 
+	"github.com/Azure/aztfy/internal/meta"
+	"github.com/Azure/aztfy/internal/ui/aztfyclient"
+	"github.com/Azure/aztfy/internal/ui/common"
 	prog "github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/magodo/aztfy/internal/meta"
-	"github.com/magodo/aztfy/internal/ui/aztfyclient"
-	"github.com/magodo/aztfy/internal/ui/common"
 )
 
 type result struct {

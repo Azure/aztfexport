@@ -2,12 +2,13 @@ package meta
 
 import (
 	"fmt"
-	"github.com/hashicorp/hcl/v2"
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2"
+
+	"github.com/Azure/aztfy/schema"
 	"github.com/hashicorp/hcl/v2/hclwrite"
-	"github.com/magodo/aztfy/schema"
 	"github.com/zclconf/go-cty/cty"
 )
 

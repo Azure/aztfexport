@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/magodo/aztfy/internal/meta"
-	"github.com/magodo/aztfy/internal/ui/aztfyclient"
-	"github.com/magodo/aztfy/internal/ui/common"
-	"github.com/magodo/aztfy/mapping"
-	"github.com/magodo/aztfy/schema"
+	"github.com/Azure/aztfy/internal/meta"
+	"github.com/Azure/aztfy/internal/ui/aztfyclient"
+	"github.com/Azure/aztfy/internal/ui/common"
+	"github.com/Azure/aztfy/mapping"
+	"github.com/Azure/aztfy/schema"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"

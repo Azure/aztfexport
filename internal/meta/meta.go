@@ -1,6 +1,6 @@
 package meta
 
-import "github.com/magodo/aztfy/internal/config"
+import "github.com/Azure/aztfy/internal/config"
 
 type Meta interface {
 	Init() error
