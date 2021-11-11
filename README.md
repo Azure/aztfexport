@@ -10,14 +10,14 @@ Azure Terrafy imports the resources inside a resource group, which are supported
 
 ### From Release
 
-Precompiled binaries for Windows, OS X, Linux are available at [Releases](https://github.com/magodo/aztfy/releases).
+Precompiled binaries for Windows, OS X, Linux are available at [Releases](https://github.com/Azure/aztfy/releases).
 
 Note: The release is in the format of `.tar.gz`, Windows users might want to have [7zip](https://www.7-zip.org/download.html) installed to extract the files.
 
 ### From Go toolchain
 
 ```bash
-go install github.com/magodo/aztfy@latest
+go install github.com/Azure/aztfy@latest
 ```
 
 ## Usage
