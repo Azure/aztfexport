@@ -6,16 +6,16 @@ import (
 	"log"
 	"os"
 
-	"github.com/magodo/aztfy/internal/config"
-	"github.com/magodo/aztfy/internal/meta"
-	"github.com/magodo/aztfy/internal/ui/aztfyclient"
-	"github.com/magodo/aztfy/internal/ui/common"
+	"github.com/Azure/aztfy/internal/config"
+	"github.com/Azure/aztfy/internal/meta"
+	"github.com/Azure/aztfy/internal/ui/aztfyclient"
+	"github.com/Azure/aztfy/internal/ui/common"
 	"github.com/mitchellh/go-wordwrap"
 
 	"github.com/muesli/reflow/indent"
 
-	"github.com/magodo/aztfy/internal/ui/importlist"
-	"github.com/magodo/aztfy/internal/ui/progress"
+	"github.com/Azure/aztfy/internal/ui/importlist"
+	"github.com/Azure/aztfy/internal/ui/progress"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"

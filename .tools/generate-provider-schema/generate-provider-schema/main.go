@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 
+	tfyschema "github.com/Azure/aztfy/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/provider"
 	"github.com/hashicorp/terraform-provider-azurerm/internal/sdk"
-	tfyschema "github.com/magodo/aztfy/schema"
 )
 
 func main() {

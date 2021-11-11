@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/magodo/aztfy/internal/armtemplate"
-	"github.com/magodo/aztfy/schema"
+	"github.com/Azure/aztfy/internal/armtemplate"
+	"github.com/Azure/aztfy/schema"
 
 	"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2020-06-01/resources"
 	"github.com/hashicorp/go-version"

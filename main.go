@@ -7,8 +7,8 @@ import (
 
 	"flag"
 
-	"github.com/magodo/aztfy/internal/config"
-	"github.com/magodo/aztfy/internal/ui"
+	"github.com/Azure/aztfy/internal/config"
+	"github.com/Azure/aztfy/internal/ui"
 )
 
 var (

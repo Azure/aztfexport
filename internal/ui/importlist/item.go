@@ -1,8 +1,8 @@
 package importlist
 
 import (
-	"github.com/magodo/aztfy/internal/meta"
-	"github.com/magodo/aztfy/internal/ui/common"
+	"github.com/Azure/aztfy/internal/meta"
+	"github.com/Azure/aztfy/internal/ui/common"
 	"github.com/magodo/textinput"
 )
 

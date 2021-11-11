@@ -3,8 +3,8 @@ package aztfyclient
 import (
 	"time"
 
-	"github.com/magodo/aztfy/internal/config"
-	"github.com/magodo/aztfy/internal/meta"
+	"github.com/Azure/aztfy/internal/config"
+	"github.com/Azure/aztfy/internal/meta"
 
 	tea "github.com/charmbracelet/bubbletea"
 )

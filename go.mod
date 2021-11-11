@@ -1,4 +1,4 @@
-module github.com/magodo/aztfy
+module github.com/Azure/aztfy
 
 go 1.17
 

@@ -3,9 +3,10 @@ package importlist
 import (
 	"errors"
 	"fmt"
-	"github.com/magodo/aztfy/internal/ui/common"
-	"github.com/magodo/aztfy/schema"
 	"strings"
+
+	"github.com/Azure/aztfy/internal/ui/common"
+	"github.com/Azure/aztfy/schema"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
