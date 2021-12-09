@@ -1,0 +1,64 @@
+# Go
+# Build your Go project.
+# Add steps that test, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/go
+
+parameters:
+  - name: version
+    displayName: Release Version
+    type: string
+
+jobs:
+
+- job: Package
+  displayName: 'Package: '
+
+  pool:
+    vmImage: 'ubuntu-latest'
+
+  steps:
+
+  - task: GoTool@0
+    displayName: 'Install Go'
+    inputs:
+      version: 1.17.4
+      GOPATH: '$(Pipeline.Workspace)/gopath'
+      GOBIN:  '$(GOPATH)/bin'
+
+  - bash: |
+      #!/usr/bin/env bash
+      OS_ARCH=("freebsd:amd64"
+        "freebsd:386"
+        "freebsd:arm"
+        "freebsd:arm64"
+        "windows:amd64"
+        "windows:386"
+        "linux:amd64"
+        "linux:386"
+        "linux:arm"
+        "linux:arm64"
+        "darwin:amd64"
+        "darwin:arm64")
+      mkdir dist
+      for os_arch in "${OS_ARCH[@]}" ; do
+        OS=${os_arch%%:*}
+        ARCH=${os_arch#*:}
+        echo "GOOS: ${OS}, GOARCH: ${ARCH}"
+        GOOS="${OS}" GOARCH="${ARCH}" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o aztfy
+        pkg="aztfy_${VERSION}_${OS}_${ARCH}.zip"
+        zip $pkg aztfy
+        mv $pkg dist 
+        rm aztfy
+      done
+      cd dist
+      checksum="aztfy_${VERSION}_SHA256SUMS"
+      shasum -a 256 * > $checksum
+      cp $checksum ${checksum}.sig
+    displayName: "Build Packages"
+    env:
+      VERSION: ${{ parameters.version }}
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: '$(system.defaultWorkingDirectory)/dist/'
+      artifact: 'artifact'
+      publishLocation: 'pipeline'
