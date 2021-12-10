@@ -46,7 +46,7 @@ jobs:
         echo "GOOS: ${OS}, GOARCH: ${ARCH}"
 
         output=aztfy
-        if [[ $ARCH = windows ]]; then
+        if [[ $OS = windows ]]; then
           output=aztfy.exe
         fi
 
