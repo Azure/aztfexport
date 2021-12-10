@@ -44,11 +44,17 @@ jobs:
         OS=${os_arch%%:*}
         ARCH=${os_arch#*:}
         echo "GOOS: ${OS}, GOARCH: ${ARCH}"
-        GOOS="${OS}" GOARCH="${ARCH}" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o aztfy
+
+        output=aztfy
+        if [[ $ARCH = windows ]]; then
+          output=aztfy.exe
+        fi
+
+        GOOS="${OS}" GOARCH="${ARCH}" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o $output
         pkg="aztfy_${VERSION}_${OS}_${ARCH}.zip"
-        zip $pkg aztfy
+        zip $pkg $output
+        rm $output
         mv $pkg dist 
-        rm aztfy
       done
       cd dist
       checksum="aztfy_${VERSION}_SHA256SUMS"
