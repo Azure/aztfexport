@@ -7,7 +7,7 @@ type Meta interface {
 	ResourceGroupName() string
 	Workspace() string
 	ListResource() ImportList
-	CleanTFState()
+	CleanTFState(addr string)
 	Import(item ImportItem) error
 	GenerateCfg(l ImportList) error
 }

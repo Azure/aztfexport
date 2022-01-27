@@ -37,6 +37,10 @@ type ImportDoneMsg struct {
 	List meta.ImportList
 }
 
+type CleanTFStateMsg struct {
+	Addr string
+}
+
 type GenerateCfgDoneMsg struct{}
 
 type QuitMsg struct{}
@@ -75,15 +79,16 @@ func ShowImportError(item meta.ImportItem, idx int, l meta.ImportList) tea.Cmd {
 
 func StartImport(c meta.Meta, l meta.ImportList) tea.Cmd {
 	return func() tea.Msg {
-		c.CleanTFState()
 		return StartImportMsg{List: l}
 	}
 }
 
 func ImportOneItem(c meta.Meta, item meta.ImportItem) tea.Cmd {
 	return func() tea.Msg {
-		if !item.Skip() {
-			item.ImportError = c.Import(item)
+		if !item.Skip() && !item.Imported {
+			err := c.Import(item)
+			item.Imported = err == nil
+			item.ImportError = err
 		} else {
 			// This explicit minor delay is for the sake of a visual effect of the progress bar.
 			time.Sleep(100 * time.Millisecond)
@@ -104,6 +109,12 @@ func GenerateCfg(c meta.Meta, l meta.ImportList) tea.Cmd {
 			return ErrMsg(err)
 		}
 		return GenerateCfgDoneMsg{}
+	}
+}
+
+func CleanTFState(addr string) tea.Cmd {
+	return func() tea.Msg {
+		return CleanTFStateMsg{addr}
 	}
 }
 

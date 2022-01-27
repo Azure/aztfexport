@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -139,16 +138,18 @@ func (meta MetaImpl) ListResource() ImportList {
 	ids = append(ids, armtemplate.ResourceGroupId.ID(meta.subscriptionId, meta.resourceGroup))
 
 	l := make(ImportList, 0, len(ids))
-	for _, id := range ids {
+	for i, id := range ids {
 		l = append(l, ImportItem{
-			ResourceID: id,
+			ResourceID:     id,
+			TFResourceName: fmt.Sprintf("res-%d", i),
 		})
 	}
 	return l
 }
 
-func (meta *MetaImpl) CleanTFState() {
-	os.Remove(path.Join(meta.Workspace(), "terraform.tfstate"))
+func (meta *MetaImpl) CleanTFState(addr string) {
+	ctx := context.TODO()
+	meta.tf.StateRm(ctx, addr)
 }
 
 func (meta MetaImpl) Import(item ImportItem) error {

@@ -7,6 +7,9 @@ type ImportItem struct {
 	// Whether this azure resource failed to import into terraform (this might due to the TFResourceType doesn't match the resource)
 	ImportError error
 
+	// Whether this azure resource has been successfully imported
+	Imported bool
+
 	// Whether this azure resource failed to validate into terraform (tbh, this should reside in UI layer only)
 	ValidateError error
 
@@ -54,11 +57,10 @@ func (l ImportList) ImportErrored() ImportList {
 
 func (l ImportList) Imported() ImportList {
 	var out ImportList
-	for _, item := range l.NonSkipped() {
-		if item.ImportError != nil {
-			continue
+	for _, item := range l {
+		if item.Imported {
+			out = append(out, item)
 		}
-		out = append(out, item)
 	}
 	return out
 }

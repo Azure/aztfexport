@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Azure/aztfy/internal/ui/aztfyclient"
 	"github.com/Azure/aztfy/internal/ui/common"
 	"github.com/Azure/aztfy/schema"
 
@@ -36,6 +37,15 @@ func NewImportItemDelegate() list.ItemDelegate {
 				case msg.Type == tea.KeyEnter:
 					// Clear the validation error that were set.
 					selItem.v.ValidateError = nil
+
+					// Clear the imported flag that were set, which means this resource will be imported again.
+					// This allows the user to change its mind for importing this resource as another resource type.
+					// (e.g. vm resource -> either azurerm_virtual_machine or azurerm_linux_virtual_machine)
+					if selItem.v.Imported {
+						cmd := aztfyclient.CleanTFState(selItem.v.TFAddr())
+						cmds = append(cmds, cmd)
+						selItem.v.Imported = false
+					}
 
 					// "Enter" focus current selected item
 					setListKeyMapEnabled(m, false)

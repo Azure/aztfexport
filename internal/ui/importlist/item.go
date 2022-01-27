@@ -18,6 +18,8 @@ func (i Item) Title() string {
 		return common.WarningEmoji + i.v.ResourceID
 	case i.v.ImportError != nil:
 		return common.ErrorEmoji + i.v.ResourceID
+	case i.v.Imported:
+		return common.OKEmoji + i.v.ResourceID
 	default:
 		return i.v.ResourceID
 	}

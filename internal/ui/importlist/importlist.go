@@ -44,7 +44,7 @@ func NewModel(c meta.Meta, l meta.ImportList, idx int) Model {
 		ti := textinput.NewModel()
 		ti.SetCursorMode(textinput.CursorStatic)
 		if !item.Skip() {
-			ti.SetValue(fmt.Sprintf("%s.%s", item.TFResourceType, item.TFResourceName))
+			ti.SetValue(item.TFResourceType)
 		}
 		ti.CandidateWords = candidates
 		items = append(items, Item{

@@ -44,7 +44,7 @@ func (m MetaDummy) ListResource() ImportList {
 	}
 }
 
-func (m MetaDummy) CleanTFState() {
+func (m MetaDummy) CleanTFState(_ string) {
 	return
 }
 

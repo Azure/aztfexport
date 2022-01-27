@@ -6,6 +6,7 @@ import (
 
 const ErrorEmoji = "❗️"
 const WarningEmoji = "❓"
+const OKEmoji = "✅"
 
 // Colors for dark and light backgrounds.
 var (

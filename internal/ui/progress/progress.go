@@ -109,10 +109,12 @@ func (m Model) View() string {
 			switch {
 			case res.item.Skip():
 				s += fmt.Sprintf("%s %s skipped\n", res.emoji, res.item.ResourceID)
-			case res.item.ImportError == nil:
-				s += fmt.Sprintf("%s %s import successfully\n", res.emoji, res.item.ResourceID)
-			case res.item.ImportError != nil:
-				s += fmt.Sprintf("%s %s import failed\n", res.emoji, res.item.ResourceID)
+			default:
+				if res.item.ImportError == nil {
+					s += fmt.Sprintf("%s %s import successfully\n", res.emoji, res.item.ResourceID)
+				} else {
+					s += fmt.Sprintf("%s %s import failed\n", res.emoji, res.item.ResourceID)
+				}
 			}
 		}
 	}
