@@ -86,9 +86,7 @@ func StartImport(c meta.Meta, l meta.ImportList) tea.Cmd {
 func ImportOneItem(c meta.Meta, item meta.ImportItem) tea.Cmd {
 	return func() tea.Msg {
 		if !item.Skip() && !item.Imported {
-			err := c.Import(item)
-			item.Imported = err == nil
-			item.ImportError = err
+			c.Import(&item)
 		} else {
 			// This explicit minor delay is for the sake of a visual effect of the progress bar.
 			time.Sleep(100 * time.Millisecond)

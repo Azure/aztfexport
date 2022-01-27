@@ -48,9 +48,9 @@ func (m MetaDummy) CleanTFState(_ string) {
 	return
 }
 
-func (m MetaDummy) Import(item ImportItem) error {
+func (m MetaDummy) Import(item *ImportItem) {
 	time.Sleep(time.Second)
-	return nil
+	return
 }
 
 func (m MetaDummy) GenerateCfg(l ImportList) error {

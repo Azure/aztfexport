@@ -29,12 +29,15 @@ Then you can go ahead and run `aztfy`:
 ```shell
 aztfy [option] <resource group name>
 
+  -k    Whether continue on import error (batch import only)
+  -m string
+        Specify the resource mapping file (for batch import)
   -o string
         Specify output dir. Default is a dir under the user cache dir, which is named after the resource group name
   -v    Print version
 ```
 
-The tool will then list all the resources resides in the specified resource group.
+The tool will list all the resources resides in the specified resource group.
 
 For each resource, `aztfy` will ask the user to input the Terraform resource type for each Azure resource (e.g. `azurerm_linux_virtual_machine`). Users can press `r` to see the possible resource type for the selected import item, though this is not guaranteed to be 100% accurate.
 
@@ -43,6 +46,34 @@ In some cases, there are Azure resources that have no corresponding Terraform re
 After getting the input from user, `aztfy` will run `terraform import` under the hood to import each resource. Then it will run `terraform add -from-state` to generate the Terraform template for each imported resource. Whereas there are kinds of [limitations](https://github.com/apparentlymart/terrafy/blob/main/docs/quirks.md) causing the output of `terraform add` to be an invalid Terraform template in most cases. `aztfy` will leverage extra knowledge from the provider (which is generated from the provider codebase) to further manipulate the template, to make it pass the Terraform validations against the provider.
 
 As the last step, `aztfy` will leverage the ARM template to inject dependencies between each resource. This makes the generated Terraform template to be useful.
+
+### Batch Import Mode
+
+In case the `-m` option is specified, users are expected to provide a resource mapping file with following content:
+
+```json
+{
+    "<azure resource id1>": "<terraform resource type1>",
+    "<azure resource id2>": "<terraform resource type2>",
+    ...
+}
+```
+
+Example:
+
+```json
+{
+    "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Network/virtualNetworks/example-network": "azurerm_virtual_network",
+    "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Compute/virtualMachines/example-machine": "azurerm_linux_virtual_machine",
+    "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Network/networkInterfaces/example-nic": "azurerm_network_interface",
+    "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Network/networkInterfaces/example-nic1": "azurerm_network_interface",
+    "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Network/virtualNetworks/example-network/subnets/internal": "azurerm_subnet"
+}
+```
+
+Then the tool will import each specified resource in the mapping file (if exists), and generate the Terraform configuration with dependencies resolved.
+
+In the batch import mode, users can further specify the `-k` option to make the tool continue even on hittng import error on any resource.
 
 ## Demo
 

@@ -152,7 +152,7 @@ func (meta *MetaImpl) CleanTFState(addr string) {
 	meta.tf.StateRm(ctx, addr)
 }
 
-func (meta MetaImpl) Import(item ImportItem) error {
+func (meta MetaImpl) Import(item *ImportItem) {
 	ctx := context.TODO()
 
 	// Generate a temp Terraform config to include the empty template for each resource.
@@ -160,15 +160,19 @@ func (meta MetaImpl) Import(item ImportItem) error {
 	cfgFile := filepath.Join(meta.workspace, "main.tf")
 	tpl, err := meta.tf.Add(ctx, item.TFAddr())
 	if err != nil {
-		return fmt.Errorf("generating resource template for %s: %w", item.TFAddr(), err)
+		item.ImportError = fmt.Errorf("generating resource template for %s: %w", item.TFAddr(), err)
+		return
 	}
 	if err := os.WriteFile(cfgFile, []byte(tpl), 0644); err != nil {
-		return fmt.Errorf("generating resource template file: %w", err)
+		item.ImportError = fmt.Errorf("generating resource template file: %w", err)
+		return
 	}
 	defer os.Remove(cfgFile)
 
 	// Import resources
-	return meta.tf.Import(ctx, item.TFAddr(), item.ResourceID)
+	err = meta.tf.Import(ctx, item.TFAddr(), item.ResourceID)
+	item.ImportError = err
+	item.Imported = err == nil
 }
 
 func (meta MetaImpl) GenerateCfg(l ImportList) error {

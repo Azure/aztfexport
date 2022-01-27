@@ -28,7 +28,7 @@ func NewProgram(cfg config.Config) (*tea.Program, error) {
 	log.SetOutput(io.Discard)
 
 	// Define another dedicated logger for the ui
-	logger := log.Default()
+	logger := log.New(os.Stderr, "", log.LstdFlags)
 	if cfg.Logfile != "" {
 		f, err := os.OpenFile(cfg.Logfile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 		if err != nil {
@@ -37,7 +37,6 @@ func NewProgram(cfg config.Config) (*tea.Program, error) {
 		logger = log.New(f, "aztfy", log.LstdFlags)
 	}
 
-	logger.Println("-- Starting --")
 	return tea.NewProgram(newModel(cfg, logger), tea.WithAltScreen()), nil
 }
 
