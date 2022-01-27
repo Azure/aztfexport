@@ -36,7 +36,7 @@ aztfy [option] <resource group name>
 
 The tool will then list all the resources resides in the specified resource group.
 
-For each resource, `aztfy` will ask the user to input the Terraform resource type and name for each Azure resource in the form of `<resource type>.<resource name>` (e.g. `azurerm_linux_virtual_machine.example`). Users can press `r` to see the possible resource type for the selected import item, though this is not guaranteed to be 100% accurate.
+For each resource, `aztfy` will ask the user to input the Terraform resource type for each Azure resource (e.g. `azurerm_linux_virtual_machine`). Users can press `r` to see the possible resource type for the selected import item, though this is not guaranteed to be 100% accurate.
 
 In some cases, there are Azure resources that have no corresponding Terraform resource (e.g. due to lacks of Terraform support), or some resource might be created as a side effect of provisioning another resource (e.g. the Disk resource is created automatically when provisioning a VM). In these cases, you can skip these resources without typing anything.
 
@@ -46,7 +46,7 @@ As the last step, `aztfy` will leverage the ARM template to inject dependencies 
 
 ## Demo
 
-[![asciicast](https://asciinema.org/a/iPTGS6E2CSxpYPtbPQhWmxLdu.svg)](https://asciinema.org/a/iPTGS6E2CSxpYPtbPQhWmxLdu)
+[![asciicast](https://asciinema.org/a/jZU8De8Kok98zBVyMTtktDQnO.svg)](https://asciinema.org/a/jZU8De8Kok98zBVyMTtktDQnO)
 
 ## Limitation
 
