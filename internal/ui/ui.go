@@ -144,6 +144,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.importerrormsg = msg
 		return m, nil
 	case aztfyclient.StartImportMsg:
+		// Update the import list to give each import item a resource name, unique among each resource type.
+		tm := map[string]map[string]bool{}
+		for i, item := range msg.List {
+			if item.Skip() {
+				continue
+			}
+			nm, ok := tm[item.TFResourceType]
+			if !ok {
+				nm = map[string]bool{}
+				tm[item.TFResourceType] = nm
+			}
+			for idx := 0; ; idx++ {
+				name := fmt.Sprintf("this-%d", idx)
+				if _, ok := nm[name]; !ok {
+					nm[name] = true
+					msg.List[i].TFResourceName = name
+					break
+				}
+			}
+		}
 		m.status = statusImporting
 		m.progress = progress.NewModel(m.meta, msg.List)
 		return m, tea.Batch(

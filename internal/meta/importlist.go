@@ -18,7 +18,7 @@ type ImportItem struct {
 }
 
 func (item ImportItem) Skip() bool {
-	return item.TFResourceType == "" && item.TFResourceName == ""
+	return item.TFResourceType == ""
 }
 
 func (item *ImportItem) TFAddr() string {
