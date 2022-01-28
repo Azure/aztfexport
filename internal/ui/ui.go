@@ -160,19 +160,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, cmd
 			}
 		}
-		m.status = statusGeneratingCfg
-		return m, aztfyclient.GenerateCfg(m.meta, msg.List)
-	case aztfyclient.CleanTFStateMsg:
-		m.meta.CleanTFState(msg.Addr)
-		return m, nil
-	case aztfyclient.GenerateCfgDoneMsg:
 		m.status = statusExportResourceMapping
 		return m, aztfyclient.ExportResourceMapping(m.meta, msg.List)
 	case aztfyclient.ExportResourceMappingDoneMsg:
+		m.status = statusGeneratingCfg
+		return m, aztfyclient.GenerateCfg(m.meta, msg.List)
+	case aztfyclient.GenerateCfgDoneMsg:
 		m.status = statusSummary
 		return m, nil
 	case aztfyclient.QuitMsg:
 		return m, tea.Quit
+	case aztfyclient.CleanTFStateMsg:
+		m.meta.CleanTFState(msg.Addr)
+		return m, nil
 	case aztfyclient.ErrMsg:
 		m.status = statusError
 		m.err = msg

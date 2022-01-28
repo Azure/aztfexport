@@ -37,17 +37,17 @@ type ImportDoneMsg struct {
 	List meta.ImportList
 }
 
-type CleanTFStateMsg struct {
-	Addr string
-}
-
-type GenerateCfgDoneMsg struct {
+type ExportResourceMappingDoneMsg struct {
 	List meta.ImportList
 }
 
-type ExportResourceMappingDoneMsg struct{}
+type GenerateCfgDoneMsg struct{}
 
 type QuitMsg struct{}
+
+type CleanTFStateMsg struct {
+	Addr string
+}
 
 func NewClient(cfg config.Config) tea.Cmd {
 	return func() tea.Msg {
@@ -110,7 +110,7 @@ func GenerateCfg(c meta.Meta, l meta.ImportList) tea.Cmd {
 		if err := c.GenerateCfg(l); err != nil {
 			return ErrMsg(err)
 		}
-		return GenerateCfgDoneMsg{List: l}
+		return GenerateCfgDoneMsg{}
 	}
 }
 
@@ -119,7 +119,7 @@ func ExportResourceMapping(c meta.Meta, l meta.ImportList) tea.Cmd {
 		if err := c.ExportResourceMapping(l); err != nil {
 			return ErrMsg(err)
 		}
-		return ExportResourceMappingDoneMsg{}
+		return ExportResourceMappingDoneMsg{List: l}
 	}
 }
 
