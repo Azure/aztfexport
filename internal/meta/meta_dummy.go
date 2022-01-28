@@ -57,3 +57,8 @@ func (m MetaDummy) GenerateCfg(l ImportList) error {
 	time.Sleep(500 * time.Millisecond)
 	return nil
 }
+
+func (m MetaDummy) ExportResourceMapping(l ImportList) error {
+	time.Sleep(500 * time.Millisecond)
+	return nil
+}

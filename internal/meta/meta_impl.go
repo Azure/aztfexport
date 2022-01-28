@@ -31,9 +31,13 @@ type MetaImpl struct {
 	tf             *tfexec.Terraform
 	auth           *Authorizer
 	armTemplate    armtemplate.Template
+
+	// Key is azure resource id; Value is terraform resource type.
+	// For azure resources not in this mapping, they are all initialized as to skip.
+	resourceMapping map[string]string
 }
 
-func newMetaImpl(rg string, outputDir string) (Meta, error) {
+func newMetaImpl(rg string, outputDir string, resourceMapping map[string]string) (Meta, error) {
 	ctx := context.TODO()
 
 	// Initialize the workspace
@@ -103,11 +107,12 @@ func newMetaImpl(rg string, outputDir string) (Meta, error) {
 	}
 
 	return &MetaImpl{
-		subscriptionId: auth.Config.SubscriptionID,
-		resourceGroup:  rg,
-		workspace:      wsp,
-		tf:             tf,
-		auth:           auth,
+		subscriptionId:  auth.Config.SubscriptionID,
+		resourceGroup:   rg,
+		workspace:       wsp,
+		tf:              tf,
+		auth:            auth,
+		resourceMapping: resourceMapping,
 	}, nil
 }
 
@@ -139,10 +144,20 @@ func (meta MetaImpl) ListResource() ImportList {
 
 	l := make(ImportList, 0, len(ids))
 	for i, id := range ids {
-		l = append(l, ImportItem{
+		item := ImportItem{
 			ResourceID:     id,
 			TFResourceName: fmt.Sprintf("res-%d", i),
-		})
+		}
+
+		// If users have specified the resource mapping, then the each item in the generated import list
+		// must be non-empty: either the resource type, or TFResourceTypeSkip.
+		if meta.resourceMapping != nil {
+			item.TFResourceType = TFResourceTypeSkip
+			if tf, ok := meta.resourceMapping[id]; ok {
+				item.TFResourceType = tf
+			}
+		}
+		l = append(l, item)
 	}
 	return l
 }
@@ -187,6 +202,25 @@ func (meta MetaImpl) GenerateCfg(l ImportList) error {
 		return fmt.Errorf("resolving cross resource dependencies: %w", err)
 	}
 	return meta.generateConfig(cfginfos)
+}
+
+func (meta MetaImpl) ExportResourceMapping(l ImportList) error {
+	m := map[string]string{}
+	for _, item := range l {
+		if item.Skip() {
+			continue
+		}
+		m[item.ResourceID] = item.TFResourceType
+	}
+	output := filepath.Join(meta.workspace, ".aztfyResourceMapping.json")
+	b, err := json.MarshalIndent(m, "", "\t")
+	if err != nil {
+		return fmt.Errorf("JSON marshalling the resource mapping: %v", err)
+	}
+	if err := os.WriteFile(output, b, 0644); err != nil {
+		return fmt.Errorf("writing the resource mapping to %s: %v", output, err)
+	}
+	return nil
 }
 
 func providerConfig() string {

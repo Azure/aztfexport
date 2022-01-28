@@ -41,7 +41,11 @@ type CleanTFStateMsg struct {
 	Addr string
 }
 
-type GenerateCfgDoneMsg struct{}
+type GenerateCfgDoneMsg struct {
+	List meta.ImportList
+}
+
+type ExportResourceMappingDoneMsg struct{}
 
 type QuitMsg struct{}
 
@@ -65,7 +69,7 @@ func Init(c meta.Meta) tea.Cmd {
 	}
 }
 
-func ListResource(c meta.Meta) tea.Cmd {
+func ListResource(c meta.Meta, resourceMapping map[string]string) tea.Cmd {
 	return func() tea.Msg {
 		return ListResourceDoneMsg{List: c.ListResource()}
 	}
@@ -106,7 +110,16 @@ func GenerateCfg(c meta.Meta, l meta.ImportList) tea.Cmd {
 		if err := c.GenerateCfg(l); err != nil {
 			return ErrMsg(err)
 		}
-		return GenerateCfgDoneMsg{}
+		return GenerateCfgDoneMsg{List: l}
+	}
+}
+
+func ExportResourceMapping(c meta.Meta, l meta.ImportList) tea.Cmd {
+	return func() tea.Msg {
+		if err := c.ExportResourceMapping(l); err != nil {
+			return ErrMsg(err)
+		}
+		return ExportResourceMappingDoneMsg{}
 	}
 }
 

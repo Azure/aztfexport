@@ -10,11 +10,12 @@ type Meta interface {
 	CleanTFState(addr string)
 	Import(item *ImportItem)
 	GenerateCfg(l ImportList) error
+	ExportResourceMapping(l ImportList) error
 }
 
 func NewMeta(cfg config.Config) (Meta, error) {
 	if cfg.MockClient {
 		return newMetaDummy(cfg.ResourceGroupName)
 	}
-	return newMetaImpl(cfg.ResourceGroupName, cfg.OutputDir)
+	return newMetaImpl(cfg.ResourceGroupName, cfg.OutputDir, cfg.ResourceMapping)
 }

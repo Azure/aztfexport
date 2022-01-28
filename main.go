@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -19,13 +19,15 @@ var (
 	flagOutputDir   *string
 	flagMappingFile *string
 	flagContinue    *bool
+	flagQuietMode   *bool
 )
 
 func init() {
 	flagVersion = flag.Bool("v", false, "Print version")
 	flagOutputDir = flag.String("o", "", "Specify output dir. Default is a dir under the user cache dir, which is named after the resource group name")
-	flagMappingFile = flag.String("m", "", "Specify the resource mapping file (for batch import)")
-	flagContinue = flag.Bool("k", false, "Whether continue on import error (batch import only)")
+	flagMappingFile = flag.String("m", "", "Specify the resource mapping file")
+	flagContinue = flag.Bool("k", false, "Whether continue on import error (quiet mode only)")
+	flagQuietMode = flag.Bool("q", false, "Quiet mode")
 }
 
 const usage = `aztfy [option] <resource group name>
@@ -48,20 +50,27 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Flag sanity check
 	if len(flag.Args()) != 1 {
 		flag.Usage()
 		os.Exit(1)
 	}
+	if *flagQuietMode && *flagMappingFile == "" {
+		fatal(errors.New("`-q` must be used together with `-m`"))
+	}
+	if *flagContinue && !*flagQuietMode {
+		fatal(errors.New("`-k` must be used together with `-q`"))
+	}
 
 	rg := flag.Args()[0]
 
-	cfg, err := config.NewConfig(rg, *flagOutputDir)
+	cfg, err := config.NewConfig(rg, *flagOutputDir, *flagMappingFile)
 	if err != nil {
 		fatal(err)
 	}
 
-	if *flagMappingFile != "" {
-		if err := batchImport(*cfg, *flagMappingFile, *flagContinue); err != nil {
+	if *flagQuietMode {
+		if err := batchImport(*cfg, *flagContinue); err != nil {
 			fatal(err)
 		}
 		return
@@ -77,16 +86,7 @@ func main() {
 	}
 }
 
-func batchImport(cfg config.Config, mappingFile string, continueOnError bool) error {
-	b, err := os.ReadFile(mappingFile)
-	if err != nil {
-		return fmt.Errorf("reading mapping file %s: %v", mappingFile, err)
-	}
-	var m map[string]string
-	if err := json.Unmarshal(b, &m); err != nil {
-		return fmt.Errorf("unmarshalling the mapping file: %v", err)
-	}
-
+func batchImport(cfg config.Config, continueOnError bool) error {
 	// Discard logs from hashicorp/azure-go-helper
 	log.SetOutput(io.Discard)
 	// Define another dedicated logger for the ui
@@ -115,12 +115,10 @@ func batchImport(cfg config.Config, mappingFile string, continueOnError bool) er
 
 	logger.Println("Import resources")
 	for i := range list {
-		rt, ok := m[list[i].ResourceID]
-		if !ok {
+		if list[i].Skip() {
 			logger.Printf("[WARN] No mapping information for resource: %s, skip it\n", list[i].ResourceID)
 			continue
 		}
-		list[i].TFResourceType = rt
 		logger.Printf("Importing %s as %s\n", list[i].ResourceID, list[i].TFAddr())
 		c.Import(&list[i])
 		if err := list[i].ImportError; err != nil {

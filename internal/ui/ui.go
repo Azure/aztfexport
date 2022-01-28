@@ -49,6 +49,7 @@ const (
 	statusImporting
 	statusImportErrorMsg
 	statusGeneratingCfg
+	statusExportResourceMapping
 	statusSummary
 	statusQuitting
 	statusError
@@ -129,7 +130,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, aztfyclient.Init(m.meta)
 	case aztfyclient.InitProviderDoneMsg:
 		m.status = statusListingResource
-		return m, aztfyclient.ListResource(m.meta)
+		return m, aztfyclient.ListResource(m.meta, m.cfg.ResourceMapping)
 	case aztfyclient.ListResourceDoneMsg:
 		m.status = statusBuildingImportList
 		m.importlist = importlist.NewModel(m.meta, msg.List, 0)
@@ -165,6 +166,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.meta.CleanTFState(msg.Addr)
 		return m, nil
 	case aztfyclient.GenerateCfgDoneMsg:
+		m.status = statusExportResourceMapping
+		return m, aztfyclient.ExportResourceMapping(m.meta, msg.List)
+	case aztfyclient.ExportResourceMappingDoneMsg:
 		m.status = statusSummary
 		return m, nil
 	case aztfyclient.QuitMsg:
@@ -219,6 +223,8 @@ func (m model) View() string {
 		s += m.spinner.View() + m.progress.View()
 	case statusGeneratingCfg:
 		s += m.spinner.View() + " Generating Terraform Configurations..."
+	case statusExportResourceMapping:
+		s += m.spinner.View() + " Exporting Resource Mapping..."
 	case statusSummary:
 		s += summaryView(m)
 	case statusError:

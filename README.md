@@ -29,11 +29,12 @@ Then you can go ahead and run `aztfy`:
 ```shell
 aztfy [option] <resource group name>
 
-  -k    Whether continue on import error (batch import only)
+  -k    Whether continue on import error (quiet mode only)
   -m string
-        Specify the resource mapping file (for batch import)
+        Specify the resource mapping file
   -o string
         Specify output dir. Default is a dir under the user cache dir, which is named after the resource group name
+  -q    Quiet mode
   -v    Print version
 ```
 
@@ -43,13 +44,15 @@ For each resource, `aztfy` will ask the user to input the Terraform resource typ
 
 In some cases, there are Azure resources that have no corresponding Terraform resource (e.g. due to lacks of Terraform support), or some resource might be created as a side effect of provisioning another resource (e.g. the Disk resource is created automatically when provisioning a VM). In these cases, you can skip these resources without typing anything.
 
+> 💡 Option `-m` can be used to specify a resource mapping file, either constructed manually or from other runs of `aztfy` (generated in the output directory with name: _.aztfyResourceMapping.json_).
+
 After going through all the resources to be imported, users press `w` to proceed.`aztfy` will run `terraform import` under the hood to import each resource. Then it will run `terraform add -from-state` to generate the Terraform template for each imported resource. Whereas there are kinds of [limitations](https://github.com/apparentlymart/terrafy/blob/main/docs/quirks.md) causing the output of `terraform add` to be an invalid Terraform template in most cases. `aztfy` will leverage extra knowledge from the provider (which is generated from the provider codebase) to further manipulate the template, to make it pass the Terraform validations against the provider.
 
 As the last step, `aztfy` will leverage the ARM template to inject dependencies between each resource. This makes the generated Terraform template to be useful.
 
 ### Batch Import Mode
 
-In case the `-m` option is specified, users are expected to provide a resource mapping file with following content:
+`aztfy` also supports to be run non-interactively by setting the `-q` option. In this mode, a resource mapping file is mandatory to be specified via option `-m`, with the following content:
 
 ```json
 {
@@ -63,15 +66,15 @@ Example:
 
 ```json
 {
-    "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Network/virtualNetworks/example-network": "azurerm_virtual_network",
-    "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Compute/virtualMachines/example-machine": "azurerm_linux_virtual_machine",
-    "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Network/networkInterfaces/example-nic": "azurerm_network_interface",
-    "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Network/networkInterfaces/example-nic1": "azurerm_network_interface",
-    "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Network/virtualNetworks/example-network/subnets/internal": "azurerm_subnet"
+  "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Network/virtualNetworks/example-network": "azurerm_virtual_network",
+  "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Compute/virtualMachines/example-machine": "azurerm_linux_virtual_machine",
+  "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Network/networkInterfaces/example-nic": "azurerm_network_interface",
+  "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Network/networkInterfaces/example-nic1": "azurerm_network_interface",
+  "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Network/virtualNetworks/example-network/subnets/internal": "azurerm_subnet"
 }
 ```
 
-Then the tool will import each specified resource in the mapping file (if exists), and generate the Terraform configuration with dependencies resolved.
+Then the tool will import each specified resource in the mapping file (if exists) and skip the others. Then generate the Terraform configuration with dependencies resolved.
 
 In the batch import mode, users can further specify the `-k` option to make the tool continue even on hittng import error on any resource.
 
@@ -89,16 +92,17 @@ Another popular case is that in the AzureRM provider, there are a bunch of "asso
 
 Currently, this tool only works on the assumption that there is 1:1 mapping between Azure resources and the Terraform resources.
 
-## How to develop with vscode 
+## How to develop with vscode
 
-### vs pre requiries 
+### vs pre requiries
+
 1. Install Go extension from "Go Team at Google"
 
 1. Install dependencies when ask in the editor.
 
 1. Build without optimision  
-   go build -gcflags=all="-N -l"
-  (To run, in context of the folder)
+    go build -gcflags=all="-N -l"
+   (To run, in context of the folder)
 
 1. Add some code in the main.go to stop the init.
 
@@ -116,21 +120,19 @@ fmt.Printf("input: %v", value)
 ```
 
 2. Run app
+
 ```
 ./aztfy rg-my-demo
 ```
 
 1. Get pid of the app
-    - Linux : pgrep aztfy
-    - Windows : Task manager / tab detail 
 
-2. Update launch setting processId with pid 
+   - Linux : pgrep aztfy
+   - Windows : Task manager / tab detail
+
+2. Update launch setting processId with pid
    (Sample in folder .vscode\launch.json)
 
 3. launch debug session
 
 4. Press enter
-
-
-
-
