@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Azure/aztfy/internal/meta"
 	"github.com/Azure/aztfy/internal/ui/aztfyclient"
 	"github.com/Azure/aztfy/internal/ui/common"
 	"github.com/Azure/aztfy/schema"
@@ -47,6 +48,9 @@ func NewImportItemDelegate() list.ItemDelegate {
 						selItem.v.Imported = false
 					}
 
+					// Clear the is recommended flag that were set.
+					selItem.v.IsRecommended = false
+
 					// "Enter" focus current selected item
 					setListKeyMapEnabled(m, false)
 					cmd := selItem.textinput.Focus()
@@ -75,6 +79,12 @@ func NewImportItemDelegate() list.ItemDelegate {
 					selItem.v.ValidateError = err
 					return
 				}
+
+				// Reset to TFResourceTypeSkip if value is empty
+				if rt == "" {
+					rt = meta.TFResourceTypeSkip
+				}
+
 				selItem.v.TFResourceType = rt
 				return
 			}

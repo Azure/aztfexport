@@ -1,5 +1,8 @@
 package meta
 
+// TFResourceTypeSkip is a special resource type which represents to skip this resource from importing.
+const TFResourceTypeSkip string = "Skip"
+
 type ImportItem struct {
 	// The azure resource id
 	ResourceID string
@@ -18,10 +21,13 @@ type ImportItem struct {
 
 	// The terraform resource name
 	TFResourceName string
+
+	// Whether this TF resource type is from recommendation
+	IsRecommended bool
 }
 
 func (item ImportItem) Skip() bool {
-	return item.TFResourceType == ""
+	return item.TFResourceType == TFResourceTypeSkip
 }
 
 func (item *ImportItem) TFAddr() string {

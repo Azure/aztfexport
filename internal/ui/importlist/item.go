@@ -21,6 +21,9 @@ func (i Item) Title() string {
 	case i.v.Imported:
 		return common.OKEmoji + i.v.ResourceID
 	default:
+		if i.v.IsRecommended {
+			return common.BulbEmoji + i.v.ResourceID
+		}
 		return i.v.ResourceID
 	}
 }
@@ -29,11 +32,10 @@ func (i Item) Description() string {
 	if i.textinput.Focused() {
 		return i.textinput.View()
 	}
-	v := i.textinput.Value()
-	if v == "" {
+	if i.v.Skip() {
 		return "(Skip)"
 	}
-	return v
+	return i.textinput.Value()
 }
 
 func (i Item) FilterValue() string { return i.v.ResourceID }
