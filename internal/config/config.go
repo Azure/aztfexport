@@ -9,15 +9,16 @@ import (
 )
 
 type Config struct {
-	ResourceGroupName string            // specified via CLI
-	Logfile           string            `env:"AZTFY_LOGFILE" default:""`
-	Debug             bool              `env:"AZTFY_DEBUG" default:"false"`
-	MockClient        bool              `env:"AZTFY_MOCK_CLIENT" default:"false"`
-	OutputDir         string            // specified via CLI option
-	ResourceMapping   map[string]string // specified via CLI option
+	ResourceGroupName   string            // specified via CLI
+	Logfile             string            `env:"AZTFY_LOGFILE" default:""`
+	Debug               bool              `env:"AZTFY_DEBUG" default:"false"`
+	MockClient          bool              `env:"AZTFY_MOCK_CLIENT" default:"false"`
+	OutputDir           string            // specified via CLI option
+	ResourceMapping     map[string]string // specified via CLI option
+	ResourceNamePattern string            // specified via CLI option
 }
 
-func NewConfig(rg, outputDir, mappingFile string) (*Config, error) {
+func NewConfig(rg, outputDir, mappingFile, resourceNamePattern string) (*Config, error) {
 	var cfg Config
 	if err := babyenv.Parse(&cfg); err != nil {
 		return nil, err
@@ -35,6 +36,7 @@ func NewConfig(rg, outputDir, mappingFile string) (*Config, error) {
 		cfg.ResourceMapping = m
 	}
 
+	cfg.ResourceNamePattern = resourceNamePattern
 	cfg.ResourceGroupName = rg
 	cfg.OutputDir = outputDir
 	return &cfg, nil
