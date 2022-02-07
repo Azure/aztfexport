@@ -35,9 +35,12 @@ type MetaImpl struct {
 	// Key is azure resource id; Value is terraform resource type.
 	// For azure resources not in this mapping, they are all initialized as to skip.
 	resourceMapping map[string]string
+
+	resourceNamePrefix string
+	resourceNameSuffix string
 }
 
-func newMetaImpl(rg string, outputDir string, resourceMapping map[string]string) (Meta, error) {
+func newMetaImpl(rg string, outputDir string, resourceMapping map[string]string, pattern string) (Meta, error) {
 	ctx := context.TODO()
 
 	// Initialize the workspace
@@ -106,14 +109,22 @@ func newMetaImpl(rg string, outputDir string, resourceMapping map[string]string)
 		return nil, fmt.Errorf("error running NewTerraform: %w", err)
 	}
 
-	return &MetaImpl{
+	meta := &MetaImpl{
 		subscriptionId:  auth.Config.SubscriptionID,
 		resourceGroup:   rg,
 		workspace:       wsp,
 		tf:              tf,
 		auth:            auth,
 		resourceMapping: resourceMapping,
-	}, nil
+	}
+
+	if pos := strings.LastIndex(pattern, "*"); pos != -1 {
+		meta.resourceNamePrefix, meta.resourceNameSuffix = pattern[:pos], pattern[pos+1:]
+	} else {
+		meta.resourceNamePrefix = pattern
+	}
+
+	return meta, nil
 }
 
 func (meta MetaImpl) ResourceGroupName() string {
@@ -146,7 +157,7 @@ func (meta MetaImpl) ListResource() ImportList {
 	for i, id := range ids {
 		item := ImportItem{
 			ResourceID:     id,
-			TFResourceName: fmt.Sprintf("res-%d", i),
+			TFResourceName: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, i, meta.resourceNameSuffix),
 		}
 
 		// If users have specified the resource mapping, then the each item in the generated import list
