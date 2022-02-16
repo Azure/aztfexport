@@ -3,7 +3,6 @@ package aztfyclient
 import (
 	"time"
 
-	"github.com/Azure/aztfy/internal/config"
 	"github.com/Azure/aztfy/internal/meta"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -49,13 +48,9 @@ type CleanTFStateMsg struct {
 	Addr string
 }
 
-func NewClient(cfg config.Config) tea.Cmd {
+func NewClient(meta meta.Meta) tea.Cmd {
 	return func() tea.Msg {
-		c, err := meta.NewMeta(cfg)
-		if err != nil {
-			return ErrMsg(err)
-		}
-		return NewClientMsg(c)
+		return NewClientMsg(meta)
 	}
 }
 
@@ -69,7 +64,7 @@ func Init(c meta.Meta) tea.Cmd {
 	}
 }
 
-func ListResource(c meta.Meta, resourceMapping map[string]string) tea.Cmd {
+func ListResource(c meta.Meta) tea.Cmd {
 	return func() tea.Msg {
 		return ListResourceDoneMsg{List: c.ListResource()}
 	}

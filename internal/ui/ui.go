@@ -36,8 +36,11 @@ func NewProgram(cfg config.Config) (*tea.Program, error) {
 		}
 		logger = log.New(f, "aztfy", log.LstdFlags)
 	}
-
-	return tea.NewProgram(newModel(cfg, logger), tea.WithAltScreen()), nil
+	m, err := newModel(cfg, logger)
+	if err != nil {
+		return nil, err
+	}
+	return tea.NewProgram(m, tea.WithAltScreen()), nil
 }
 
 type status int
@@ -70,8 +73,8 @@ func (s status) String() string {
 }
 
 type model struct {
-	cfg    config.Config
 	meta   meta.Meta
+	debug  bool
 	status status
 	err    error
 	logger *log.Logger
@@ -85,27 +88,34 @@ type model struct {
 	importerrormsg aztfyclient.ShowImportErrorMsg
 }
 
-func newModel(cfg config.Config, logger *log.Logger) model {
+func newModel(cfg config.Config, logger *log.Logger) (*model, error) {
 	s := spinner.NewModel()
 	s.Spinner = common.Spinner
-	return model{
-		cfg:    cfg,
-		status: statusInit,
-		logger: logger,
 
+	m := &model{
+		debug:   cfg.Debug,
+		status:  statusInit,
+		logger:  logger,
 		spinner: s,
 	}
+	meta, err := meta.NewMeta(cfg)
+	if err != nil {
+		return nil, err
+	}
+	m.meta = meta
+
+	return m, nil
 }
 
 func (m model) Init() tea.Cmd {
 	return tea.Batch(
-		aztfyclient.NewClient(m.cfg),
+		aztfyclient.NewClient(m.meta),
 		spinner.Tick,
 	)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if m.cfg.Debug {
+	if m.debug {
 		if _, ok := msg.(spinner.TickMsg); !ok {
 			m.logger.Printf("STATUS: %s | MSG: %#v\n", m.status, msg)
 		}
@@ -130,7 +140,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, aztfyclient.Init(m.meta)
 	case aztfyclient.InitProviderDoneMsg:
 		m.status = statusListingResource
-		return m, aztfyclient.ListResource(m.meta, m.cfg.ResourceMapping)
+		return m, aztfyclient.ListResource(m.meta)
 	case aztfyclient.ListResourceDoneMsg:
 		m.status = statusBuildingImportList
 		m.importlist = importlist.NewModel(m.meta, msg.List, 0)
@@ -214,7 +224,7 @@ func (m model) View() string {
 	case statusInit:
 		s += m.spinner.View() + " Initializing..."
 	case statusListingResource:
-		s += m.spinner.View() + " Listing Azure Resources reside in " + `"` + m.cfg.ResourceGroupName + `"...`
+		s += m.spinner.View() + " Listing Azure Resources reside in " + `"` + m.meta.ResourceGroupName() + `"...`
 	case statusBuildingImportList:
 		s += m.importlist.View()
 	case statusImportErrorMsg:
