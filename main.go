@@ -12,6 +12,7 @@ import (
 	"github.com/Azure/aztfy/internal/config"
 	"github.com/Azure/aztfy/internal/meta"
 	"github.com/Azure/aztfy/internal/ui"
+	"github.com/meowgorithm/babyenv"
 )
 
 var (
@@ -68,19 +69,26 @@ func main() {
 
 	rg := flag.Args()[0]
 
-	cfg, err := config.NewConfig(rg, *flagOutputDir, *flagMappingFile, *flagPattern, *flagOverwrite, *flagBatchMode)
-	if err != nil {
+	// Initialize the config
+	var cfg config.Config
+	if err := babyenv.Parse(&cfg); err != nil {
 		fatal(err)
 	}
+	cfg.ResourceGroupName = rg
+	cfg.ResourceNamePattern = *flagPattern
+	cfg.ResourceMappingFile = *flagMappingFile
+	cfg.OutputDir = *flagOutputDir
+	cfg.Overwrite = *flagOverwrite
+	cfg.BatchMode = *flagBatchMode
 
 	if cfg.BatchMode {
-		if err := batchImport(*cfg, *flagContinue); err != nil {
+		if err := batchImport(cfg, *flagContinue); err != nil {
 			fatal(err)
 		}
 		return
 	}
 
-	prog, err := ui.NewProgram(*cfg)
+	prog, err := ui.NewProgram(cfg)
 	if err != nil {
 		fatal(err)
 	}

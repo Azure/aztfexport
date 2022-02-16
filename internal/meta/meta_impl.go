@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/Azure/aztfy/internal/armtemplate"
+	"github.com/Azure/aztfy/internal/config"
 	"github.com/Azure/aztfy/schema"
 
 	"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2020-06-01/resources"
@@ -41,22 +42,20 @@ type MetaImpl struct {
 	resourceNameSuffix string
 }
 
-func newMetaImpl(rg string, outputDir string, resourceMapping map[string]string, pattern string, overwrite, batchMode bool) (Meta, error) {
+func newMetaImpl(cfg config.Config) (Meta, error) {
 	// Initialize the workspace
 	cachedir, err := os.UserCacheDir()
 	if err != nil {
 		return nil, fmt.Errorf("error finding the user cache directory: %w", err)
 	}
-
-	// Initialize the workspace
 	rootdir := filepath.Join(cachedir, "aztfy")
 	if err := os.MkdirAll(rootdir, 0755); err != nil {
 		return nil, fmt.Errorf("creating workspace root %q: %w", rootdir, err)
 	}
 
-	outdir := filepath.Join(rootdir, rg)
-	if outputDir != "" {
-		outdir, err = filepath.Abs(outputDir)
+	outdir := filepath.Join(rootdir, cfg.ResourceGroupName)
+	if cfg.OutputDir != "" {
+		outdir, err = filepath.Abs(cfg.OutputDir)
 		if err != nil {
 			return nil, err
 		}
@@ -75,12 +74,12 @@ func newMetaImpl(rg string, outputDir string, resourceMapping map[string]string,
 	_, err = dir.Readdirnames(1)
 	dir.Close()
 	if err != io.EOF {
-		if overwrite {
+		if cfg.Overwrite {
 			if err := removeEverythingUnder(outdir); err != nil {
 				return nil, err
 			}
 		} else {
-			if batchMode {
+			if cfg.BatchMode {
 				return nil, fmt.Errorf("the output directory %q is not empty", outdir)
 			}
 
@@ -104,19 +103,31 @@ func newMetaImpl(rg string, outputDir string, resourceMapping map[string]string,
 		return nil, fmt.Errorf("building authorizer: %w", err)
 	}
 
+	// Resource mapping file
+	var m map[string]string
+	if cfg.ResourceMappingFile != "" {
+		b, err := os.ReadFile(cfg.ResourceMappingFile)
+		if err != nil {
+			return nil, fmt.Errorf("reading mapping file %s: %v", cfg.ResourceMappingFile, err)
+		}
+		if err := json.Unmarshal(b, &m); err != nil {
+			return nil, fmt.Errorf("unmarshalling the mapping file: %v", err)
+		}
+	}
+
 	meta := &MetaImpl{
 		subscriptionId:  auth.Config.SubscriptionID,
-		resourceGroup:   rg,
+		resourceGroup:   cfg.ResourceGroupName,
 		rootdir:         rootdir,
 		outdir:          outdir,
 		auth:            auth,
-		resourceMapping: resourceMapping,
+		resourceMapping: m,
 	}
 
-	if pos := strings.LastIndex(pattern, "*"); pos != -1 {
-		meta.resourceNamePrefix, meta.resourceNameSuffix = pattern[:pos], pattern[pos+1:]
+	if pos := strings.LastIndex(cfg.ResourceNamePattern, "*"); pos != -1 {
+		meta.resourceNamePrefix, meta.resourceNameSuffix = cfg.ResourceNamePattern[:pos], cfg.ResourceNamePattern[pos+1:]
 	} else {
-		meta.resourceNamePrefix = pattern
+		meta.resourceNamePrefix = cfg.ResourceNamePattern
 	}
 
 	return meta, nil
