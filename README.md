@@ -29,6 +29,7 @@ Then you can go ahead and run `aztfy`:
 ```shell
 aztfy [option] <resource group name>
 
+  -f    Whether to overwrite the out dir if it is not empty
   -k    Whether continue on import error (quiet mode only)
   -m string
         Specify the resource mapping file

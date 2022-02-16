@@ -41,7 +41,7 @@ type MetaImpl struct {
 	resourceNameSuffix string
 }
 
-func newMetaImpl(rg string, outputDir string, resourceMapping map[string]string, pattern string) (Meta, error) {
+func newMetaImpl(rg string, outputDir string, resourceMapping map[string]string, pattern string, overwrite, batchMode bool) (Meta, error) {
 	// Initialize the workspace
 	cachedir, err := os.UserCacheDir()
 	if err != nil {
@@ -55,34 +55,46 @@ func newMetaImpl(rg string, outputDir string, resourceMapping map[string]string,
 	}
 
 	outdir := filepath.Join(rootdir, rg)
-
 	if outputDir != "" {
-		outdir = outputDir
-
-		// Ensure outputdir is an empty directory
-		stat, err := os.Stat(outdir)
-		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("the output directory %q doesn't exist", outdir)
-		}
-		if !stat.IsDir() {
-			return nil, fmt.Errorf("the output path %q is not a directory", outdir)
-		}
-
-		f, err := os.Open(outdir)
+		outdir, err = filepath.Abs(outputDir)
 		if err != nil {
 			return nil, err
 		}
-		_, err = f.Readdirnames(1) // Or f.Readdir(1)
-		f.Close()
-		if err != io.EOF {
-			return nil, fmt.Errorf("the output directory %q is not empty", outdir)
-		}
-	} else {
-		if err := os.RemoveAll(outdir); err != nil {
-			return nil, fmt.Errorf("removing existing output dir %q: %w", outdir, err)
-		}
-		if err := os.MkdirAll(outdir, 0755); err != nil {
-			return nil, fmt.Errorf("creating output dir %q: %w", outdir, err)
+	}
+	stat, err := os.Stat(outdir)
+	if os.IsNotExist(err) {
+		return nil, fmt.Errorf("the output directory %q doesn't exist", outdir)
+	}
+	if !stat.IsDir() {
+		return nil, fmt.Errorf("the output path %q is not a directory", outdir)
+	}
+	dir, err := os.Open(outdir)
+	if err != nil {
+		return nil, err
+	}
+	_, err = dir.Readdirnames(1)
+	dir.Close()
+	if err != io.EOF {
+		if overwrite {
+			if err := removeEverythingUnder(outdir); err != nil {
+				return nil, err
+			}
+		} else {
+			if batchMode {
+				return nil, fmt.Errorf("the output directory %q is not empty", outdir)
+			}
+
+			// Interactive mode
+			fmt.Printf("The output directory is not empty - overwrite (Y/N)? ")
+			var ans string
+			fmt.Scanf("%s", &ans)
+			if !strings.EqualFold(ans, "y") {
+				return nil, fmt.Errorf("the output directory %q is not empty", outdir)
+			} else {
+				if err := removeEverythingUnder(outdir); err != nil {
+					return nil, err
+				}
+			}
 		}
 	}
 
@@ -401,5 +413,20 @@ func (meta MetaImpl) generateConfig(cfgs ConfigInfos) error {
 		return fmt.Errorf("generating main configuration file: %w", err)
 	}
 
+	return nil
+}
+
+func removeEverythingUnder(path string) error {
+	dir, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("failed to read directory %s: %v", path, err)
+	}
+	entries, _ := dir.Readdirnames(0)
+	for _, entry := range entries {
+		if err := os.RemoveAll(filepath.Join(path, entry)); err != nil {
+			return fmt.Errorf("failed to remove %s: %v", entry, err)
+		}
+	}
+	dir.Close()
 	return nil
 }
