@@ -16,9 +16,10 @@ type Config struct {
 	OutputDir           string            // specified via CLI option
 	ResourceMapping     map[string]string // specified via CLI option
 	ResourceNamePattern string            // specified via CLI option
+	Overwrite           bool              // specified via CLI option
 }
 
-func NewConfig(rg, outputDir, mappingFile, resourceNamePattern string) (*Config, error) {
+func NewConfig(rg, outputDir, mappingFile, resourceNamePattern string, overwrite bool) (*Config, error) {
 	var cfg Config
 	if err := babyenv.Parse(&cfg); err != nil {
 		return nil, err
@@ -39,5 +40,6 @@ func NewConfig(rg, outputDir, mappingFile, resourceNamePattern string) (*Config,
 	cfg.ResourceNamePattern = resourceNamePattern
 	cfg.ResourceGroupName = rg
 	cfg.OutputDir = outputDir
+	cfg.Overwrite = overwrite
 	return &cfg, nil
 }

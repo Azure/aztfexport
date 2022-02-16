@@ -27,7 +27,8 @@ var maxRequiredTFVersion = version.Must(version.NewSemver("v1.1.0-alpha20211006"
 type MetaImpl struct {
 	subscriptionId string
 	resourceGroup  string
-	workspace      string
+	rootdir        string
+	outdir         string
 	tf             *tfexec.Terraform
 	auth           *Authorizer
 	armTemplate    armtemplate.Template
@@ -41,8 +42,6 @@ type MetaImpl struct {
 }
 
 func newMetaImpl(rg string, outputDir string, resourceMapping map[string]string, pattern string) (Meta, error) {
-	ctx := context.TODO()
-
 	// Initialize the workspace
 	cachedir, err := os.UserCacheDir()
 	if err != nil {
@@ -50,45 +49,40 @@ func newMetaImpl(rg string, outputDir string, resourceMapping map[string]string,
 	}
 
 	// Initialize the workspace
-	rootDir := filepath.Join(cachedir, "aztfy")
-	if err := os.MkdirAll(rootDir, 0755); err != nil {
-		return nil, fmt.Errorf("creating workspace root %q: %w", rootDir, err)
+	rootdir := filepath.Join(cachedir, "aztfy")
+	if err := os.MkdirAll(rootdir, 0755); err != nil {
+		return nil, fmt.Errorf("creating workspace root %q: %w", rootdir, err)
 	}
 
-	tfDir := filepath.Join(rootDir, "terraform")
-	if err := os.MkdirAll(tfDir, 0755); err != nil {
-		return nil, fmt.Errorf("creating terraform cache dir %q: %w", tfDir, err)
-	}
-
-	wsp := filepath.Join(rootDir, rg)
+	outdir := filepath.Join(rootdir, rg)
 
 	if outputDir != "" {
-		wsp = outputDir
+		outdir = outputDir
 
-		// Ensure wsp is an empty directory
-		stat, err := os.Stat(wsp)
+		// Ensure outputdir is an empty directory
+		stat, err := os.Stat(outdir)
 		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("the output directory %q doesn't exist", wsp)
+			return nil, fmt.Errorf("the output directory %q doesn't exist", outdir)
 		}
 		if !stat.IsDir() {
-			return nil, fmt.Errorf("the output path %q is not a directory", wsp)
+			return nil, fmt.Errorf("the output path %q is not a directory", outdir)
 		}
 
-		f, err := os.Open(wsp)
+		f, err := os.Open(outdir)
 		if err != nil {
 			return nil, err
 		}
 		_, err = f.Readdirnames(1) // Or f.Readdir(1)
 		f.Close()
 		if err != io.EOF {
-			return nil, fmt.Errorf("the output directory %q is not empty", wsp)
+			return nil, fmt.Errorf("the output directory %q is not empty", outdir)
 		}
 	} else {
-		if err := os.RemoveAll(wsp); err != nil {
-			return nil, fmt.Errorf("removing existing workspace %q: %w", wsp, err)
+		if err := os.RemoveAll(outdir); err != nil {
+			return nil, fmt.Errorf("removing existing output dir %q: %w", outdir, err)
 		}
-		if err := os.MkdirAll(wsp, 0755); err != nil {
-			return nil, fmt.Errorf("creating workspace %q: %w", wsp, err)
+		if err := os.MkdirAll(outdir, 0755); err != nil {
+			return nil, fmt.Errorf("creating output dir %q: %w", outdir, err)
 		}
 	}
 
@@ -98,22 +92,11 @@ func newMetaImpl(rg string, outputDir string, resourceMapping map[string]string,
 		return nil, fmt.Errorf("building authorizer: %w", err)
 	}
 
-	// Initialize the Terraform
-	execPath, err := FindTerraform(ctx, tfDir, minRequiredTFVersion, maxRequiredTFVersion)
-	if err != nil {
-		return nil, fmt.Errorf("error finding a terraform exectuable: %w", err)
-	}
-
-	tf, err := tfexec.NewTerraform(wsp, execPath)
-	if err != nil {
-		return nil, fmt.Errorf("error running NewTerraform: %w", err)
-	}
-
 	meta := &MetaImpl{
 		subscriptionId:  auth.Config.SubscriptionID,
 		resourceGroup:   rg,
-		workspace:       wsp,
-		tf:              tf,
+		rootdir:         rootdir,
+		outdir:          outdir,
 		auth:            auth,
 		resourceMapping: resourceMapping,
 	}
@@ -132,14 +115,33 @@ func (meta MetaImpl) ResourceGroupName() string {
 }
 
 func (meta MetaImpl) Workspace() string {
-	return meta.workspace
+	return meta.outdir
 }
 
 func (meta *MetaImpl) Init() error {
 	ctx := context.TODO()
+
+	// Initialize the Terraform
+	tfDir := filepath.Join(meta.rootdir, "terraform")
+	if err := os.MkdirAll(tfDir, 0755); err != nil {
+		return fmt.Errorf("creating terraform cache dir %q: %w", tfDir, err)
+	}
+	execPath, err := FindTerraform(ctx, tfDir, minRequiredTFVersion, maxRequiredTFVersion)
+	if err != nil {
+		return fmt.Errorf("error finding a terraform exectuable: %w", err)
+	}
+	tf, err := tfexec.NewTerraform(meta.outdir, execPath)
+	if err != nil {
+		return fmt.Errorf("error running NewTerraform: %w", err)
+	}
+	meta.tf = tf
+
+	// Initialize the provider
 	if err := meta.initProvider(ctx); err != nil {
 		return err
 	}
+
+	// Export ARM template
 	if err := meta.exportArmTemplate(ctx); err != nil {
 		return err
 	}
@@ -183,7 +185,7 @@ func (meta MetaImpl) Import(item *ImportItem) {
 
 	// Generate a temp Terraform config to include the empty template for each resource.
 	// This is required for the following importing.
-	cfgFile := filepath.Join(meta.workspace, "main.tf")
+	cfgFile := filepath.Join(meta.outdir, "main.tf")
 	tpl, err := meta.tf.Add(ctx, item.TFAddr())
 	if err != nil {
 		item.ImportError = fmt.Errorf("generating resource template for %s: %w", item.TFAddr(), err)
@@ -223,7 +225,7 @@ func (meta MetaImpl) ExportResourceMapping(l ImportList) error {
 		}
 		m[item.ResourceID] = item.TFResourceType
 	}
-	output := filepath.Join(meta.workspace, ".aztfyResourceMapping.json")
+	output := filepath.Join(meta.outdir, ".aztfyResourceMapping.json")
 	b, err := json.MarshalIndent(m, "", "\t")
 	if err != nil {
 		return fmt.Errorf("JSON marshalling the resource mapping: %v", err)
@@ -251,7 +253,7 @@ provider "azurerm" {
 }
 
 func (meta *MetaImpl) initProvider(ctx context.Context) error {
-	cfgFile := filepath.Join(meta.workspace, "provider.tf")
+	cfgFile := filepath.Join(meta.outdir, "provider.tf")
 
 	// Always use the latest provider version here, as this is a one shot tool, which should guarantees to work with the latest version.
 	if err := os.WriteFile(cfgFile, []byte(providerConfig()), 0644); err != nil {
@@ -385,7 +387,7 @@ func (meta MetaImpl) hclBlockAppendDependency(body *hclwrite.Body, armIds []armt
 }
 
 func (meta MetaImpl) generateConfig(cfgs ConfigInfos) error {
-	cfgFile := filepath.Join(meta.workspace, "main.tf")
+	cfgFile := filepath.Join(meta.outdir, "main.tf")
 	buf := bytes.NewBuffer([]byte{})
 	for i, cfg := range cfgs {
 		if _, err := cfg.DumpHCL(buf); err != nil {
