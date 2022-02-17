@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"go/ast"
 	"go/types"
-	"golang.org/x/tools/go/ssa"
 	"log"
 	"strconv"
+
+	"golang.org/x/tools/go/ssa"
 )
 
 type TypedRegistration struct {
@@ -34,14 +35,24 @@ func (reg TypedRegistration) run() (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	retStmt, ok := f.Body.List[0].(*ast.ReturnStmt)
-	if !ok {
-		return nil, fmt.Errorf("the function %s doesn't contain only a return", reg.pkg.Position(f))
-	}
 
-	resourceList, ok := retStmt.Results[0].(*ast.CompositeLit)
-	if !ok {
-		return nil, fmt.Errorf("return value of function %s is not a composite literal", reg.pkg.Position(f))
+	var resourceList *ast.CompositeLit
+	switch len(f.Body.List) {
+	case 1:
+		var ok bool
+		resourceList, ok = f.Body.List[0].(*ast.ReturnStmt).Results[0].(*ast.CompositeLit)
+		if !ok {
+			return nil, fmt.Errorf(`return value of function %s is not a composite literal`, reg.pkg.Position(f))
+		}
+	default:
+		asmt, ok := f.Body.List[0].(*ast.AssignStmt)
+		if !ok {
+			return nil, fmt.Errorf(`the 1st statement of function %s is not an assignment`, reg.pkg.Position(f))
+		}
+		resourceList, ok = asmt.Rhs[0].(*ast.CompositeLit)
+		if !ok {
+			return nil, fmt.Errorf(`the 1st assignment statement's RHS of function %s is not a composite literal`, reg.pkg.Position(f))
+		}
 	}
 
 	// Iterating each resource in the resource list to analyze and retrieve the TF resource and api path.
