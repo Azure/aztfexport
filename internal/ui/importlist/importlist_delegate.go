@@ -83,9 +83,9 @@ func NewImportItemDelegate() list.ItemDelegate {
 				// Check the uniqueness of the resource name among the resource type
 				// TODO: this is not ideal to construct the resource name mapping everytime.
 				tfNames := map[string]map[string]bool{}
-				for _, item := range m.Items() {
+				for i, item := range m.Items() {
 					v := item.(Item).v
-					if v.Skip() {
+					if v.Skip() || m.Index() == i {
 						continue
 					}
 					if _, ok := tfNames[v.TFAddr.Type]; !ok {
