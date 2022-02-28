@@ -131,10 +131,10 @@ func batchImport(cfg config.Config, continueOnError bool) error {
 			logger.Printf("[WARN] No mapping information for resource: %s, skip it\n", list[i].ResourceID)
 			continue
 		}
-		logger.Printf("Importing %s as %s\n", list[i].ResourceID, list[i].TFAddr())
+		logger.Printf("Importing %s as %s\n", list[i].ResourceID, list[i].TFAddr)
 		c.Import(&list[i])
 		if err := list[i].ImportError; err != nil {
-			msg := fmt.Sprintf("Failed to import %s as %s: %v", list[i].ResourceID, list[i].TFAddr(), err)
+			msg := fmt.Sprintf("Failed to import %s as %s: %v", list[i].ResourceID, list[i].TFAddr, err)
 			if !continueOnError {
 				return fmt.Errorf(msg)
 			}

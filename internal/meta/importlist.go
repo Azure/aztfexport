@@ -1,7 +1,36 @@
 package meta
 
+import (
+	"fmt"
+	"strings"
+)
+
 // TFResourceTypeSkip is a special resource type which represents to skip this resource from importing.
 const TFResourceTypeSkip string = "Skip"
+
+type TFAddr struct {
+	Type string
+	Name string
+}
+
+func (res TFAddr) Skip() bool {
+	return res.Type == TFResourceTypeSkip
+}
+
+func (res TFAddr) String() string {
+	if res.Skip() {
+		return ""
+	}
+	return res.Type + "." + res.Name
+}
+
+func ParseTFResourceAddr(v string) (*TFAddr, error) {
+	segs := strings.Split(v, ".")
+	if len(segs) != 2 || segs[0] == "" || segs[1] == "" {
+		return nil, fmt.Errorf("malformed resource address: %s", v)
+	}
+	return &TFAddr{Type: segs[0], Name: segs[1]}, nil
+}
 
 type ImportItem struct {
 	// The azure resource id
@@ -16,25 +45,15 @@ type ImportItem struct {
 	// Whether this azure resource failed to validate into terraform (tbh, this should reside in UI layer only)
 	ValidateError error
 
-	// The terraform resource type
-	TFResourceType string
-
-	// The terraform resource name
-	TFResourceName string
+	// The terraform resource
+	TFAddr TFAddr
 
 	// Whether this TF resource type is from recommendation
 	IsRecommended bool
 }
 
 func (item ImportItem) Skip() bool {
-	return item.TFResourceType == TFResourceTypeSkip
-}
-
-func (item *ImportItem) TFAddr() string {
-	if item.Skip() {
-		return ""
-	}
-	return item.TFResourceType + "." + item.TFResourceName
+	return item.TFAddr.Skip()
 }
 
 type ImportList []ImportItem

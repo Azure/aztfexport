@@ -43,7 +43,7 @@ func NewImportItemDelegate() list.ItemDelegate {
 					// This allows the user to change its mind for importing this resource as another resource type.
 					// (e.g. vm resource -> either azurerm_virtual_machine or azurerm_linux_virtual_machine)
 					if selItem.v.Imported {
-						cmd := aztfyclient.CleanTFState(selItem.v.TFAddr())
+						cmd := aztfyclient.CleanTFState(selItem.v.TFAddr.String())
 						cmds = append(cmds, cmd)
 						selItem.v.Imported = false
 					}
@@ -72,7 +72,7 @@ func NewImportItemDelegate() list.ItemDelegate {
 				selItem.textinput.Blur()
 
 				// Validate the input and update the selItem.v
-				rt, err := parseInput(selItem.textinput.Value())
+				addr, err := parseInput(selItem.textinput.Value())
 				if err != nil {
 					cmd := m.NewStatusMessage(common.ErrorMsgStyle.Render(err.Error()))
 					cmds = append(cmds, cmd)
@@ -80,12 +80,29 @@ func NewImportItemDelegate() list.ItemDelegate {
 					return
 				}
 
-				// Reset to TFResourceTypeSkip if value is empty
-				if rt == "" {
-					rt = meta.TFResourceTypeSkip
+				// Check the uniqueness of the resource name among the resource type
+				// TODO: this is not ideal to construct the resource name mapping everytime.
+				tfNames := map[string]map[string]bool{}
+				for _, item := range m.Items() {
+					v := item.(Item).v
+					if v.Skip() {
+						continue
+					}
+					if _, ok := tfNames[v.TFAddr.Type]; !ok {
+						tfNames[v.TFAddr.Type] = map[string]bool{}
+					}
+					tfNames[v.TFAddr.Type][v.TFAddr.Name] = true
+				}
+				if mm, ok := tfNames[addr.Type]; ok && mm[addr.Name] {
+					err := fmt.Errorf("%q already exists", addr)
+					cmd := m.NewStatusMessage(common.ErrorMsgStyle.Render(err.Error()))
+					cmds = append(cmds, cmd)
+					selItem.v.ValidateError = err
+					return
 				}
 
-				selItem.v.TFResourceType = rt
+				selItem.v.ValidateError = nil
+				selItem.v.TFAddr = *addr
 				return
 			}
 		}
@@ -128,15 +145,20 @@ func setListKeyMapEnabled(m *list.Model, enabled bool) {
 	}
 }
 
-func parseInput(input string) (restype string, err error) {
-	rt := strings.TrimSpace(input)
-	if rt == "" {
-		return "", nil
+func parseInput(input string) (*meta.TFAddr, error) {
+	v := strings.TrimSpace(input)
+	if v == "" {
+		return &meta.TFAddr{Type: meta.TFResourceTypeSkip}, nil
 	}
 
-	if _, ok := schema.ProviderSchemaInfo.ResourceSchemas[rt]; !ok {
-		return "", fmt.Errorf("Invalid resource type %q", rt)
+	addr, err := meta.ParseTFResourceAddr(v)
+	if err != nil {
+		return nil, err
 	}
 
-	return rt, nil
+	if _, ok := schema.ProviderSchemaInfo.ResourceSchemas[addr.Type]; !ok {
+		return nil, fmt.Errorf("Invalid resource type %q", addr.Type)
+	}
+
+	return addr, nil
 }
