@@ -30,6 +30,10 @@ Then you can go ahead and run `aztfy`:
 aztfy [option] <resource group name>
 
   -b    Batch mode (i.e. Non-interactive mode)
+  -backend-config value
+        The Terraform backend config
+  -backend-type string
+        The Terraform backend used to store the state (default "local")
   -f    Whether to overwrite the out dir if it is not empty, use with caution
   -k    Whether continue on import error (batch mode only)
   -m string
