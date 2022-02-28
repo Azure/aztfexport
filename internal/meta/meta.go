@@ -2,6 +2,8 @@ package meta
 
 import "github.com/Azure/aztfy/internal/config"
 
+const ResourceMappingFileName = ".aztfyResourceMapping.json"
+
 type Meta interface {
 	Init() error
 	ResourceGroupName() string

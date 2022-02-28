@@ -142,6 +142,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				return m, m.list.NewStatusMessage(common.InfoStyle.Render("No resource type recommendation is avaialble..."))
 			}
 			return m, m.list.NewStatusMessage(common.InfoStyle.Render(fmt.Sprintf("Possible resource type(s): %s", strings.Join(recs, ","))))
+		case key.Matches(msg, m.listkeys.save):
+			m.list.NewStatusMessage(common.InfoStyle.Render("Saving the resouce mapping..."))
+			err := m.c.ExportResourceMapping(m.importList(false))
+			if err == nil {
+				m.list.NewStatusMessage(common.InfoStyle.Render(fmt.Sprintf("Resource mapping saved to %s.", meta.ResourceMappingFileName)))
+			} else {
+				m.list.NewStatusMessage(common.ErrorMsgStyle.Render(err.Error()))
+			}
 		}
 	case tea.WindowSizeMsg:
 		// The height here minus the height occupied by the title
