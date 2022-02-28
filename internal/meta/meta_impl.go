@@ -43,18 +43,23 @@ type MetaImpl struct {
 }
 
 func newMetaImpl(cfg config.Config) (Meta, error) {
-	// Initialize the workspace
+	// Initialize the rootdir
 	cachedir, err := os.UserCacheDir()
 	if err != nil {
 		return nil, fmt.Errorf("error finding the user cache directory: %w", err)
 	}
 	rootdir := filepath.Join(cachedir, "aztfy")
 	if err := os.MkdirAll(rootdir, 0755); err != nil {
-		return nil, fmt.Errorf("creating workspace root %q: %w", rootdir, err)
+		return nil, fmt.Errorf("creating rootdir %q: %w", rootdir, err)
 	}
 
-	outdir := filepath.Join(rootdir, cfg.ResourceGroupName)
-	if cfg.OutputDir != "" {
+	var outdir string
+	if cfg.OutputDir == "" {
+		outdir, err = os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+	} else {
 		outdir, err = filepath.Abs(cfg.OutputDir)
 		if err != nil {
 			return nil, err
