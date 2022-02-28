@@ -47,15 +47,15 @@ func NewModel(c meta.Meta, l meta.ImportList, idx int) Model {
 		// This only happens on the first time to new the model, where each resource's TFResourceType is empty.
 		// Later iterations, this is either a concret resource type or the TFResourceTypeSkip.
 		// For this first iteration, we try to give it a recommendation resource type if there is an exact match, otherwise, set it to  TFResourceTypeSkip.
-		if item.TFResourceType == "" {
-			item.TFResourceType = meta.TFResourceTypeSkip
+		if item.TFAddr.Type == "" {
+			item.TFAddr.Type = meta.TFResourceTypeSkip
 			if len(recommendations[idx]) == 1 {
 				item.IsRecommended = true
-				item.TFResourceType = recommendations[idx][0]
+				item.TFAddr.Type = recommendations[idx][0]
 			}
 		}
 		if !item.Skip() {
-			ti.SetValue(item.TFResourceType)
+			ti.SetValue(item.TFAddr.String())
 		}
 		ti.CandidateWords = candidates
 		items = append(items, Item{
