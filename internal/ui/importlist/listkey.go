@@ -6,13 +6,14 @@ type listKeyMap struct {
 	apply          key.Binding
 	error          key.Binding
 	recommendation key.Binding
+	save           key.Binding
 }
 
 func newListKeyMap() listKeyMap {
 	return listKeyMap{
 		apply: key.NewBinding(
 			key.WithKeys("w"),
-			key.WithHelp("w", "save"),
+			key.WithHelp("w", "import"),
 		),
 		error: key.NewBinding(
 			key.WithKeys("e"),
@@ -22,6 +23,10 @@ func newListKeyMap() listKeyMap {
 			key.WithKeys("r"),
 			key.WithHelp("r", "show recommendation"),
 		),
+		save: key.NewBinding(
+			key.WithKeys("s"),
+			key.WithHelp("s", "save"),
+		),
 	}
 }
 
@@ -30,5 +35,6 @@ func (m listKeyMap) ToBindings() []key.Binding {
 		m.apply,
 		m.error,
 		m.recommendation,
+		m.save,
 	}
 }

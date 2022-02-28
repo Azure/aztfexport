@@ -253,7 +253,7 @@ func (meta MetaImpl) ExportResourceMapping(l ImportList) error {
 		}
 		m[item.ResourceID] = item.TFResourceType
 	}
-	output := filepath.Join(meta.outdir, ".aztfyResourceMapping.json")
+	output := filepath.Join(meta.outdir, ResourceMappingFileName)
 	b, err := json.MarshalIndent(m, "", "\t")
 	if err != nil {
 		return fmt.Errorf("JSON marshalling the resource mapping: %v", err)
