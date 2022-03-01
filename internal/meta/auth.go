@@ -11,17 +11,22 @@ import (
 )
 
 type Authorizer struct {
-	authorizer autorest.Authorizer
-	Config     *authentication.Config
+	authorizer  autorest.Authorizer
+	Config      *authentication.Config
+	armEndpoint string
 }
 
 func NewAuthorizer() (*Authorizer, error) {
+	environment := "public"
+	if env := os.Getenv("ARM_ENVIRONMENT"); env != "" {
+		environment = env
+	}
 	builder := &authentication.Builder{
 		SubscriptionID:     os.Getenv("ARM_SUBSCRIPTION_ID"),
 		ClientID:           os.Getenv("ARM_CLIENT_ID"),
 		ClientSecret:       os.Getenv("ARM_CLIENT_SECRET"),
 		TenantID:           os.Getenv("ARM_TENANT_ID"),
-		Environment:        "public",
+		Environment:        environment,
 		ClientCertPassword: os.Getenv("ARM_CLIENT_CERTIFICATE_PASSWORD"),
 		ClientCertPath:     os.Getenv("ARM_CLIENT_CERTIFICATE_PATH"),
 
@@ -59,19 +64,14 @@ func NewAuthorizer() (*Authorizer, error) {
 	}
 
 	return &Authorizer{
-		authorizer: auth,
-		Config:     config,
+		authorizer:  auth,
+		Config:      config,
+		armEndpoint: env.ResourceManagerEndpoint,
 	}, nil
 }
 
-func (a *Authorizer) NewResourceClient() resources.Client {
-	client := resources.NewClient(a.Config.SubscriptionID)
-	client.Authorizer = a.authorizer
-	return client
-}
-
 func (a *Authorizer) NewResourceGroupClient() resources.GroupsClient {
-	client := resources.NewGroupsClient(a.Config.SubscriptionID)
+	client := resources.NewGroupsClientWithBaseURI(a.armEndpoint, a.Config.SubscriptionID)
 	client.Authorizer = a.authorizer
 	return client
 }
