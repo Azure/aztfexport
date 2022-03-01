@@ -199,7 +199,7 @@ func (meta MetaImpl) ListResource() ImportList {
 
 		// If users have specified the resource mapping, then the each item in the generated import list
 		// must be non-empty: either the resource addr, or TFResourceTypeSkip.
-		if meta.resourceMapping != nil {
+		if len(meta.resourceMapping) != 0 {
 			item.TFAddr.Type = TFResourceTypeSkip
 			if addr, ok := meta.resourceMapping[id]; ok {
 				item.TFAddr = addr
