@@ -123,6 +123,9 @@ func newMetaImpl(cfg config.Config) (Meta, error) {
 		}
 	}
 
+	// AzureRM provider will honor env.var "AZURE_HTTP_USER_AGENT" when constructing for HTTP "User-Agent" header.
+	os.Setenv("AZURE_HTTP_USER_AGENT", "aztfy")
+
 	meta := &MetaImpl{
 		subscriptionId:  auth.Config.SubscriptionID,
 		resourceGroup:   cfg.ResourceGroupName,
