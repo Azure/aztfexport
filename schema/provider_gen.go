@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-var ProviderVersion = "3.0.0"
+var ProviderVersion = "3.0.2"
 
 var ProviderSchemaInfo ProviderSchema
 
