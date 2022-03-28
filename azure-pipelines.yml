@@ -50,7 +50,7 @@ jobs:
           output=aztfy.exe
         fi
 
-        GOOS="${OS}" GOARCH="${ARCH}" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o $output
+        GOOS="${OS}" GOARCH="${ARCH}" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X 'main.version=${VERSION}'" -o $output
         pkg="aztfy_${VERSION}_${OS}_${ARCH}.zip"
         zip $pkg $output
         rm $output
