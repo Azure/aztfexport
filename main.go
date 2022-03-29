@@ -69,7 +69,10 @@ func main() {
 	flag.Parse()
 
 	if *flagVersion {
-		fmt.Fprintf(flag.CommandLine.Output(), "%s(%s)\n", version, revision)
+		fmt.Println(version)
+		if revision != "" {
+			fmt.Fprintf(flag.CommandLine.Output(), "%s(%s)\n", version, revision)
+		}
 		os.Exit(0)
 	}
 
