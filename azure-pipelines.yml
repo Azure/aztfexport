@@ -27,6 +27,7 @@ jobs:
 
   - bash: |
       #!/usr/bin/env bash
+      REVISION=$(git rev-parse --short HEAD)
       OS_ARCH=("freebsd:amd64"
         "freebsd:386"
         "freebsd:arm"
@@ -50,11 +51,11 @@ jobs:
           output=aztfy.exe
         fi
 
-        GOOS="${OS}" GOARCH="${ARCH}" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X 'main.version=${VERSION}'" -o $output
+        GOOS="${OS}" GOARCH="${ARCH}" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X 'main.version=${VERSION}' -X 'main.revision=${REVISION}'" -o $output
         pkg="aztfy_${VERSION}_${OS}_${ARCH}.zip"
         zip $pkg $output
         rm $output
-        mv $pkg dist 
+        mv $pkg dist
       done
       cd dist
       checksum="aztfy_${VERSION}_SHA256SUMS"
