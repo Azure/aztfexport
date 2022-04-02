@@ -25,7 +25,7 @@ jobs:
   - task: Bash@3
     displayName: "Build Packages"
     inputs:
-      targetPath: './scripts/build.sh'
+      targetPath: '$(system.defaultWorkingDirectory)/scripts/build.sh'
       failOnStderr: true
     env:
       VERSION: ${{ parameters.version }}
