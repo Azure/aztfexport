@@ -26,7 +26,6 @@ jobs:
     displayName: "Build Packages"
     inputs:
       filePath: '$(system.defaultWorkingDirectory)/scripts/build.sh'
-      failOnStderr: true
     env:
       VERSION: ${{ parameters.version }}
   - task: PublishPipelineArtifact@1
