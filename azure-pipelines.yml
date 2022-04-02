@@ -11,13 +11,10 @@ parameters:
 jobs:
 
 - job: Package
-  displayName: 'Package: '
-
   pool:
     vmImage: 'ubuntu-latest'
 
   steps:
-
   - task: GoTool@0
     displayName: 'Install Go'
     inputs:
@@ -25,46 +22,14 @@ jobs:
       GOPATH: '$(Pipeline.Workspace)/gopath'
       GOBIN:  '$(GOPATH)/bin'
 
-  - bash: |
-      #!/usr/bin/env bash
-      REVISION=$(git rev-parse --short HEAD)
-      OS_ARCH=("freebsd:amd64"
-        "freebsd:386"
-        "freebsd:arm"
-        "freebsd:arm64"
-        "windows:amd64"
-        "windows:386"
-        "linux:amd64"
-        "linux:386"
-        "linux:arm"
-        "linux:arm64"
-        "darwin:amd64"
-        "darwin:arm64")
-      mkdir dist
-      for os_arch in "${OS_ARCH[@]}" ; do
-        OS=${os_arch%%:*}
-        ARCH=${os_arch#*:}
-        echo "GOOS: ${OS}, GOARCH: ${ARCH}"
-
-        output=aztfy
-        if [[ $OS = windows ]]; then
-          output=aztfy.exe
-        fi
-
-        GOOS="${OS}" GOARCH="${ARCH}" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X 'main.version=${VERSION}' -X 'main.revision=${REVISION}'" -o $output
-        pkg="aztfy_${VERSION}_${OS}_${ARCH}.zip"
-        zip $pkg $output
-        rm $output
-        mv $pkg dist
-      done
-      cd dist
-      checksum="aztfy_${VERSION}_SHA256SUMS"
-      shasum -a 256 * > $checksum
-      cp $checksum ${checksum}.sig
+  - task: Build@1
     displayName: "Build Packages"
+    inputs:
+      targetPath: './scripts/build.sh'
+      failOnStderr: true
     env:
       VERSION: ${{ parameters.version }}
-  - task: PublishPipelineArtifact@1
+  - task: PublishPipelineArtifact@2
     inputs:
       targetPath: '$(system.defaultWorkingDirectory)/dist/'
       artifact: 'artifact'
