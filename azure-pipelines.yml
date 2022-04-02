@@ -22,7 +22,7 @@ jobs:
       GOPATH: '$(Pipeline.Workspace)/gopath'
       GOBIN:  '$(GOPATH)/bin'
 
-  - task: Build@1
+  - task: Bash@3
     displayName: "Build Packages"
     inputs:
       targetPath: './scripts/build.sh'
