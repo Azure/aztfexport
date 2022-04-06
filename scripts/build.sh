@@ -18,7 +18,7 @@ for os_arch in "${OS_ARCH[@]}" ; do
   ARCH=${os_arch#*:}
   echo "GOOS: ${OS}, GOARCH: ${ARCH}"
 
-  output=aztfy-$OS-$ARCH
+  output=aztfy_$OS_$ARCH
   if [[ $OS = windows ]]; then
     output=$output.exe
   fi
