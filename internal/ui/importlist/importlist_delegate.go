@@ -7,7 +7,7 @@ import (
 	"github.com/Azure/aztfy/internal/meta"
 	"github.com/Azure/aztfy/internal/ui/aztfyclient"
 	"github.com/Azure/aztfy/internal/ui/common"
-	"github.com/Azure/aztfy/schema"
+	"github.com/magodo/tfadd/providers/azurerm"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -156,7 +156,7 @@ func parseInput(input string) (*meta.TFAddr, error) {
 		return nil, err
 	}
 
-	if _, ok := schema.ProviderSchemaInfo.ResourceSchemas[addr.Type]; !ok {
+	if _, ok := azurerm.ProviderSchemaInfo.ResourceSchemas[addr.Type]; !ok {
 		return nil, fmt.Errorf("Invalid resource type %q", addr.Type)
 	}
 
