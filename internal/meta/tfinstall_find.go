@@ -2,7 +2,6 @@ package meta
 
 import (
 	"context"
-	"path/filepath"
 
 	"github.com/hashicorp/go-version"
 	install "github.com/hashicorp/hc-install"
@@ -13,15 +12,13 @@ import (
 )
 
 // FindTerraform finds the path to the terraform executable.
-func FindTerraform(ctx context.Context, tfDir string, minVersion, maxVersion *version.Version) (string, error) {
+func FindTerraform(ctx context.Context, tfDir string) (string, error) {
 	i := install.NewInstaller()
 	return i.Ensure(ctx, []src.Source{
 		&fs.AnyVersion{
 			Product:     &product.Terraform,
+			ExtraPaths:  []string{tfDir},
 			Constraints: version.MustConstraints(version.NewConstraint(">0.12")),
-		},
-		&fs.AnyVersion{
-			ExactBinPath: filepath.Join(tfDir, product.Terraform.BinaryName()),
 		},
 		&checkpoint.LatestVersion{
 			Product:    product.Terraform,

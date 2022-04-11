@@ -14,17 +14,12 @@ import (
 	"github.com/Azure/aztfy/internal/config"
 
 	"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2020-06-01/resources"
-	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/magodo/tfadd/providers/azurerm"
 	"github.com/magodo/tfadd/tfadd"
 )
-
-// The required terraform version that has the `terraform add` command.
-var minRequiredTFVersion = version.Must(version.NewSemver("v1.1.0-alpha20210630"))
-var maxRequiredTFVersion = version.Must(version.NewSemver("v1.1.0-alpha20211006"))
 
 type MetaImpl struct {
 	subscriptionId string
@@ -163,7 +158,7 @@ func (meta *MetaImpl) Init() error {
 	if err := os.MkdirAll(tfDir, 0755); err != nil {
 		return fmt.Errorf("creating terraform cache dir %q: %w", tfDir, err)
 	}
-	execPath, err := FindTerraform(ctx, tfDir, minRequiredTFVersion, maxRequiredTFVersion)
+	execPath, err := FindTerraform(ctx, tfDir)
 	if err != nil {
 		return fmt.Errorf("error finding a terraform exectuable: %w", err)
 	}
