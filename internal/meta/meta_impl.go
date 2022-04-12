@@ -340,7 +340,7 @@ func (meta *MetaImpl) exportArmTemplate(ctx context.Context) error {
 func (meta MetaImpl) stateToConfig(ctx context.Context, list ImportList) (ConfigInfos, error) {
 	out := ConfigInfos{}
 	for _, item := range list.Imported() {
-		b, err := tfadd.Run(ctx, meta.tf, tfadd.Target(item.TFAddr.String()))
+		b, err := tfadd.State(ctx, meta.tf, tfadd.Target(item.TFAddr.String()))
 		if err != nil {
 			return nil, fmt.Errorf("converting terraform state to config for resource %s: %w", item.TFAddr, err)
 		}
