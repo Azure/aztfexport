@@ -79,3 +79,8 @@ For example, the `azurerm_lb_backend_address_pool_address` is actually a propert
 Another popular case is that in the AzureRM provider, there are a bunch of "association" resources, e.g. the `azurerm_network_interface_security_group_association`. These "association" resources represent the association relationship between two Terraform resources (in this case they are `azurerm_network_interface` and `azurerm_network_security_group`). They also have some synthetic resource ID, e.g. `/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/microsoft.network/networkInterfaces/example|/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.Network/networkSecurityGroups/group1`.
 
 Currently, this tool only works on the assumption that there is 1:1 mapping between Azure resources and the Terraform resources.
+
+## Additional Resources
+
+- [The aztfy Github Page](https://azure.github.io/aztfy): Everything about aztfy, including comparisons with other existing import solutions.
+- [Kyle Ruddy's Blog about aztfy](https://www.kmruddy.com/2022/terrafy-existing-azure-resources/): A live use of `aztfy`, explaining the pros and cons.
