@@ -11,12 +11,12 @@ import (
 	"github.com/Azure/aztfy/internal/ui/aztfyclient"
 	"github.com/Azure/aztfy/internal/ui/common"
 	"github.com/Azure/aztfy/mapping"
-	"github.com/Azure/aztfy/schema"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/magodo/textinput"
+	"github.com/magodo/tfadd/providers/azurerm"
 )
 
 type Model struct {
@@ -29,8 +29,8 @@ type Model struct {
 
 func NewModel(c meta.Meta, l meta.ImportList, idx int) Model {
 	// Build candidate words for the textinput
-	candidates := make([]string, 0, len(schema.ProviderSchemaInfo.ResourceSchemas))
-	for rt := range schema.ProviderSchemaInfo.ResourceSchemas {
+	candidates := make([]string, 0, len(azurerm.ProviderSchemaInfo.ResourceSchemas))
+	for rt := range azurerm.ProviderSchemaInfo.ResourceSchemas {
 		candidates = append(candidates, rt)
 	}
 	sort.Strings(candidates)
