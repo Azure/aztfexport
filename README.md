@@ -64,7 +64,7 @@ Example:
 
 Then the tool will import each specified resource in the mapping file (if exists) and skip the others.
 
-In the batch import mode, users can further specify the `-k` option to make the tool continue even on hittng import error on any resource.
+In the batch import mode, users can further specify the `-k` option to make the tool continue even on hitting import error(s) on any resource.
 
 ## Demo
 
