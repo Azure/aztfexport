@@ -46,7 +46,7 @@ In some cases, there are Azure resources that have no corresponding Terraform re
 
 After going through all the resources to be imported, users press `w` to instruct `aztfy` to proceed importing resources into Terraform state and generating the Terraform configuration.
 
-> 💡 `aztfy` will run `terraform import` under the hood to import each resource. Then it will run `terraform add -from-state` to generate the Terraform template for each imported resource. Whereas there are kinds of [limitations](https://github.com/apparentlymart/terrafy/blob/main/docs/quirks.md) causing the output of `terraform add` to be an invalid Terraform template in most cases. `aztfy` will leverage extra knowledge from the provider (which is generated from the provider codebase) to further manipulate the template, to make it pass the Terraform validations against the provider.
+> 💡 `aztfy` will run `terraform import` under the hood to import each resource. Then it will run [`tfadd`](https://github.com/magodo/tfadd) to generate the Terraform template for each imported resource. Whereas there are kinds of [quirks](https://github.com/apparentlymart/terrafy/blob/main/docs/quirks.md) causing the output of `tfadd` to be an invalid Terraform template in most cases. `aztfy` will leverage extra knowledge from the provider (which is generated from the provider codebase) to further manipulate the template, to make it pass the Terraform validations against the provider.
 > 
 > As the last step, `aztfy` will leverage the ARM template to inject dependencies between each resource. This makes the generated Terraform template to be useful.
 
