@@ -18,6 +18,18 @@ Precompiled binaries are available at [Releases](https://github.com/Azure/aztfy/
 go install github.com/Azure/aztfy@latest
 ```
 
+## Precondition
+
+There is no special precondtion needed for running `aztfy`, except that you have access to Azure.
+
+Although `aztfy` depends on `terraform`, it is not required to have `terraform` pre-installed and configured in the [`PATH`](https://en.wikipedia.org/wiki/PATH_(variable)) before running `aztfy`. `aztfy` will ensure a `terraform` in the following order: 
+
+- If there is already a `terraform` discovered in the `PATH` whose version `>= v0.12`, then use it
+- Otherwise, if there is already a `terraform` installed at the `aztfy` cache directory, then use it
+- Otherwise, install the latest `terraform` from Hashicorp's release to the `aztfy` cache directory
+
+(The `aztfy` cache directory is at: "[\<UserCacheDir\>](https://pkg.go.dev/os#UserCacheDir)/aztfy")
+
 ## Usage
 
 Follow the [authentication guide](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs#authenticating-to-azure) from the Terraform AzureRM provider to authenticate to Azure.
