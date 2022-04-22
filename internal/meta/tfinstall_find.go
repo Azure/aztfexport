@@ -18,7 +18,7 @@ func FindTerraform(ctx context.Context, tfDir string) (string, error) {
 		&fs.AnyVersion{
 			Product:     &product.Terraform,
 			ExtraPaths:  []string{tfDir},
-			Constraints: version.MustConstraints(version.NewConstraint(">0.12")),
+			Constraints: version.MustConstraints(version.NewConstraint(">=0.12")),
 		},
 		&checkpoint.LatestVersion{
 			Product:    product.Terraform,
