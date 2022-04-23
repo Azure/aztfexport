@@ -73,6 +73,7 @@ func init() {
 	}
 }
 EOF
+    go mod tidy
 }
 
 main "$@"
