@@ -167,6 +167,8 @@ github.com/hashicorp/go-version v1.2.1/go.mod h1:fltr4n8CU8Ke44wwGCBoEymUuxUHl09
 github.com/hashicorp/go-version v1.3.0/go.mod h1:fltr4n8CU8Ke44wwGCBoEymUuxUHl09ZGVZPK5anwXA=
 github.com/hashicorp/go-version v1.4.0 h1:aAQzgqIrRKRa7w75CKpbBxYsmUoPjzVm1W59ca1L0J4=
 github.com/hashicorp/go-version v1.4.0/go.mod h1:fltr4n8CU8Ke44wwGCBoEymUuxUHl09ZGVZPK5anwXA=
+github.com/hashicorp/hc-install v0.3.1 h1:VIjllE6KyAI1A244G8kTaHXy+TL5/XYzvrtFi8po/Yk=
+github.com/hashicorp/hc-install v0.3.1/go.mod h1:3LCdWcCDS1gaHC9mhHCGbkYfoY6vdsKohGjugbZdZak=
 github.com/hashicorp/hcl/v2 v2.11.1 h1:yTyWcXcm9XB0TEkyU/JCRU6rYy4K+mgLtzn2wlrJbcc=
 github.com/hashicorp/hcl/v2 v2.11.1/go.mod h1:FwWsfWEjyV/CMj8s/gqAuiviY72rJ1/oayI9WftqcKg=
 github.com/hashicorp/logutils v1.0.0 h1:dLEQVugN8vlakKOUE3ihGLTZJRB4j+M2cdTm/ORI65Y=
@@ -208,8 +210,8 @@ github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69Aj6K7nkY=
 github.com/lucasb-eyer/go-colorful v1.2.0/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
-github.com/magodo/hc-install v0.3.2-0.20220411071935-84486ab39b72 h1:lGybPSWCyGqnuEqzp1/u+5V+/ceAIoYUsvasiJ0wcvE=
-github.com/magodo/hc-install v0.3.2-0.20220411071935-84486ab39b72/go.mod h1:6qzl/Pm6PE2FLMd0N7Gi6r3XjqdNbtihoWtGmaNXtaw=
+github.com/magodo/hc-install v0.3.2-0.20220504032610-94e9000c1f9c h1:TOkELXKtNN2AUsuRStlbIe3Pe6PTbJabrUJc4lsRh5g=
+github.com/magodo/hc-install v0.3.2-0.20220504032610-94e9000c1f9c/go.mod h1:HLRx06SlXH62I5+tDiqf7ObccrTIjvmu8bnclQXyRlc=
 github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0 h1:aNtr4iNv/tex2t8W1u3scAoNHEnFlTKhNNHOpYStqbs=
 github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0/go.mod h1:MqYhNP+PC386Bjsx5piZe7T4vDm5QIPv8b1RU0prVnU=
 github.com/magodo/tfadd v0.4.0 h1:ONvTfavfo5PrXiaSVnrVT6VYs7t7fis3AJ4LOSUuofw=
