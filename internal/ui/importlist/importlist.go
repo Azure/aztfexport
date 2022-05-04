@@ -65,16 +65,31 @@ func NewModel(c meta.Meta, l meta.ImportList, idx int) Model {
 		})
 	}
 
-	list := list.NewModel(items, NewImportItemDelegate(), 0, 0)
-	list.Title = " " + c.ResourceGroupName() + " "
-	list.Styles.Title = common.SubtitleStyle
-	list.StatusMessageLifetime = 3 * time.Second
-	list.Select(idx)
+	lst := list.NewModel(items, NewImportItemDelegate(), 0, 0)
+	lst.Title = " " + c.ResourceGroupName() + " "
+	lst.Styles.Title = common.SubtitleStyle
+	lst.StatusMessageLifetime = 3 * time.Second
+	lst.Select(idx)
+	lst.Filter = func(term string, targets []string) []list.Rank {
+		result := []list.Rank{}
+		for idx, tgt := range targets {
+			if midx := strings.Index(tgt, term); midx != -1 {
+				rnk := list.Rank{
+					Index: idx,
+				}
+				for i := 0; i < len(term); i++ {
+					rnk.MatchedIndexes = append(rnk.MatchedIndexes, i+midx)
+				}
+				result = append(result, rnk)
+			}
+		}
+		return result
+	}
 
-	bindKeyHelps(&list, newListKeyMap().ToBindings())
+	bindKeyHelps(&lst, newListKeyMap().ToBindings())
 
 	// Reset the quit to deallocate the "ESC" as a quit key.
-	list.KeyMap.Quit = key.NewBinding(
+	lst.KeyMap.Quit = key.NewBinding(
 		key.WithKeys("q"),
 		key.WithHelp("q", "quit"),
 	)
@@ -84,7 +99,7 @@ func NewModel(c meta.Meta, l meta.ImportList, idx int) Model {
 		listkeys:        newListKeyMap(),
 		recommendations: recommendations,
 
-		list: list,
+		list: lst,
 	}
 }
 

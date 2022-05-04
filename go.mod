@@ -5,8 +5,8 @@ go 1.17
 require (
 	github.com/Azure/azure-sdk-for-go v56.1.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.19
-	github.com/charmbracelet/bubbles v0.9.0
-	github.com/charmbracelet/bubbletea v0.15.0
+	github.com/charmbracelet/bubbles v0.10.4-0.20220412141214-292a1dd7ba97
+	github.com/charmbracelet/bubbletea v0.19.3
 	github.com/charmbracelet/lipgloss v0.4.0
 	github.com/hashicorp/go-azure-helpers v0.16.5
 	github.com/hashicorp/go-version v1.4.0
@@ -32,7 +32,7 @@ require (
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
 	github.com/agext/levenshtein v1.2.2 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
-	github.com/atotto/clipboard v0.1.2 // indirect
+	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/charmbracelet/harmonica v0.1.0 // indirect
 	github.com/containerd/console v1.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -63,6 +63,7 @@ require (
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
+	github.com/muesli/ansi v0.0.0-20211018074035-2e021307bc4b // indirect
 	github.com/muesli/termenv v0.9.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

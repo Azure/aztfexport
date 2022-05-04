@@ -38,4 +38,9 @@ func (i Item) Description() string {
 	return i.textinput.Value()
 }
 
-func (i Item) FilterValue() string { return i.v.ResourceID }
+func (i Item) FilterValue() string {
+	if i.v.ValidateError == nil && i.v.ImportError == nil && !i.v.Imported && !i.v.IsRecommended {
+		return i.v.ResourceID
+	}
+	return " " + i.v.ResourceID
+}
