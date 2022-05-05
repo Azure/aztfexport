@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/hashicorp/go-version"
-	install "github.com/hashicorp/hc-install"
-	"github.com/hashicorp/hc-install/checkpoint"
-	"github.com/hashicorp/hc-install/fs"
-	"github.com/hashicorp/hc-install/product"
-	"github.com/hashicorp/hc-install/src"
+	install "github.com/magodo/hc-install"
+	"github.com/magodo/hc-install/checkpoint"
+	"github.com/magodo/hc-install/fs"
+	"github.com/magodo/hc-install/product"
+	"github.com/magodo/hc-install/src"
 )
 
 // FindTerraform finds the path to the terraform executable.

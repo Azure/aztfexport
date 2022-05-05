@@ -10,9 +10,9 @@ require (
 	github.com/charmbracelet/lipgloss v0.4.0
 	github.com/hashicorp/go-azure-helpers v0.16.5
 	github.com/hashicorp/go-version v1.4.0
-	github.com/hashicorp/hc-install v0.3.1
 	github.com/hashicorp/hcl/v2 v2.11.1
 	github.com/hashicorp/terraform-exec v0.16.0
+	github.com/magodo/hc-install v0.3.2-0.20220504032610-94e9000c1f9c
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
 	github.com/magodo/tfadd v0.4.0
 	github.com/meowgorithm/babyenv v1.3.1
@@ -82,5 +82,3 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
 )
-
-replace github.com/hashicorp/hc-install => github.com/magodo/hc-install v0.3.2-0.20220411071935-84486ab39b72
