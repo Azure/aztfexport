@@ -37,8 +37,9 @@ type MetaImpl struct {
 	resourceNamePrefix string
 	resourceNameSuffix string
 
-	backendType   string
-	backendConfig []string
+	backendType    string
+	backendConfig  []string
+	resourceFilter []string
 }
 
 func newMetaImpl(cfg config.Config) (Meta, error) {
@@ -119,6 +120,23 @@ func newMetaImpl(cfg config.Config) (Meta, error) {
 		}
 	}
 
+	// Resource mapping file
+	filterContent := []string{"*"}
+	if cfg.ResourceFilterFile != "" {
+		b, err := os.ReadFile(cfg.ResourceFilterFile)
+		if err != nil {
+			return nil, fmt.Errorf("reading filter file %s: %v", cfg.ResourceFilterFile, err)
+		}
+		if err := json.Unmarshal(b, &filterContent); err != nil {
+			return nil, fmt.Errorf("unmarshalling the filter file: %v", err)
+		}
+
+		for i := range filterContent {
+			p := filterContent[i]
+			fmt.Println(p) //p1, p2
+		}
+	}
+
 	// AzureRM provider will honor env.var "AZURE_HTTP_USER_AGENT" when constructing for HTTP "User-Agent" header.
 	os.Setenv("AZURE_HTTP_USER_AGENT", "aztfy")
 
@@ -131,6 +149,7 @@ func newMetaImpl(cfg config.Config) (Meta, error) {
 		resourceMapping: m,
 		backendType:     cfg.BackendType,
 		backendConfig:   cfg.BackendConfig,
+		resourceFilter:  filterContent,
 	}
 
 	if pos := strings.LastIndex(cfg.ResourceNamePattern, "*"); pos != -1 {
@@ -307,7 +326,7 @@ func (meta *MetaImpl) exportArmTemplate(ctx context.Context) error {
 
 	exportOpt := "SkipAllParameterization"
 	future, err := client.ExportTemplate(ctx, meta.resourceGroup, resources.ExportTemplateRequest{
-		ResourcesProperty: &[]string{"*"},
+		ResourcesProperty: &meta.resourceFilter,
 		Options:           &exportOpt,
 	})
 	if err != nil {

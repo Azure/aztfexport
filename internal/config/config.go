@@ -12,4 +12,5 @@ type Config struct {
 	BatchMode           bool     // specified via CLI option
 	BackendType         string   // specified via CLI option
 	BackendConfig       []string // specified via CLI option
+	ResourceFilterFile  string
 }

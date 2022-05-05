@@ -78,6 +78,26 @@ Then the tool will import each specified resource in the mapping file (if exists
 
 In the batch import mode, users can further specify the `-k` option to make the tool continue even on hitting import error(s) on any resource.
 
+### filter resources
+Due the limitation of 200 resources, a filter can be specified in order to select some resources in resource group, `aztfy` requires the user to provide the resource filter file (via `-r`), with the following format:
+
+```json
+[
+    "<azure resource id1>",
+    "<azure resource id2>"
+    ...
+]
+```
+
+Example:
+
+```json
+[
+  "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Network/virtualNetworks/example-network",
+  "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Compute/virtualMachines/example-machine"
+]
+```
+
 ## Demo
 
 [![asciicast](https://asciinema.org/a/475516.svg)](https://asciinema.org/a/475516)
