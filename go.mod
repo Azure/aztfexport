@@ -14,7 +14,7 @@ require (
 	github.com/hashicorp/terraform-exec v0.16.0
 	github.com/magodo/hc-install v0.3.2-0.20220504032610-94e9000c1f9c
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
-	github.com/magodo/tfadd v0.4.0
+	github.com/magodo/tfadd v0.5.0
 	github.com/meowgorithm/babyenv v1.3.1
 	github.com/mitchellh/go-wordwrap v1.0.0
 	github.com/muesli/reflow v0.3.0
