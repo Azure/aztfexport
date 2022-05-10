@@ -1,11 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"os/exec"
+	"strconv"
+	"strings"
 
 	"flag"
 
@@ -16,17 +20,19 @@ import (
 )
 
 var (
-	flagVersion     *bool
-	flagOutputDir   *string
-	flagMappingFile *string
-	flagContinue    *bool
-	flagBatchMode   *bool
-	flagPattern     *string
-	flagOverwrite   *bool
-	flagBackendType *string
+	flagSubscriptionId *string
+	flagVersion        *bool
+	flagOutputDir      *string
+	flagMappingFile    *string
+	flagContinue       *bool
+	flagBatchMode      *bool
+	flagPattern        *string
+	flagOverwrite      *bool
+	flagBackendType    *string
 )
 
 func init() {
+	flagSubscriptionId = flag.String("s", "", "The subscription id")
 	flagVersion = flag.Bool("v", false, "Print version")
 	flagOutputDir = flag.String("o", "", "Specify output dir. Default is the current working directory")
 	flagMappingFile = flag.String("m", "", "Specify the resource mapping file")
@@ -96,6 +102,43 @@ func main() {
 	if err := babyenv.Parse(&cfg); err != nil {
 		fatal(err)
 	}
+
+	// The subscription id comes from one of following (starts from the highest priority):
+	// - Command line option
+	// - Env variable: AZTFY_SUBSCRIPTION_ID
+	// - Env variable: ARM_SUBSCRIPTION_ID
+	// - Output of azure cli, the current active subscription
+	if *flagSubscriptionId != "" {
+		cfg.SubscriptionId = *flagSubscriptionId
+	}
+	if cfg.SubscriptionId == "" {
+		// Honor the ARM_SUBSCRIPTION_ID as the AzureRM provider does.
+		if v := os.Getenv("ARM_SUBSCRIPTION_ID"); v != "" {
+			cfg.SubscriptionId = v
+		} else {
+			var stderr bytes.Buffer
+			var stdout bytes.Buffer
+			cmd := exec.Command("az", "account", "show", "--query", "id")
+			cmd.Stderr = &stderr
+			cmd.Stdout = &stdout
+			if err := cmd.Run(); err != nil {
+				err = fmt.Errorf("failed to run azure cli: %v", err)
+				if stdErrStr := stderr.String(); stdErrStr != "" {
+					err = fmt.Errorf("%s: %s", err, strings.TrimSpace(stdErrStr))
+				}
+				fatal(err)
+			}
+			if stdout.String() == "" {
+				fatal(fmt.Errorf("subscription id is not specified"))
+			}
+			subid, err := strconv.Unquote(strings.TrimSpace(stdout.String()))
+			if err != nil {
+				fatal(fmt.Errorf("unquoting %s: %v", stdout.String(), err))
+			}
+			cfg.SubscriptionId = subid
+		}
+	}
+
 	cfg.ResourceGroupName = rg
 	cfg.ResourceNamePattern = *flagPattern
 	cfg.ResourceMappingFile = *flagMappingFile

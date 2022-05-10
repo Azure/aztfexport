@@ -3,75 +3,73 @@ package meta
 import (
 	"fmt"
 	"os"
+	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2020-06-01/resources"
-	"github.com/Azure/go-autorest/autorest"
-	"github.com/hashicorp/go-azure-helpers/authentication"
-	"github.com/hashicorp/go-azure-helpers/sender"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
 )
 
-type Authorizer struct {
-	authorizer  autorest.Authorizer
-	Config      *authentication.Config
-	armEndpoint string
+type ClientBuilder struct {
+	credential azcore.TokenCredential
 }
 
-func NewAuthorizer() (*Authorizer, error) {
-	environment := "public"
-	if env := os.Getenv("ARM_ENVIRONMENT"); env != "" {
-		environment = env
-	}
-	builder := &authentication.Builder{
-		SubscriptionID:     os.Getenv("ARM_SUBSCRIPTION_ID"),
-		ClientID:           os.Getenv("ARM_CLIENT_ID"),
-		ClientSecret:       os.Getenv("ARM_CLIENT_SECRET"),
-		TenantID:           os.Getenv("ARM_TENANT_ID"),
-		Environment:        environment,
-		ClientCertPassword: os.Getenv("ARM_CLIENT_CERTIFICATE_PASSWORD"),
-		ClientCertPath:     os.Getenv("ARM_CLIENT_CERTIFICATE_PATH"),
-
-		// Feature Toggles
-		SupportsClientCertAuth:   true,
-		SupportsClientSecretAuth: true,
-		SupportsAzureCliToken:    true,
+func NewClientBuilder() (*ClientBuilder, error) {
+	env := "public"
+	if v := os.Getenv("ARM_ENVIRONMENT"); v != "" {
+		env = v
 	}
 
-	config, err := builder.Build()
+	var cloudCfg cloud.Configuration
+	switch strings.ToLower(env) {
+	case "public":
+		cloudCfg = cloud.AzurePublicCloud
+	case "usgovernment":
+		cloudCfg = cloud.AzureGovernment
+	case "china":
+		cloudCfg = cloud.AzureChina
+	default:
+		return nil, fmt.Errorf("unknown environment specified: %q", env)
+	}
+
+	// Maps the auth related environment variables used in the provider to what azidentity honors.
+	os.Setenv("AZURE_TENANT_ID", os.Getenv("ARM_TENANT_ID"))
+	os.Setenv("AZURE_CLIENT_ID", os.Getenv("ARM_CLIENT_ID"))
+	os.Setenv("AZURE_CLIENT_SECRET", os.Getenv("ARM_CLIENT_SECRET"))
+	os.Setenv("AZURE_CLIENT_CERTIFICATE_PATH", os.Getenv("ARM_CLIENT_CERTIFICATE_PATH"))
+
+	cred, err := azidentity.NewDefaultAzureCredential(&azidentity.DefaultAzureCredentialOptions{
+		ClientOptions: policy.ClientOptions{
+			Cloud: cloudCfg,
+		},
+		TenantID: os.Getenv("ARM_TENANT_ID"),
+	})
 	if err != nil {
-		return nil, fmt.Errorf("Error building AzureRM Client: %v", err)
+		return nil, fmt.Errorf("failed to obtain a credential: %v", err)
 	}
 
-	env, err := authentication.DetermineEnvironment(config.Environment)
-	if err != nil {
-		return nil, fmt.Errorf("determining environment: %v", err)
-	}
-
-	oauthConfig, err := config.BuildOAuthConfig(env.ActiveDirectoryEndpoint)
-	if err != nil {
-		return nil, fmt.Errorf("building OAuth Config: %v", err)
-	}
-
-	// OAuthConfigForTenant returns a pointer, which can be nil.
-	if oauthConfig == nil {
-		return nil, fmt.Errorf("unable to configure OAuthConfig for tenant %s", config.TenantID)
-	}
-
-	sender := sender.BuildSender("AzureRM")
-
-	auth, err := config.GetAuthorizationToken(sender, oauthConfig, env.TokenAudience)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get authorization token for resource manager: %v", err)
-	}
-
-	return &Authorizer{
-		authorizer:  auth,
-		Config:      config,
-		armEndpoint: env.ResourceManagerEndpoint,
+	return &ClientBuilder{
+		credential: cred,
 	}, nil
 }
 
-func (a *Authorizer) NewResourceGroupClient() resources.GroupsClient {
-	client := resources.NewGroupsClientWithBaseURI(a.armEndpoint, a.Config.SubscriptionID)
-	client.Authorizer = a.authorizer
-	return client
+func (b *ClientBuilder) NewResourceGroupClient(subscriptionId string) (*armresources.ResourceGroupsClient, error) {
+	return armresources.NewResourceGroupsClient(
+		subscriptionId,
+		b.credential,
+		&arm.ClientOptions{
+			ClientOptions: policy.ClientOptions{
+				Telemetry: policy.TelemetryOptions{
+					ApplicationID: "aztfy",
+					Disabled:      false,
+				},
+				Logging: policy.LogOptions{
+					IncludeBody: true,
+				},
+			},
+		},
+	)
 }

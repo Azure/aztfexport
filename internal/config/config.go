@@ -1,6 +1,7 @@
 package config
 
 type Config struct {
+	SubscriptionId      string   `env:"AZTFY_SUBSCRIPTION_ID" default:""`
 	ResourceGroupName   string   // specified via CLI
 	Logfile             string   `env:"AZTFY_LOGFILE" default:""`
 	Debug               bool     `env:"AZTFY_DEBUG" default:"false"`
