@@ -2,9 +2,7 @@ package ui
 
 import (
 	"fmt"
-	"io"
 	"log"
-	"os"
 
 	"github.com/Azure/aztfy/internal/config"
 	"github.com/Azure/aztfy/internal/meta"
@@ -24,19 +22,7 @@ import (
 const indentLevel = 2
 
 func NewProgram(cfg config.Config) (*tea.Program, error) {
-	// Discard logs from hashicorp/azure-go-helper
-	log.SetOutput(io.Discard)
-
-	// Define another dedicated logger for the ui
-	logger := log.New(os.Stderr, "", log.LstdFlags)
-	if cfg.Logfile != "" {
-		f, err := os.OpenFile(cfg.Logfile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-		if err != nil {
-			return nil, err
-		}
-		logger = log.New(f, "aztfy", log.LstdFlags)
-	}
-	m, err := newModel(cfg, logger)
+	m, err := newModel(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -74,10 +60,8 @@ func (s status) String() string {
 
 type model struct {
 	meta   meta.Meta
-	debug  bool
 	status status
 	err    error
-	logger *log.Logger
 
 	// winsize is used to keep track of current windows size, it is used to set the size for other models that are initialized in status (e.g. the importlist).
 	winsize tea.WindowSizeMsg
@@ -88,14 +72,12 @@ type model struct {
 	importerrormsg aztfyclient.ShowImportErrorMsg
 }
 
-func newModel(cfg config.Config, logger *log.Logger) (*model, error) {
+func newModel(cfg config.Config) (*model, error) {
 	s := spinner.NewModel()
 	s.Spinner = common.Spinner
 
 	m := &model{
-		debug:   cfg.Debug,
 		status:  statusInit,
-		logger:  logger,
 		spinner: s,
 	}
 	meta, err := meta.NewMeta(cfg)
@@ -115,10 +97,8 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if m.debug {
-		if _, ok := msg.(spinner.TickMsg); !ok {
-			m.logger.Printf("STATUS: %s | MSG: %#v\n", m.status, msg)
-		}
+	if _, ok := msg.(spinner.TickMsg); !ok {
+		log.Printf("[UI] STATUS: %s | MSG: %#v\n", m.status, msg)
 	}
 
 	switch msg := msg.(type) {
