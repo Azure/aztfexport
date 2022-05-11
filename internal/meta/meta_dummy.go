@@ -1,6 +1,8 @@
 package meta
 
-import "time"
+import (
+	"time"
+)
 
 type MetaDummy struct {
 	rg string

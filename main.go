@@ -1,32 +1,39 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"os/exec"
+	"strconv"
+	"strings"
 
 	"flag"
 
 	"github.com/Azure/aztfy/internal/config"
 	"github.com/Azure/aztfy/internal/meta"
 	"github.com/Azure/aztfy/internal/ui"
+	azlog "github.com/Azure/azure-sdk-for-go/sdk/azcore/log"
 	"github.com/meowgorithm/babyenv"
 )
 
 var (
-	flagVersion     *bool
-	flagOutputDir   *string
-	flagMappingFile *string
-	flagContinue    *bool
-	flagBatchMode   *bool
-	flagPattern     *string
-	flagOverwrite   *bool
-	flagBackendType *string
+	flagSubscriptionId *string
+	flagVersion        *bool
+	flagOutputDir      *string
+	flagMappingFile    *string
+	flagContinue       *bool
+	flagBatchMode      *bool
+	flagPattern        *string
+	flagOverwrite      *bool
+	flagBackendType    *string
 )
 
 func init() {
+	flagSubscriptionId = flag.String("s", "", "The subscription id")
 	flagVersion = flag.Bool("v", false, "Print version")
 	flagOutputDir = flag.String("o", "", "Specify output dir. Default is the current working directory")
 	flagMappingFile = flag.String("m", "", "Specify the resource mapping file")
@@ -96,6 +103,43 @@ func main() {
 	if err := babyenv.Parse(&cfg); err != nil {
 		fatal(err)
 	}
+
+	// The subscription id comes from one of following (starts from the highest priority):
+	// - Command line option
+	// - Env variable: AZTFY_SUBSCRIPTION_ID
+	// - Env variable: ARM_SUBSCRIPTION_ID
+	// - Output of azure cli, the current active subscription
+	if *flagSubscriptionId != "" {
+		cfg.SubscriptionId = *flagSubscriptionId
+	}
+	if cfg.SubscriptionId == "" {
+		// Honor the ARM_SUBSCRIPTION_ID as the AzureRM provider does.
+		if v := os.Getenv("ARM_SUBSCRIPTION_ID"); v != "" {
+			cfg.SubscriptionId = v
+		} else {
+			var stderr bytes.Buffer
+			var stdout bytes.Buffer
+			cmd := exec.Command("az", "account", "show", "--query", "id")
+			cmd.Stderr = &stderr
+			cmd.Stdout = &stdout
+			if err := cmd.Run(); err != nil {
+				err = fmt.Errorf("failed to run azure cli: %v", err)
+				if stdErrStr := stderr.String(); stdErrStr != "" {
+					err = fmt.Errorf("%s: %s", err, strings.TrimSpace(stdErrStr))
+				}
+				fatal(err)
+			}
+			if stdout.String() == "" {
+				fatal(fmt.Errorf("subscription id is not specified"))
+			}
+			subid, err := strconv.Unquote(strings.TrimSpace(stdout.String()))
+			if err != nil {
+				fatal(fmt.Errorf("unquoting %s: %v", stdout.String(), err))
+			}
+			cfg.SubscriptionId = subid
+		}
+	}
+
 	cfg.ResourceGroupName = rg
 	cfg.ResourceNamePattern = *flagPattern
 	cfg.ResourceMappingFile = *flagMappingFile
@@ -104,6 +148,23 @@ func main() {
 	cfg.BatchMode = *flagBatchMode
 	cfg.BackendType = *flagBackendType
 	cfg.BackendConfig = backendConfig
+
+	// Initialize logger
+	log.SetOutput(io.Discard)
+	if cfg.Logfile != "" {
+		log.SetPrefix("[aztfy] ")
+		f, err := os.OpenFile(cfg.Logfile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+		if err != nil {
+			fatal(fmt.Errorf("creating log file %s: %v", cfg.Logfile, err))
+		}
+		log.SetOutput(f)
+
+		// Enable the logging for the Azure SDK
+		os.Setenv("AZURE_SDK_GO_LOGGING", "all")
+		azlog.SetListener(func(cls azlog.Event, msg string) {
+			log.Printf("[SDK] %s: %s\n", cls, msg)
+		})
+	}
 
 	if cfg.BatchMode {
 		if err := batchImport(cfg, *flagContinue); err != nil {
@@ -123,50 +184,37 @@ func main() {
 }
 
 func batchImport(cfg config.Config, continueOnError bool) error {
-	// Discard logs from hashicorp/azure-go-helper
-	log.SetOutput(io.Discard)
-	// Define another dedicated logger for the ui
-	logger := log.New(os.Stderr, "", log.LstdFlags)
-	if cfg.Logfile != "" {
-		f, err := os.OpenFile(cfg.Logfile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-		if err != nil {
-			return err
-		}
-		logger = log.New(f, "aztfy", log.LstdFlags)
-	}
-
-	logger.Println("New meta")
 	c, err := meta.NewMeta(cfg)
 	if err != nil {
 		return err
 	}
 
-	logger.Println("Initialize")
+	fmt.Println("Initializing...")
 	if err := c.Init(); err != nil {
 		return err
 	}
 
-	logger.Println("List resources")
+	fmt.Println("List resources...")
 	list := c.ListResource()
 
-	logger.Println("Import resources")
+	fmt.Println("Import resources...")
 	for i := range list {
 		if list[i].Skip() {
-			logger.Printf("[WARN] No mapping information for resource: %s, skip it\n", list[i].ResourceID)
+			fmt.Printf("[WARN] No mapping information for resource: %s, skip it\n", list[i].ResourceID)
 			continue
 		}
-		logger.Printf("Importing %s as %s\n", list[i].ResourceID, list[i].TFAddr)
+		fmt.Printf("Importing %s as %s\n", list[i].ResourceID, list[i].TFAddr)
 		c.Import(&list[i])
 		if err := list[i].ImportError; err != nil {
 			msg := fmt.Sprintf("Failed to import %s as %s: %v", list[i].ResourceID, list[i].TFAddr, err)
 			if !continueOnError {
 				return fmt.Errorf(msg)
 			}
-			logger.Println("[ERROR] " + msg)
+			fmt.Println("[ERROR] " + msg)
 		}
 	}
 
-	logger.Println("Generate Terraform configurations")
+	fmt.Println("Generating Terraform configurations...")
 	if err := c.GenerateCfg(list); err != nil {
 		return fmt.Errorf("generating Terraform configuration: %v", err)
 	}

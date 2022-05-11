@@ -9,11 +9,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/Azure/aztfy/internal/armtemplate"
 	"github.com/Azure/aztfy/internal/config"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
 
-	"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2020-06-01/resources"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform-exec/tfexec"
@@ -27,7 +28,7 @@ type MetaImpl struct {
 	rootdir        string
 	outdir         string
 	tf             *tfexec.Terraform
-	auth           *Authorizer
+	clientBuilder  *ClientBuilder
 	armTemplate    armtemplate.Template
 
 	// Key is azure resource id; Value is terraform resource addr.
@@ -101,8 +102,8 @@ func newMetaImpl(cfg config.Config) (Meta, error) {
 		}
 	}
 
-	// Authentication
-	auth, err := NewAuthorizer()
+	// Construct client builder
+	b, err := NewClientBuilder()
 	if err != nil {
 		return nil, fmt.Errorf("building authorizer: %w", err)
 	}
@@ -123,11 +124,11 @@ func newMetaImpl(cfg config.Config) (Meta, error) {
 	os.Setenv("AZURE_HTTP_USER_AGENT", "aztfy")
 
 	meta := &MetaImpl{
-		subscriptionId:  auth.Config.SubscriptionID,
+		subscriptionId:  cfg.SubscriptionId,
 		resourceGroup:   cfg.ResourceGroupName,
 		rootdir:         rootdir,
 		outdir:          outdir,
-		auth:            auth,
+		clientBuilder:   b,
 		resourceMapping: m,
 		backendType:     cfg.BackendType,
 		backendConfig:   cfg.BackendConfig,
@@ -303,30 +304,29 @@ func (meta *MetaImpl) initProvider(ctx context.Context) error {
 }
 
 func (meta *MetaImpl) exportArmTemplate(ctx context.Context) error {
-	client := meta.auth.NewResourceGroupClient()
+	client, err := meta.clientBuilder.NewResourceGroupClient(meta.subscriptionId)
+	if err != nil {
+		return fmt.Errorf("building resource group client: %v", err)
+	}
 
 	exportOpt := "SkipAllParameterization"
-	future, err := client.ExportTemplate(ctx, meta.resourceGroup, resources.ExportTemplateRequest{
-		ResourcesProperty: &[]string{"*"},
-		Options:           &exportOpt,
-	})
+	resourceOpt := "*"
+	poller, err := client.BeginExportTemplate(ctx, meta.resourceGroup, armresources.ExportTemplateRequest{
+		Resources: []*string{&resourceOpt},
+		Options:   &exportOpt,
+	}, nil)
 	if err != nil {
 		return fmt.Errorf("exporting arm template of resource group %s: %w", meta.resourceGroup, err)
 	}
-
-	if err := future.WaitForCompletionRef(ctx, client.Client); err != nil {
-		return fmt.Errorf("waiting for exporting arm template of resource group %s: %w", meta.resourceGroup, err)
-	}
-
-	result, err := future.Result(client)
+	resp, err := poller.PollUntilDone(ctx, 10*time.Second)
 	if err != nil {
-		return fmt.Errorf("getting the arm template of resource group %s: %w", meta.resourceGroup, err)
+		return fmt.Errorf("waiting for exporting arm template of resource group %s: %w", meta.resourceGroup, err)
 	}
 
 	// The response has been read into the ".Template" field as an interface, and the reader has been drained.
 	// As we have defined some (useful) types for the arm template, so we will do a json marshal then unmarshal here
 	// to convert the ".Template" (interface{}) into that artificial type.
-	raw, err := json.Marshal(result.Template)
+	raw, err := json.Marshal(resp.ResourceGroupExportResult.Template)
 	if err != nil {
 		return fmt.Errorf("marshalling the template: %w", err)
 	}
