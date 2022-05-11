@@ -10,9 +10,9 @@ require (
 	github.com/charmbracelet/bubbletea v0.19.3
 	github.com/charmbracelet/lipgloss v0.4.0
 	github.com/hashicorp/go-version v1.4.0
+	github.com/hashicorp/hc-install v0.3.3-0.20220510130859-d615262197ec
 	github.com/hashicorp/hcl/v2 v2.11.1
 	github.com/hashicorp/terraform-exec v0.16.0
-	github.com/magodo/hc-install v0.3.2-0.20220504032610-94e9000c1f9c
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
 	github.com/magodo/tfadd v0.5.0
 	github.com/meowgorithm/babyenv v1.3.1
@@ -33,7 +33,7 @@ require (
 	github.com/fatih/color v1.7.0 // indirect
 	github.com/golang-jwt/jwt v3.2.1+incompatible // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/google/go-cmp v0.5.7 // indirect
+	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/google/uuid v1.1.2 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-checkpoint v0.5.0 // indirect
