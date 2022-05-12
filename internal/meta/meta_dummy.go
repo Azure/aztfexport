@@ -25,7 +25,7 @@ func (m MetaDummy) Workspace() string {
 	return "example-workspace"
 }
 
-func (m MetaDummy) ListResource() ImportList {
+func (m MetaDummy) ListResource() (ImportList, error) {
 	time.Sleep(500 * time.Millisecond)
 	return ImportList{
 		ImportItem{
@@ -43,7 +43,7 @@ func (m MetaDummy) ListResource() ImportList {
 		ImportItem{
 			ResourceID: "/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg",
 		},
-	}
+	}, nil
 }
 
 func (m MetaDummy) CleanTFState(_ string) {

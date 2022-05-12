@@ -47,7 +47,7 @@ func TestUnmarshalTemplate(t *testing.T) {
 							Type: "Microsoft.Storage/storageAccounts/fileServices",
 							Name: "a/default",
 						},
-						DependsOn: armtemplate.Dependencies{
+						DependsOn: armtemplate.ResourceIds{
 							{
 								Type: "Microsoft.Storage/storageAccounts",
 								Name: "a",
@@ -108,7 +108,7 @@ func TestUnmarshalTemplate(t *testing.T) {
 							Type: "Microsoft.Network/networkInterfaces",
 							Name: "nic",
 						},
-						DependsOn: armtemplate.Dependencies{
+						DependsOn: armtemplate.ResourceIds{
 							{
 								Type: "Microsoft.Network/publicIPAddresses",
 								Name: "pip",
@@ -128,7 +128,7 @@ func TestUnmarshalTemplate(t *testing.T) {
 							Type: "Microsoft.Network/virtualNetworks/subnets",
 							Name: "vnet/subnet",
 						},
-						DependsOn: armtemplate.Dependencies{
+						DependsOn: armtemplate.ResourceIds{
 							{
 								Type: "Microsoft.Network/virtualNetworks",
 								Name: "vnet",
@@ -144,7 +144,7 @@ func TestUnmarshalTemplate(t *testing.T) {
 							Type: "Microsoft.Network/networkSecurityGroups/securityRules",
 							Name: "nsg/nsr",
 						},
-						DependsOn: armtemplate.Dependencies{
+						DependsOn: armtemplate.ResourceIds{
 							{
 								Type: "Microsoft.Network/networkSecurityGroups",
 								Name: "nsg",
@@ -196,7 +196,7 @@ func TestDependencyInfo(t *testing.T) {
 							Type: "Microsoft.Network/networkInterfaces",
 							Name: "nic",
 						},
-						DependsOn: armtemplate.Dependencies{
+						DependsOn: armtemplate.ResourceIds{
 							{
 								Type: "Microsoft.Network/publicIPAddresses",
 								Name: "pip",
@@ -216,7 +216,7 @@ func TestDependencyInfo(t *testing.T) {
 							Type: "Microsoft.Network/virtualNetworks/subnets",
 							Name: "vnet/subnet",
 						},
-						DependsOn: armtemplate.Dependencies{
+						DependsOn: armtemplate.ResourceIds{
 							{
 								Type: "Microsoft.Network/virtualNetworks",
 								Name: "vnet",
@@ -232,7 +232,7 @@ func TestDependencyInfo(t *testing.T) {
 							Type: "Microsoft.Network/networkSecurityGroups/securityRules",
 							Name: "nsg/nsr",
 						},
-						DependsOn: armtemplate.Dependencies{
+						DependsOn: armtemplate.ResourceIds{
 							{
 								Type: "Microsoft.Network/networkSecurityGroups",
 								Name: "nsg",
@@ -260,7 +260,7 @@ func TestDependencyInfo(t *testing.T) {
 				},
 			},
 			expect: map[armtemplate.ResourceId][]armtemplate.ResourceId{
-				armtemplate.ResourceId{
+				{
 					Type: "Microsoft.Network/networkInterfaces",
 					Name: "nic",
 				}: {
@@ -277,7 +277,7 @@ func TestDependencyInfo(t *testing.T) {
 						Name: "nsg",
 					},
 				},
-				armtemplate.ResourceId{
+				{
 					Type: "Microsoft.Network/virtualNetworks/subnets",
 					Name: "vnet/subnet",
 				}: {
@@ -290,7 +290,7 @@ func TestDependencyInfo(t *testing.T) {
 						Name: "nsg",
 					},
 				},
-				armtemplate.ResourceId{
+				{
 					Type: "Microsoft.Network/networkSecurityGroups/securityRules",
 					Name: "nsg/nsr",
 				}: {
@@ -299,19 +299,19 @@ func TestDependencyInfo(t *testing.T) {
 						Name: "nsg",
 					},
 				},
-				armtemplate.ResourceId{
+				{
 					Type: "Microsoft.Network/networkSecurityGroups",
 					Name: "nsg",
 				}: {
 					armtemplate.ResourceGroupId,
 				},
-				armtemplate.ResourceId{
+				{
 					Type: "Microsoft.Network/virtualNetworks",
 					Name: "vnet",
 				}: {
 					armtemplate.ResourceGroupId,
 				},
-				armtemplate.ResourceId{
+				{
 					Type: "Microsoft.Network/publicIPAddresses",
 					Name: "pip",
 				}: {
@@ -386,6 +386,54 @@ func TestNewResourceId(t *testing.T) {
 
 	for _, c := range cases {
 		output, err := armtemplate.NewResourceId(c.input)
+		if c.error {
+			require.Error(t, err, c.name)
+			continue
+		}
+		require.NoError(t, err, c.name)
+		require.Equal(t, c.expect, *output, c.name)
+	}
+}
+
+func TestNewResourceIdFromCallExpr(t *testing.T) {
+	cases := []struct {
+		name   string
+		expr   string
+		expect armtemplate.ResourceId
+		error  bool
+	}{
+		{
+			name:  "empty",
+			expr:  "",
+			error: true,
+		},
+		{
+			name:  "no args",
+			expr:  "[resourceId()]",
+			error: true,
+		},
+		{
+			name: "one level",
+			expr: "[resourceId('Microsoft.Storage/storageAccounts', 'a')]",
+			expect: armtemplate.ResourceId{
+				Type: "Microsoft.Storage/storageAccounts",
+				Name: "a",
+			},
+			error: false,
+		},
+		{
+			name: "two levels",
+			expr: "[resourceId('Microsoft.Storage/storageAccounts/services', 'a', 'b')]",
+			expect: armtemplate.ResourceId{
+				Type: "Microsoft.Storage/storageAccounts/services",
+				Name: "a/b",
+			},
+			error: false,
+		},
+	}
+
+	for _, c := range cases {
+		output, err := armtemplate.NewResourceIdFromCallExpr(c.expr)
 		if c.error {
 			require.Error(t, err, c.name)
 			continue
