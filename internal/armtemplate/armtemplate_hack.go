@@ -12,25 +12,35 @@ import (
 // E.g. managed disk resource id is not returned via ARM template as it is exclusively managed by VM.
 // Terraform models the resources differently than ARM template and needs to import those managed resources separately.
 func (tpl *Template) PopulateManagedResources() error {
-	oldResources := make([]Resource, len(tpl.Resources))
-	copy(oldResources, tpl.Resources)
-	for _, res := range oldResources {
-		switch res.Type {
-		case "Microsoft.Compute/virtualMachines":
-			resources, err := populateManagedResources(res.Properties, "storageProfile.dataDisks.#.managedDisk.id")
+	knownManagedResourceTypes := map[string][]string{
+		"Microsoft.Compute/virtualMachines": {
+			"storageProfile.dataDisks.#.managedDisk.id",
+		},
+	}
+
+	newResoruces := []Resource{}
+	for _, res := range tpl.Resources {
+		if paths, ok := knownManagedResourceTypes[res.Type]; ok {
+			res, resources, err := populateManagedResources(res, paths...)
 			if err != nil {
-				return fmt.Errorf(`populating managed resources for "Microsoft.Compute/virtualMachines": %v`, err)
+				return fmt.Errorf(`populating managed resources for %q: %v`, res.Type, err)
 			}
-			tpl.Resources = append(tpl.Resources, resources...)
+			newResoruces = append(newResoruces, *res)
+			newResoruces = append(newResoruces, resources...)
+		} else {
+			newResoruces = append(newResoruces, res)
 		}
 	}
+	tpl.Resources = newResoruces
 	return nil
 }
 
-func populateManagedResources(props interface{}, paths ...string) ([]Resource, error) {
-	b, err := json.Marshal(props)
+// populateManagedResources populate the managed resources in the specified paths.
+// It will also update the specified resource's dependency accordingly.
+func populateManagedResources(res Resource, paths ...string) (*Resource, []Resource, error) {
+	b, err := json.Marshal(res.Properties)
 	if err != nil {
-		return nil, fmt.Errorf("marshaling %v: %v", props, err)
+		return nil, nil, fmt.Errorf("marshaling %v: %v", res.Properties, err)
 	}
 	var resources []Resource
 	for _, path := range paths {
@@ -48,7 +58,7 @@ func populateManagedResources(props interface{}, paths ...string) ([]Resource, e
 			}
 			id, err := NewResourceIdFromCallExpr(exprResult.String())
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			// Ideally, we should recursively export ARM template for this resource, fill in its properties
@@ -56,15 +66,16 @@ func populateManagedResources(props interface{}, paths ...string) ([]Resource, e
 			// But here, as we explicitly pick up the managed resource to be populated, which means it is rarely possible that
 			// these resource are exported by the ARM template.
 			// TODO: needs to recursively populate these resources?
-			res := Resource{
+			mres := Resource{
 				ResourceId: ResourceId{
 					Type: id.Type,
 					Name: id.Name,
 				},
 				DependsOn: []ResourceId{},
 			}
-			resources = append(resources, res)
+			res.DependsOn = append(res.DependsOn, mres.ResourceId)
+			resources = append(resources, mres)
 		}
 	}
-	return resources, nil
+	return &res, resources, nil
 }
