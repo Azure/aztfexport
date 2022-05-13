@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,8 +14,8 @@ import (
 
 	"flag"
 
+	"github.com/Azure/aztfy/internal"
 	"github.com/Azure/aztfy/internal/config"
-	"github.com/Azure/aztfy/internal/meta"
 	"github.com/Azure/aztfy/internal/ui"
 	azlog "github.com/Azure/azure-sdk-for-go/sdk/azcore/log"
 	"github.com/meowgorithm/babyenv"
@@ -140,9 +141,18 @@ func main() {
 		}
 	}
 
+	if *flagMappingFile != "" {
+		b, err := os.ReadFile(*flagMappingFile)
+		if err != nil {
+			fatal(fmt.Errorf("reading mapping file %s: %v", *flagMappingFile, err))
+		}
+		if err := json.Unmarshal(b, &cfg.ResourceMapping); err != nil {
+			fatal(fmt.Errorf("unmarshalling the mapping file: %v", err))
+		}
+	}
+
 	cfg.ResourceGroupName = rg
 	cfg.ResourceNamePattern = *flagPattern
-	cfg.ResourceMappingFile = *flagMappingFile
 	cfg.OutputDir = *flagOutputDir
 	cfg.Overwrite = *flagOverwrite
 	cfg.BatchMode = *flagBatchMode
@@ -167,7 +177,7 @@ func main() {
 	}
 
 	if cfg.BatchMode {
-		if err := batchImport(cfg, *flagContinue); err != nil {
+		if err := internal.BatchImport(cfg, *flagContinue); err != nil {
 			fatal(err)
 		}
 		return
@@ -181,43 +191,4 @@ func main() {
 	if err := prog.Start(); err != nil {
 		fatal(err)
 	}
-}
-
-func batchImport(cfg config.Config, continueOnError bool) error {
-	c, err := meta.NewMeta(cfg)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("Initializing...")
-	if err := c.Init(); err != nil {
-		return err
-	}
-
-	fmt.Println("List resources...")
-	list := c.ListResource()
-
-	fmt.Println("Import resources...")
-	for i := range list {
-		if list[i].Skip() {
-			fmt.Printf("[WARN] No mapping information for resource: %s, skip it\n", list[i].ResourceID)
-			continue
-		}
-		fmt.Printf("Importing %s as %s\n", list[i].ResourceID, list[i].TFAddr)
-		c.Import(&list[i])
-		if err := list[i].ImportError; err != nil {
-			msg := fmt.Sprintf("Failed to import %s as %s: %v", list[i].ResourceID, list[i].TFAddr, err)
-			if !continueOnError {
-				return fmt.Errorf(msg)
-			}
-			fmt.Println("[ERROR] " + msg)
-		}
-	}
-
-	fmt.Println("Generating Terraform configurations...")
-	if err := c.GenerateCfg(list); err != nil {
-		return fmt.Errorf("generating Terraform configuration: %v", err)
-	}
-
-	return nil
 }

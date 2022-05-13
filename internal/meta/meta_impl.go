@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/Azure/aztfy/internal/resmap"
+	"github.com/Azure/aztfy/internal/tfaddr"
 	"io"
 	"os"
 	"path/filepath"
@@ -33,7 +35,7 @@ type MetaImpl struct {
 
 	// Key is azure resource id; Value is terraform resource addr.
 	// For azure resources not in this mapping, they are all initialized as to skip.
-	resourceMapping ResourceMapping
+	resourceMapping resmap.ResourceMapping
 
 	resourceNamePrefix string
 	resourceNameSuffix string
@@ -108,18 +110,6 @@ func newMetaImpl(cfg config.Config) (Meta, error) {
 		return nil, fmt.Errorf("building authorizer: %w", err)
 	}
 
-	// Resource mapping file
-	m := ResourceMapping{}
-	if cfg.ResourceMappingFile != "" {
-		b, err := os.ReadFile(cfg.ResourceMappingFile)
-		if err != nil {
-			return nil, fmt.Errorf("reading mapping file %s: %v", cfg.ResourceMappingFile, err)
-		}
-		if err := json.Unmarshal(b, &m); err != nil {
-			return nil, fmt.Errorf("unmarshalling the mapping file: %v", err)
-		}
-	}
-
 	// AzureRM provider will honor env.var "AZURE_HTTP_USER_AGENT" when constructing for HTTP "User-Agent" header.
 	os.Setenv("AZURE_HTTP_USER_AGENT", "aztfy")
 
@@ -129,7 +119,7 @@ func newMetaImpl(cfg config.Config) (Meta, error) {
 		rootdir:         rootdir,
 		outdir:          outdir,
 		clientBuilder:   b,
-		resourceMapping: m,
+		resourceMapping: cfg.ResourceMapping,
 		backendType:     cfg.BackendType,
 		backendConfig:   cfg.BackendConfig,
 	}
@@ -192,7 +182,7 @@ func (meta MetaImpl) ListResource() ImportList {
 	for i, id := range ids {
 		item := ImportItem{
 			ResourceID: id,
-			TFAddr: TFAddr{
+			TFAddr: tfaddr.TFAddr{
 				Name: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, i, meta.resourceNameSuffix),
 			},
 		}
@@ -200,7 +190,7 @@ func (meta MetaImpl) ListResource() ImportList {
 		// If users have specified the resource mapping, then the each item in the generated import list
 		// must be non-empty: either the resource addr, or TFResourceTypeSkip.
 		if len(meta.resourceMapping) != 0 {
-			item.TFAddr.Type = TFResourceTypeSkip
+			item.TFAddr.Type = tfaddr.TFResourceTypeSkip
 			if addr, ok := meta.resourceMapping[id]; ok {
 				item.TFAddr = addr
 			}
@@ -249,7 +239,7 @@ func (meta MetaImpl) GenerateCfg(l ImportList) error {
 }
 
 func (meta MetaImpl) ExportResourceMapping(l ImportList) error {
-	m := ResourceMapping{}
+	m := resmap.ResourceMapping{}
 	for _, item := range l {
 		if item.Skip() {
 			continue

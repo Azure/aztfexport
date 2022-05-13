@@ -1,18 +1,19 @@
-package meta
+package resmap
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Azure/aztfy/internal/tfaddr"
 )
 
-type ResourceMapping map[string]TFAddr
+type ResourceMapping map[string]tfaddr.TFAddr
 
 func (res ResourceMapping) MarshalJSON() ([]byte, error) {
 	m := map[string]string{}
 	for id, addr := range res {
 		addr := addr.String()
 		if addr == "" {
-			addr = TFResourceTypeSkip
+			addr = tfaddr.TFResourceTypeSkip
 		}
 		m[id] = addr
 	}
@@ -26,11 +27,11 @@ func (res *ResourceMapping) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	for id, addr := range m {
-		var tfAddr TFAddr
-		if addr == TFResourceTypeSkip {
-			tfAddr.Type = TFResourceTypeSkip
+		var tfAddr tfaddr.TFAddr
+		if addr == tfaddr.TFResourceTypeSkip {
+			tfAddr.Type = tfaddr.TFResourceTypeSkip
 		} else {
-			pTFAddr, err := ParseTFResourceAddr(addr)
+			pTFAddr, err := tfaddr.ParseTFResourceAddr(addr)
 			if err != nil {
 				return fmt.Errorf("parsing TF address %q: %v", addr, err)
 			}
