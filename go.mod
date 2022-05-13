@@ -19,6 +19,7 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.0
 	github.com/muesli/reflow v0.3.0
 	github.com/stretchr/testify v1.7.0
+	github.com/tidwall/gjson v1.14.1
 )
 
 require (
@@ -64,7 +65,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/sahilm/fuzzy v0.1.0 // indirect
-	github.com/tidwall/gjson v1.14.1 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
