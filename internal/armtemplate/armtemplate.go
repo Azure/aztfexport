@@ -13,7 +13,8 @@ type Template struct {
 
 type Resource struct {
 	ResourceId
-	DependsOn Dependencies `json:"dependsOn,omitempty"`
+	Properties interface{} `json:"properties,omitempty"`
+	DependsOn  ResourceIds `json:"dependsOn,omitempty"`
 }
 
 type ResourceId struct {
@@ -68,6 +69,32 @@ func NewResourceId(id string) (*ResourceId, error) {
 	}, nil
 }
 
+func NewResourceIdFromCallExpr(expr string) (*ResourceId, error) {
+	matches := regexp.MustCompile(`^\[resourceId\(([^,]+), (.+)\)]$`).FindAllStringSubmatch(expr, 1)
+	if len(matches) == 0 {
+		return nil, fmt.Errorf("the resourceId call expression %q is not valid (no match)", expr)
+	}
+	m := matches[0]
+	if len(m) != 3 {
+		return nil, fmt.Errorf("the resourceId call expression %q is not valid (the matched one has invalid form)", expr)
+	}
+
+	tlit, nlit := m[1], m[2]
+
+	t := strings.Trim(tlit, "' ")
+
+	var names []string
+	for _, seg := range strings.Split(nlit, ",") {
+		names = append(names, strings.Trim(seg, "' "))
+	}
+	n := strings.Join(names, "/")
+
+	return &ResourceId{
+		Type: t,
+		Name: n,
+	}, nil
+}
+
 // ID returns the azure resource id
 func (res ResourceId) ID(sub, rg string) string {
 	typeSegs := strings.Split(res.Type, "/")
@@ -87,39 +114,23 @@ func (res ResourceId) ID(sub, rg string) string {
 	return strings.Join(out, "/")
 }
 
-type Dependencies []ResourceId
+type ResourceIds []ResourceId
 
-func (deps *Dependencies) UnmarshalJSON(b []byte) error {
-	var dependenciesRaw []string
-	if err := json.Unmarshal(b, &dependenciesRaw); err != nil {
+func (resids *ResourceIds) UnmarshalJSON(b []byte) error {
+	var residExprs []string
+	if err := json.Unmarshal(b, &residExprs); err != nil {
 		return err
 	}
 
-	for _, dep := range dependenciesRaw {
-		matches := regexp.MustCompile(`^\[resourceId\(([^,]+), (.+)\)]$`).FindAllStringSubmatch(dep, 1)
-		if len(matches) == 0 {
-			panic(fmt.Sprintf("the dependency %q is not valid (no match)", dep))
+	var ids ResourceIds
+	for _, residExpr := range residExprs {
+		id, err := NewResourceIdFromCallExpr(residExpr)
+		if err != nil {
+			return err
 		}
-		m := matches[0]
-		if len(m) != 3 {
-			panic(fmt.Sprintf("the dependency %q is not valid (the matched one has invalid form)", dep))
-		}
-
-		tlit, nlit := m[1], m[2]
-
-		t := strings.Trim(tlit, "' ")
-
-		var names []string
-		for _, seg := range strings.Split(nlit, ",") {
-			names = append(names, strings.Trim(seg, "' "))
-		}
-		n := strings.Join(names, "/")
-
-		*deps = append(*deps, ResourceId{
-			Type: t,
-			Name: n,
-		})
+		ids = append(ids, *id)
 	}
+	*resids = ids
 	return nil
 }
 

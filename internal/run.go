@@ -19,7 +19,10 @@ func BatchImport(cfg config.Config, continueOnError bool) error {
 	}
 
 	fmt.Println("List resources...")
-	list := c.ListResource()
+	list, err := c.ListResource()
+	if err != nil {
+		return err
+	}
 
 	fmt.Println("Import resources...")
 	for i := range list {

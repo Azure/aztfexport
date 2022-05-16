@@ -163,15 +163,16 @@ func (meta *MetaImpl) Init() error {
 	if err := meta.initProvider(ctx); err != nil {
 		return err
 	}
-
-	// Export ARM template
-	if err := meta.exportArmTemplate(ctx); err != nil {
-		return err
-	}
 	return nil
 }
 
-func (meta MetaImpl) ListResource() ImportList {
+func (meta *MetaImpl) ListResource() (ImportList, error) {
+	ctx := context.TODO()
+
+	if err := meta.exportArmTemplate(ctx); err != nil {
+		return nil, err
+	}
+
 	var ids []string
 	for _, res := range meta.armTemplate.Resources {
 		ids = append(ids, res.ID(meta.subscriptionId, meta.resourceGroup))
@@ -197,7 +198,7 @@ func (meta MetaImpl) ListResource() ImportList {
 		}
 		l = append(l, item)
 	}
-	return l
+	return l, nil
 }
 
 func (meta *MetaImpl) CleanTFState(addr string) {
@@ -322,6 +323,10 @@ func (meta *MetaImpl) exportArmTemplate(ctx context.Context) error {
 	}
 	if err := json.Unmarshal(raw, &meta.armTemplate); err != nil {
 		return fmt.Errorf("unmarshalling the template: %w", err)
+	}
+
+	if err := meta.armTemplate.PopulateManagedResources(); err != nil {
+		return fmt.Errorf("populating managed resources in the ARM template: %v", err)
 	}
 
 	return nil
