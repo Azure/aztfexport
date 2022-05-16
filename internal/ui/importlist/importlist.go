@@ -2,11 +2,12 @@ package importlist
 
 import (
 	"fmt"
-	"github.com/Azure/aztfy/internal/tfaddr"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/Azure/aztfy/internal/tfaddr"
 
 	"github.com/Azure/aztfy/internal/meta"
 	"github.com/Azure/aztfy/internal/ui/aztfyclient"

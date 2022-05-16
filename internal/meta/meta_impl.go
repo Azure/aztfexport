@@ -5,13 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/Azure/aztfy/internal/resmap"
-	"github.com/Azure/aztfy/internal/tfaddr"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/Azure/aztfy/internal/resmap"
+	"github.com/Azure/aztfy/internal/tfaddr"
 
 	"github.com/Azure/aztfy/internal/armtemplate"
 	"github.com/Azure/aztfy/internal/config"

@@ -3,6 +3,7 @@ package resmap
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/Azure/aztfy/internal/tfaddr"
 )
 

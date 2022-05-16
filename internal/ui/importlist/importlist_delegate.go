@@ -2,8 +2,9 @@ package importlist
 
 import (
 	"fmt"
-	"github.com/Azure/aztfy/internal/tfaddr"
 	"strings"
+
+	"github.com/Azure/aztfy/internal/tfaddr"
 
 	"github.com/Azure/aztfy/internal/ui/aztfyclient"
 	"github.com/Azure/aztfy/internal/ui/common"
