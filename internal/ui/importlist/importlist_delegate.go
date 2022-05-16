@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Azure/aztfy/internal/meta"
+	"github.com/Azure/aztfy/internal/tfaddr"
+
 	"github.com/Azure/aztfy/internal/ui/aztfyclient"
 	"github.com/Azure/aztfy/internal/ui/common"
 	"github.com/magodo/tfadd/providers/azurerm"
@@ -145,13 +146,13 @@ func setListKeyMapEnabled(m *list.Model, enabled bool) {
 	}
 }
 
-func parseInput(input string) (*meta.TFAddr, error) {
+func parseInput(input string) (*tfaddr.TFAddr, error) {
 	v := strings.TrimSpace(input)
 	if v == "" {
-		return &meta.TFAddr{Type: meta.TFResourceTypeSkip}, nil
+		return &tfaddr.TFAddr{Type: tfaddr.TFResourceTypeSkip}, nil
 	}
 
-	addr, err := meta.ParseTFResourceAddr(v)
+	addr, err := tfaddr.ParseTFResourceAddr(v)
 	if err != nil {
 		return nil, err
 	}

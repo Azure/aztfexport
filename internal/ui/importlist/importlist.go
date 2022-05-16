@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Azure/aztfy/internal/tfaddr"
+
 	"github.com/Azure/aztfy/internal/meta"
 	"github.com/Azure/aztfy/internal/ui/aztfyclient"
 	"github.com/Azure/aztfy/internal/ui/common"
@@ -48,7 +50,7 @@ func NewModel(c meta.Meta, l meta.ImportList, idx int) Model {
 		// Later iterations, this is either a concret resource type or the TFResourceTypeSkip.
 		// For this first iteration, we try to give it a recommendation resource type if there is an exact match, otherwise, set it to  TFResourceTypeSkip.
 		if item.TFAddr.Type == "" {
-			item.TFAddr.Type = meta.TFResourceTypeSkip
+			item.TFAddr.Type = tfaddr.TFResourceTypeSkip
 			if len(recommendations[idx]) == 1 {
 				item.IsRecommended = true
 				item.TFAddr.Type = recommendations[idx][0]
