@@ -66,7 +66,11 @@ func Init(c meta.Meta) tea.Cmd {
 
 func ListResource(c meta.Meta) tea.Cmd {
 	return func() tea.Msg {
-		return ListResourceDoneMsg{List: c.ListResource()}
+		list, err := c.ListResource()
+		if err != nil {
+			return ErrMsg(err)
+		}
+		return ListResourceDoneMsg{List: list}
 	}
 }
 
