@@ -24,51 +24,6 @@ type ResourceId struct {
 
 var ResourceGroupId = ResourceId{}
 
-func NewResourceId(id string) (*ResourceId, error) {
-	id = strings.TrimPrefix(id, "/")
-	id = strings.TrimSuffix(id, "/")
-	segs := strings.Split(id, "/")
-	if len(segs)%2 != 0 {
-		return nil, fmt.Errorf("invalid resource id format of %q: amount of segments is not even", id)
-	}
-	// ==4: resource group
-	// >=8: general resources resides in a resource group
-	if len(segs) != 4 && len(segs) < 8 {
-		return nil, fmt.Errorf("invalid resource id format of %q: amount of segments is too small", id)
-	}
-	if segs[0] != "subscriptions" {
-		return nil, fmt.Errorf("invalid resource id format of %q: the 1st segment is not subscriptions", id)
-	}
-	segs = segs[2:]
-	if !strings.EqualFold(segs[0], "resourcegroups") {
-		return nil, fmt.Errorf("invalid resource id format of %q: the 2nd segment is not resourcegroups (case insensitive)", id)
-	}
-	segs = segs[2:]
-
-	if len(segs) == 0 {
-		return &ResourceGroupId, nil
-	}
-
-	if segs[0] != "providers" {
-		return nil, fmt.Errorf("invalid resource id format of %q: the 3rd segment is not providers", id)
-	}
-	providerName := segs[1]
-	segs = segs[2:]
-
-	t := []string{providerName}
-	n := []string{}
-
-	for i := 0; i < len(segs); i += 2 {
-		t = append(t, segs[i])
-		n = append(n, segs[i+1])
-	}
-
-	return &ResourceId{
-		Type: strings.Join(t, "/"),
-		Name: strings.Join(n, "/"),
-	}, nil
-}
-
 func NewResourceIdFromCallExpr(expr string) (*ResourceId, error) {
 	matches := regexp.MustCompile(`^\[resourceId\(([^,]+), (.+)\)]$`).FindAllStringSubmatch(expr, 1)
 	if len(matches) == 0 {
@@ -134,17 +89,44 @@ func (resids *ResourceIds) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-type DependencyInfo map[ResourceId][]ResourceId
+type FQTemplate struct {
+	subId     string
+	rg        string
+	Resources []FQResource
+}
 
-func (tpl Template) DependencyInfo() DependencyInfo {
-	s := map[ResourceId][]ResourceId{}
+type FQResource struct {
+	Id         string
+	Properties interface{}
+	DependsOn  []string
+}
+
+func (tpl FQTemplate) DependencyInfo() map[string][]string {
+	s := map[string][]string{}
 	for _, res := range tpl.Resources {
 		if len(res.DependsOn) == 0 {
-			s[res.ResourceId] = []ResourceId{ResourceGroupId}
+			s[res.Id] = []string{ResourceGroupId.ID(tpl.subId, tpl.rg)}
 			continue
 		}
-
-		s[res.ResourceId] = res.DependsOn
+		s[res.Id] = res.DependsOn
 	}
 	return s
+}
+
+func (tpl Template) Qualify(subId, rg string) FQTemplate {
+	fqtpl := FQTemplate{
+		subId: subId,
+		rg:    rg,
+	}
+	for _, res := range tpl.Resources {
+		fqres := FQResource{
+			Id:         res.ResourceId.ID(subId, rg),
+			Properties: res.Properties,
+		}
+		for _, d := range res.DependsOn {
+			fqres.DependsOn = append(fqres.DependsOn, d.ID(subId, rg))
+		}
+		fqtpl.Resources = append(fqtpl.Resources, fqres)
+	}
+	return fqtpl
 }

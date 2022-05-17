@@ -32,7 +32,7 @@ type MetaImpl struct {
 	outdir         string
 	tf             *tfexec.Terraform
 	clientBuilder  *ClientBuilder
-	armTemplate    armtemplate.Template
+	armTemplate    armtemplate.FQTemplate
 
 	// Key is azure resource id; Value is terraform resource addr.
 	// For azure resources not in this mapping, they are all initialized as to skip.
@@ -176,7 +176,7 @@ func (meta *MetaImpl) ListResource() (ImportList, error) {
 
 	var ids []string
 	for _, res := range meta.armTemplate.Resources {
-		ids = append(ids, res.ID(meta.subscriptionId, meta.resourceGroup))
+		ids = append(ids, res.Id)
 	}
 	ids = append(ids, armtemplate.ResourceGroupId.ID(meta.subscriptionId, meta.resourceGroup))
 
@@ -322,13 +322,14 @@ func (meta *MetaImpl) exportArmTemplate(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("marshalling the template: %w", err)
 	}
-	if err := json.Unmarshal(raw, &meta.armTemplate); err != nil {
+	var tpl armtemplate.Template
+	if err := json.Unmarshal(raw, &tpl); err != nil {
 		return fmt.Errorf("unmarshalling the template: %w", err)
 	}
-
-	if err := meta.armTemplate.PopulateManagedResources(); err != nil {
+	if err := tpl.PopulateManagedResources(); err != nil {
 		return fmt.Errorf("populating managed resources in the ARM template: %v", err)
 	}
+	meta.armTemplate = tpl.Qualify(meta.subscriptionId, meta.resourceGroup)
 
 	return nil
 }
@@ -358,28 +359,24 @@ func (meta MetaImpl) stateToConfig(ctx context.Context, list ImportList) (Config
 func (meta MetaImpl) resolveDependency(configs ConfigInfos) (ConfigInfos, error) {
 	depInfo := meta.armTemplate.DependencyInfo()
 
-	configSet := map[armtemplate.ResourceId]ConfigInfo{}
+	configSet := map[string]ConfigInfo{}
 	for _, cfg := range configs {
-		armId, err := armtemplate.NewResourceId(cfg.ResourceID)
-		if err != nil {
-			return nil, fmt.Errorf("new arm tempalte resource id from azure resource id: %w", err)
-		}
-		configSet[*armId] = cfg
+		configSet[cfg.ResourceID] = cfg
 	}
 
 	// Iterate each config to add dependency by querying the dependency info from arm template.
 	var out ConfigInfos
-	for armId, cfg := range configSet {
-		if armId == armtemplate.ResourceGroupId {
+	for id, cfg := range configSet {
+		if id == armtemplate.ResourceGroupId.ID(meta.subscriptionId, meta.resourceGroup) {
 			out = append(out, cfg)
 			continue
 		}
 		// This should never happen as we always ensure there is at least one implicit dependency on the resource group for each resource.
-		if _, ok := depInfo[armId]; !ok {
-			return nil, fmt.Errorf("can't find resource %q in the arm template", armId.ID(meta.subscriptionId, meta.resourceGroup))
+		if _, ok := depInfo[id]; !ok {
+			return nil, fmt.Errorf("can't find resource %q in the arm template", id)
 		}
 
-		if err := meta.hclBlockAppendDependency(cfg.hcl.Body().Blocks()[0].Body(), depInfo[armId], configSet); err != nil {
+		if err := meta.hclBlockAppendDependency(cfg.hcl.Body().Blocks()[0].Body(), depInfo[id], configSet); err != nil {
 			return nil, err
 		}
 		out = append(out, cfg)
@@ -388,12 +385,12 @@ func (meta MetaImpl) resolveDependency(configs ConfigInfos) (ConfigInfos, error)
 	return out, nil
 }
 
-func (meta MetaImpl) hclBlockAppendDependency(body *hclwrite.Body, armIds []armtemplate.ResourceId, cfgset map[armtemplate.ResourceId]ConfigInfo) error {
+func (meta MetaImpl) hclBlockAppendDependency(body *hclwrite.Body, ids []string, cfgset map[string]ConfigInfo) error {
 	dependencies := []string{}
-	for _, armid := range armIds {
-		cfg, ok := cfgset[armid]
+	for _, id := range ids {
+		cfg, ok := cfgset[id]
 		if !ok {
-			dependencies = append(dependencies, fmt.Sprintf("# Depending on %q, which is not imported by Terraform.", armid.ID(meta.subscriptionId, meta.resourceGroup)))
+			dependencies = append(dependencies, fmt.Sprintf("# Depending on %q, which is not imported by Terraform.", id))
 			continue
 		}
 		dependencies = append(dependencies, cfg.TFAddr.String()+",")
