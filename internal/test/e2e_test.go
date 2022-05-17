@@ -110,3 +110,10 @@ func TestComputeVMDisk(t *testing.T) {
 	c, d := CaseComputeVMDisk{}, NewData()
 	runCase(t, d, c)
 }
+
+func TestApplicationInsightWebTest(t *testing.T) {
+	t.Parallel()
+	precheck(t)
+	c, d := CaseApplicationInsightWebTest{}, NewData()
+	runCase(t, d, c)
+}
