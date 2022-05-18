@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Azure/aztfy/internal/client"
 	"github.com/tidwall/gjson"
 )
 
@@ -56,7 +57,7 @@ func populateManagedResources(res Resource, paths ...string) (*Resource, []Resou
 			if !strings.HasPrefix(exprResult.String(), "[") {
 				continue
 			}
-			id, err := NewResourceIdFromCallExpr(exprResult.String())
+			id, err := ParseResourceIdFromCallExpr(exprResult.String())
 			if err != nil {
 				return nil, nil, err
 			}
@@ -78,4 +79,18 @@ func populateManagedResources(res Resource, paths ...string) (*Resource, []Resou
 		}
 	}
 	return &res, resources, nil
+}
+
+// ProviderId converts the ARM ResourceId to its ARM resource ID literal, based on the specified subscription id and resource
+// group name. Then it will optionally transform the ARM resource ID to its corresponding TF resource ID, which might requires
+// API interaction with ARM, where a non-nil client builder is required.
+func (res ResourceId) ProviderId(sub, rg string, b *client.ClientBuilder) (string, error) {
+	switch res.Type {
+	// See issue: https://github.com/Azure/aztfy/issues/89
+	case "microsoft.insights/webtests":
+		res.Type = "Microsoft.insights/webTests"
+		return res.ID(sub, rg), nil
+	default:
+		return res.ID(sub, rg), nil
+	}
 }

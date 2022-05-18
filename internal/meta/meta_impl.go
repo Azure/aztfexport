@@ -11,10 +11,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Azure/aztfy/internal/client"
+
+	"github.com/Azure/aztfy/internal/armtemplate"
 	"github.com/Azure/aztfy/internal/resmap"
 	"github.com/Azure/aztfy/internal/tfaddr"
 
-	"github.com/Azure/aztfy/internal/armtemplate"
 	"github.com/Azure/aztfy/internal/config"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
 
@@ -31,8 +33,8 @@ type MetaImpl struct {
 	rootdir        string
 	outdir         string
 	tf             *tfexec.Terraform
-	clientBuilder  *ClientBuilder
-	armTemplate    armtemplate.Template
+	clientBuilder  *client.ClientBuilder
+	armTemplate    armtemplate.FQTemplate
 
 	// Key is azure resource id; Value is terraform resource addr.
 	// For azure resources not in this mapping, they are all initialized as to skip.
@@ -106,7 +108,7 @@ func newMetaImpl(cfg config.Config) (Meta, error) {
 	}
 
 	// Construct client builder
-	b, err := NewClientBuilder()
+	b, err := client.NewClientBuilder()
 	if err != nil {
 		return nil, fmt.Errorf("building authorizer: %w", err)
 	}
@@ -176,9 +178,10 @@ func (meta *MetaImpl) ListResource() (ImportList, error) {
 
 	var ids []string
 	for _, res := range meta.armTemplate.Resources {
-		ids = append(ids, res.ID(meta.subscriptionId, meta.resourceGroup))
+		ids = append(ids, res.Id)
 	}
-	ids = append(ids, armtemplate.ResourceGroupId.ID(meta.subscriptionId, meta.resourceGroup))
+	rgid, _ := armtemplate.ResourceGroupId.ProviderId(meta.subscriptionId, meta.resourceGroup, nil)
+	ids = append(ids, rgid)
 
 	l := make(ImportList, 0, len(ids))
 	for i, id := range ids {
@@ -233,10 +236,11 @@ func (meta MetaImpl) GenerateCfg(l ImportList) error {
 	if err != nil {
 		return fmt.Errorf("converting from state to configurations: %w", err)
 	}
-	cfginfos, err = meta.resolveDependency(cfginfos)
+	cfginfos, err = meta.terraformMetaHook(cfginfos)
 	if err != nil {
-		return fmt.Errorf("resolving cross resource dependencies: %w", err)
+		return fmt.Errorf("Terraform HCL meta hook: %w", err)
 	}
+
 	return meta.generateConfig(cfginfos)
 }
 
@@ -322,13 +326,19 @@ func (meta *MetaImpl) exportArmTemplate(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("marshalling the template: %w", err)
 	}
-	if err := json.Unmarshal(raw, &meta.armTemplate); err != nil {
+	var tpl armtemplate.Template
+	if err := json.Unmarshal(raw, &tpl); err != nil {
 		return fmt.Errorf("unmarshalling the template: %w", err)
 	}
-
-	if err := meta.armTemplate.PopulateManagedResources(); err != nil {
+	if err := tpl.PopulateManagedResources(); err != nil {
 		return fmt.Errorf("populating managed resources in the ARM template: %v", err)
 	}
+
+	fqTpl, err := tpl.Qualify(meta.subscriptionId, meta.resourceGroup, meta.clientBuilder)
+	if err != nil {
+		return err
+	}
+	meta.armTemplate = *fqTpl
 
 	return nil
 }
@@ -355,60 +365,50 @@ func (meta MetaImpl) stateToConfig(ctx context.Context, list ImportList) (Config
 	return out, nil
 }
 
-func (meta MetaImpl) resolveDependency(configs ConfigInfos) (ConfigInfos, error) {
-	depInfo := meta.armTemplate.DependencyInfo()
+func (meta MetaImpl) terraformMetaHook(configs ConfigInfos) (ConfigInfos, error) {
+	var err error
+	configs, err = meta.resolveDependency(configs)
+	if err != nil {
+		return nil, fmt.Errorf("resolving cross resource dependencies: %w", err)
+	}
+	configs, err = meta.lifecycleAddon(configs)
+	if err != nil {
+		return nil, fmt.Errorf("adding terraform lifecycle: %w", err)
+	}
+	return configs, nil
+}
 
-	configSet := map[armtemplate.ResourceId]ConfigInfo{}
+func (meta MetaImpl) resolveDependency(configs ConfigInfos) (ConfigInfos, error) {
+	depInfo, err := meta.armTemplate.DependencyInfo()
+	if err != nil {
+		return nil, err
+	}
+
+	configSet := map[string]ConfigInfo{}
 	for _, cfg := range configs {
-		armId, err := armtemplate.NewResourceId(cfg.ResourceID)
-		if err != nil {
-			return nil, fmt.Errorf("new arm tempalte resource id from azure resource id: %w", err)
-		}
-		configSet[*armId] = cfg
+		configSet[cfg.ResourceID] = cfg
 	}
 
 	// Iterate each config to add dependency by querying the dependency info from arm template.
 	var out ConfigInfos
-	for armId, cfg := range configSet {
-		if armId == armtemplate.ResourceGroupId {
+	rgid, _ := armtemplate.ResourceGroupId.ProviderId(meta.subscriptionId, meta.resourceGroup, nil)
+	for id, cfg := range configSet {
+		if id == rgid {
 			out = append(out, cfg)
 			continue
 		}
 		// This should never happen as we always ensure there is at least one implicit dependency on the resource group for each resource.
-		if _, ok := depInfo[armId]; !ok {
-			return nil, fmt.Errorf("can't find resource %q in the arm template", armId.ID(meta.subscriptionId, meta.resourceGroup))
+		if _, ok := depInfo[id]; !ok {
+			return nil, fmt.Errorf("can't find resource %q in the arm template", id)
 		}
 
-		if err := meta.hclBlockAppendDependency(cfg.hcl.Body().Blocks()[0].Body(), depInfo[armId], configSet); err != nil {
+		if err := hclBlockAppendDependency(cfg.hcl.Body().Blocks()[0].Body(), depInfo[id], configSet); err != nil {
 			return nil, err
 		}
 		out = append(out, cfg)
 	}
 
 	return out, nil
-}
-
-func (meta MetaImpl) hclBlockAppendDependency(body *hclwrite.Body, armIds []armtemplate.ResourceId, cfgset map[armtemplate.ResourceId]ConfigInfo) error {
-	dependencies := []string{}
-	for _, armid := range armIds {
-		cfg, ok := cfgset[armid]
-		if !ok {
-			dependencies = append(dependencies, fmt.Sprintf("# Depending on %q, which is not imported by Terraform.", armid.ID(meta.subscriptionId, meta.resourceGroup)))
-			continue
-		}
-		dependencies = append(dependencies, cfg.TFAddr.String()+",")
-	}
-	if len(dependencies) > 0 {
-		src := []byte("depends_on = [\n" + strings.Join(dependencies, "\n") + "\n]")
-		expr, diags := hclwrite.ParseConfig(src, "generate_depends_on", hcl.InitialPos)
-		if diags.HasErrors() {
-			return fmt.Errorf(`building "depends_on" attribute: %s`, diags.Error())
-		}
-
-		body.SetAttributeRaw("depends_on", expr.Body().GetAttribute("depends_on").Expr().BuildTokens(nil))
-	}
-
-	return nil
 }
 
 func (meta MetaImpl) generateConfig(cfgs ConfigInfos) error {

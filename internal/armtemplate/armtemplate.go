@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/Azure/aztfy/internal/client"
 )
 
 type Template struct {
@@ -24,7 +26,7 @@ type ResourceId struct {
 
 var ResourceGroupId = ResourceId{}
 
-func NewResourceId(id string) (*ResourceId, error) {
+func ParseResourceId(id string) (*ResourceId, error) {
 	id = strings.TrimPrefix(id, "/")
 	id = strings.TrimSuffix(id, "/")
 	segs := strings.Split(id, "/")
@@ -69,7 +71,7 @@ func NewResourceId(id string) (*ResourceId, error) {
 	}, nil
 }
 
-func NewResourceIdFromCallExpr(expr string) (*ResourceId, error) {
+func ParseResourceIdFromCallExpr(expr string) (*ResourceId, error) {
 	matches := regexp.MustCompile(`^\[resourceId\(([^,]+), (.+)\)]$`).FindAllStringSubmatch(expr, 1)
 	if len(matches) == 0 {
 		return nil, fmt.Errorf("the resourceId call expression %q is not valid (no match)", expr)
@@ -95,23 +97,24 @@ func NewResourceIdFromCallExpr(expr string) (*ResourceId, error) {
 	}, nil
 }
 
-// ID returns the azure resource id
+// ID converts the ARM ResourceId to its ARM resource ID literal, based on the specified subscription id and resource
+// group name.
 func (res ResourceId) ID(sub, rg string) string {
 	typeSegs := strings.Split(res.Type, "/")
 	nameSegs := strings.Split(res.Name, "/")
 
-	out := []string{"/subscriptions", sub, "resourceGroups", rg}
+	segs := []string{"/subscriptions", sub, "resourceGroups", rg}
 	if len(typeSegs) != 1 {
 		if len(typeSegs)-1 != len(nameSegs) {
 			panic(fmt.Sprintf("The resource of type %q and name %q is not a valid identifier", res.Type, res.Name))
 		}
-		out = append(out, "providers", typeSegs[0])
+		segs = append(segs, "providers", typeSegs[0])
 		for i := 0; i < len(nameSegs); i++ {
-			out = append(out, typeSegs[i+1])
-			out = append(out, nameSegs[i])
+			segs = append(segs, typeSegs[i+1])
+			segs = append(segs, nameSegs[i])
 		}
 	}
-	return strings.Join(out, "/")
+	return strings.Join(segs, "/")
 }
 
 type ResourceIds []ResourceId
@@ -124,7 +127,7 @@ func (resids *ResourceIds) UnmarshalJSON(b []byte) error {
 
 	var ids ResourceIds
 	for _, residExpr := range residExprs {
-		id, err := NewResourceIdFromCallExpr(residExpr)
+		id, err := ParseResourceIdFromCallExpr(residExpr)
 		if err != nil {
 			return err
 		}
@@ -134,17 +137,55 @@ func (resids *ResourceIds) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-type DependencyInfo map[ResourceId][]ResourceId
+type FQTemplate struct {
+	subId     string
+	rg        string
+	Resources []FQResource
+}
 
-func (tpl Template) DependencyInfo() DependencyInfo {
-	s := map[ResourceId][]ResourceId{}
+type FQResource struct {
+	Id         string
+	Properties interface{}
+	DependsOn  []string
+}
+
+func (tpl FQTemplate) DependencyInfo() (map[string][]string, error) {
+	s := map[string][]string{}
 	for _, res := range tpl.Resources {
 		if len(res.DependsOn) == 0 {
-			s[res.ResourceId] = []ResourceId{ResourceGroupId}
+			rgid, _ := ResourceGroupId.ProviderId(tpl.subId, tpl.rg, nil)
+			s[res.Id] = []string{rgid}
 			continue
 		}
-
-		s[res.ResourceId] = res.DependsOn
+		s[res.Id] = res.DependsOn
 	}
-	return s
+	return s, nil
+}
+
+// Qualify converts the raw ARM template to a fully qualified form in turns of the resource ids, where the ids are converted from the
+// ARM resource id expression to the corresponding TF resource id form.
+func (tpl Template) Qualify(subId, rg string, b *client.ClientBuilder) (*FQTemplate, error) {
+	fqtpl := FQTemplate{
+		subId: subId,
+		rg:    rg,
+	}
+	for _, res := range tpl.Resources {
+		id, err := res.ResourceId.ProviderId(subId, rg, b)
+		if err != nil {
+			return nil, err
+		}
+		fqres := FQResource{
+			Id:         id,
+			Properties: res.Properties,
+		}
+		for _, d := range res.DependsOn {
+			id, err := d.ProviderId(subId, rg, b)
+			if err != nil {
+				return nil, err
+			}
+			fqres.DependsOn = append(fqres.DependsOn, id)
+		}
+		fqtpl.Resources = append(fqtpl.Resources, fqres)
+	}
+	return &fqtpl, nil
 }
