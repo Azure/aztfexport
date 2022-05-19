@@ -91,7 +91,7 @@ func main() {
 		os.Exit(1)
 	}
 	if *flagBatchMode && *flagMappingFile == "" {
-		fatal(errors.New("`-q` must be used together with `-m`"))
+		fatal(errors.New("`-b` must be used together with `-m`"))
 	}
 	if *flagContinue && !*flagBatchMode {
 		fatal(errors.New("`-k` must be used together with `-q`"))
