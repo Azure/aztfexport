@@ -185,17 +185,23 @@ func (meta *MetaImpl) ListResource() (ImportList, error) {
 
 	l := make(ImportList, 0, len(ids))
 	for i, id := range ids {
+		recommendations := RecommendationsForId(id)
 		item := ImportItem{
 			ResourceID: id,
 			TFAddr: tfaddr.TFAddr{
+				Type: tfaddr.TFResourceTypeSkip,
 				Name: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, i, meta.resourceNameSuffix),
 			},
+			Recommendations: recommendations,
+		}
+		if len(recommendations) == 1 {
+			item.TFAddr.Type = recommendations[0]
+			item.IsRecommended = true
 		}
 
 		// If users have specified the resource mapping, then the each item in the generated import list
 		// must be non-empty: either the resource addr, or TFResourceTypeSkip.
 		if len(meta.resourceMapping) != 0 {
-			item.TFAddr.Type = tfaddr.TFResourceTypeSkip
 			if addr, ok := meta.resourceMapping[id]; ok {
 				item.TFAddr = addr
 			}

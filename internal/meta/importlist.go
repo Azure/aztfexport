@@ -1,6 +1,11 @@
 package meta
 
-import "github.com/Azure/aztfy/internal/tfaddr"
+import (
+	"strings"
+
+	"github.com/Azure/aztfy/internal/tfaddr"
+	"github.com/Azure/aztfy/mapping"
+)
 
 type ImportItem struct {
 	// The azure resource id
@@ -20,6 +25,8 @@ type ImportItem struct {
 
 	// Whether this TF resource type is from recommendation
 	IsRecommended bool
+
+	Recommendations []string
 }
 
 func (item ImportItem) Skip() bool {
@@ -58,4 +65,13 @@ func (l ImportList) Imported() ImportList {
 		}
 	}
 	return out
+}
+
+func RecommendationsForId(rid string) []string {
+	for pattern, resources := range mapping.AzureIdPatternToResourcesMapping {
+		if pattern.MatchString(strings.ToUpper(rid)) {
+			return resources
+		}
+	}
+	return []string{}
 }
