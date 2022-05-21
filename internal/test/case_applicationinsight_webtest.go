@@ -45,7 +45,7 @@ XML
 `, d.RandomRgName(), d.RandomStringOfLength(8))
 }
 
-func (CaseApplicationInsightWebTest) ResourceMapping(d Data) resmap.ResourceMapping {
+func (CaseApplicationInsightWebTest) ResourceMapping(d Data) (resmap.ResourceMapping, error) {
 	rm := fmt.Sprintf(`{
 "/subscriptions/%[1]s/resourceGroups/%[2]s": "azurerm_resource_group.test",
 "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/microsoft.insights/components/test-%[3]s": "azurerm_application_insights.test",
@@ -54,7 +54,7 @@ func (CaseApplicationInsightWebTest) ResourceMapping(d Data) resmap.ResourceMapp
 `, d.subscriptionId, d.RandomRgName(), d.RandomStringOfLength(8))
 	m := resmap.ResourceMapping{}
 	if err := json.Unmarshal([]byte(rm), &m); err != nil {
-		panic(err)
+		return nil, err
 	}
-	return m
+	return m, nil
 }

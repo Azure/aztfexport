@@ -74,11 +74,15 @@ func runCase(t *testing.T, d Data, c Case) {
 	}()
 
 	aztfyDir := t.TempDir()
+	resourceMapping, err := c.ResourceMapping(d)
+	if err != nil {
+		t.Fatalf("failed to get resource mapping: %v", err)
+	}
 	cfg := config.Config{
 		SubscriptionId:    os.Getenv("ARM_SUBSCRIPTION_ID"),
 		ResourceGroupName: d.RandomRgName(),
 		OutputDir:         aztfyDir,
-		ResourceMapping:   c.ResourceMapping(d),
+		ResourceMapping:   resourceMapping,
 		BackendType:       "local",
 	}
 	if err := internal.BatchImport(cfg, false); err != nil {
@@ -99,7 +103,7 @@ func runCase(t *testing.T, d Data, c Case) {
 	if err != nil {
 		t.Fatalf("terraform state show in the generated workspace failed: %v", err)
 	}
-	if n, expect := len(state.Values.RootModule.Resources), len(c.ResourceMapping(d)); n != expect {
+	if n, expect := len(state.Values.RootModule.Resources), len(resourceMapping); n != expect {
 		t.Fatalf("expected terrified resource: %d, got=%d", expect, n)
 	}
 }
@@ -115,5 +119,12 @@ func TestApplicationInsightWebTest(t *testing.T) {
 	t.Parallel()
 	precheck(t)
 	c, d := CaseApplicationInsightWebTest{}, NewData()
+	runCase(t, d, c)
+}
+
+func TestKeyVaultNestedItems(t *testing.T) {
+	t.Parallel()
+	precheck(t)
+	c, d := CaseKeyVaultNestedItems{}, NewData()
 	runCase(t, d, c)
 }
