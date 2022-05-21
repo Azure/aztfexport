@@ -188,8 +188,8 @@ github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69
 github.com/lucasb-eyer/go-colorful v1.2.0/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
 github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0 h1:aNtr4iNv/tex2t8W1u3scAoNHEnFlTKhNNHOpYStqbs=
 github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0/go.mod h1:MqYhNP+PC386Bjsx5piZe7T4vDm5QIPv8b1RU0prVnU=
-github.com/magodo/tfadd v0.6.0 h1:TftoDJxC2DkH3+OqF1WQ0C3bqlGeGAKszXlOAa1JjNs=
-github.com/magodo/tfadd v0.6.0/go.mod h1:L9hHsjYpgdPlKFUEQEQcvZMSdakTsCHnMLmvaKxJblI=
+github.com/magodo/tfadd v0.7.0 h1:anDpChIU7o1NfIUl3suogCTgd9D9P2B4kEnlAxd6TnY=
+github.com/magodo/tfadd v0.7.0/go.mod h1:L9hHsjYpgdPlKFUEQEQcvZMSdakTsCHnMLmvaKxJblI=
 github.com/magodo/tfstate v0.0.0-20220409052014-9b9568dda918 h1:yZ5ZEMSKZNCM7KpivKhDNNQEZYSDxg0Wyi5p0hQ8dVo=
 github.com/magodo/tfstate v0.0.0-20220409052014-9b9568dda918/go.mod h1:BW96zQS6A92qWVONOjviK73K0HlKdt5ufNBioGnOaEs=
 github.com/matryer/is v1.2.0/go.mod h1:2fLPjFQM9rhQ15aVEtbuwhJinnOqrmgXPNdZsdwlWXA=
