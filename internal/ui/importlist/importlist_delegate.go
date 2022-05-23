@@ -149,7 +149,7 @@ func setListKeyMapEnabled(m *list.Model, enabled bool) {
 func parseInput(input string) (*tfaddr.TFAddr, error) {
 	v := strings.TrimSpace(input)
 	if v == "" {
-		return &tfaddr.TFAddr{Type: tfaddr.TFResourceTypeSkip}, nil
+		return &tfaddr.TFAddr{}, nil
 	}
 
 	addr, err := tfaddr.ParseTFResourceAddr(v)

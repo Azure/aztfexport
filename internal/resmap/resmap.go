@@ -12,11 +12,7 @@ type ResourceMapping map[string]tfaddr.TFAddr
 func (res ResourceMapping) MarshalJSON() ([]byte, error) {
 	m := map[string]string{}
 	for id, addr := range res {
-		addr := addr.String()
-		if addr == "" {
-			addr = tfaddr.TFResourceTypeSkip
-		}
-		m[id] = addr
+		m[id] = addr.String()
 	}
 	return json.Marshal(m)
 }
@@ -29,9 +25,7 @@ func (res *ResourceMapping) UnmarshalJSON(b []byte) error {
 	}
 	for id, addr := range m {
 		var tfAddr tfaddr.TFAddr
-		if addr == tfaddr.TFResourceTypeSkip {
-			tfAddr.Type = tfaddr.TFResourceTypeSkip
-		} else {
+		if addr != "" {
 			pTFAddr, err := tfaddr.ParseTFResourceAddr(addr)
 			if err != nil {
 				return fmt.Errorf("parsing TF address %q: %v", addr, err)

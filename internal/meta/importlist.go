@@ -30,7 +30,7 @@ type ImportItem struct {
 }
 
 func (item ImportItem) Skip() bool {
-	return item.TFAddr.Skip()
+	return item.TFAddr.Type == ""
 }
 
 type ImportList []ImportItem
