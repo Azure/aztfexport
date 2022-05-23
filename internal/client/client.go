@@ -10,6 +10,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/keyvault/armkeyvault"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
 )
 
@@ -26,7 +27,7 @@ func NewClientBuilder() (*ClientBuilder, error) {
 	var cloudCfg cloud.Configuration
 	switch strings.ToLower(env) {
 	case "public":
-		cloudCfg = cloud.AzurePublicCloud
+		cloudCfg = cloud.AzurePublic
 	case "usgovernment":
 		cloudCfg = cloud.AzureGovernment
 	case "china":
@@ -56,20 +57,38 @@ func NewClientBuilder() (*ClientBuilder, error) {
 	}, nil
 }
 
+var clientOpt = &arm.ClientOptions{
+	ClientOptions: policy.ClientOptions{
+		Telemetry: policy.TelemetryOptions{
+			ApplicationID: "aztfy",
+			Disabled:      false,
+		},
+		Logging: policy.LogOptions{
+			IncludeBody: true,
+		},
+	},
+}
+
 func (b *ClientBuilder) NewResourceGroupClient(subscriptionId string) (*armresources.ResourceGroupsClient, error) {
 	return armresources.NewResourceGroupsClient(
 		subscriptionId,
 		b.credential,
-		&arm.ClientOptions{
-			ClientOptions: policy.ClientOptions{
-				Telemetry: policy.TelemetryOptions{
-					ApplicationID: "aztfy",
-					Disabled:      false,
-				},
-				Logging: policy.LogOptions{
-					IncludeBody: true,
-				},
-			},
-		},
+		clientOpt,
+	)
+}
+
+func (b *ClientBuilder) NewKeyvaultKeysClient(subscriptionId string) (*armkeyvault.KeysClient, error) {
+	return armkeyvault.NewKeysClient(
+		subscriptionId,
+		b.credential,
+		clientOpt,
+	)
+}
+
+func (b *ClientBuilder) NewKeyvaultSecretsClient(subscriptionId string) (*armkeyvault.SecretsClient, error) {
+	return armkeyvault.NewSecretsClient(
+		subscriptionId,
+		b.credential,
+		clientOpt,
 	)
 }

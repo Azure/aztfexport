@@ -18,6 +18,7 @@ import (
 	"github.com/Azure/aztfy/internal/tfaddr"
 
 	"github.com/Azure/aztfy/internal/config"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
 
 	"github.com/hashicorp/hcl/v2"
@@ -314,7 +315,7 @@ func (meta *MetaImpl) exportArmTemplate(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("exporting arm template of resource group %s: %w", meta.resourceGroup, err)
 	}
-	resp, err := poller.PollUntilDone(ctx, 10*time.Second)
+	resp, err := poller.PollUntilDone(ctx, &runtime.PollUntilDoneOptions{Frequency: 10 * time.Second})
 	if err != nil {
 		return fmt.Errorf("waiting for exporting arm template of resource group %s: %w", meta.resourceGroup, err)
 	}
@@ -330,7 +331,7 @@ func (meta *MetaImpl) exportArmTemplate(ctx context.Context) error {
 	if err := json.Unmarshal(raw, &tpl); err != nil {
 		return fmt.Errorf("unmarshalling the template: %w", err)
 	}
-	if err := tpl.PopulateManagedResources(); err != nil {
+	if err := tpl.TweakResources(); err != nil {
 		return fmt.Errorf("populating managed resources in the ARM template: %v", err)
 	}
 

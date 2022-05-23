@@ -42,15 +42,17 @@ resource "azurerm_network_interface" "test" {
 }
 resource "azurerm_linux_virtual_machine" "test" {
   name                            = "aztfy-test-%[2]s"
-  resource_group_name             = azurerm_resource_group.test.name
-  location                        = azurerm_resource_group.test.location
-  size                            = "Standard_D2s_v3"
-  admin_username                  = "adminuser"
-  admin_password                  = "Password1234!"
-  disable_password_authentication = false
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  size                = "Standard_F2"
+  admin_username      = "adminuser"
   network_interface_ids = [
     azurerm_network_interface.test.id,
   ]
+  admin_ssh_key {
+    username   = "adminuser"
+    public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC+wWK73dCr+jgQOAxNsHAnNNNMEMWOHYEccp6wJm2gotpr9katuF/ZAdou5AaW1C61slRkHRkpRRX9FA9CYBiitZgvCCz+3nWNN7l/Up54Zps/pHWGZLHNJZRYyAB6j5yVLMVHIHriY49d/GZTZVNB8GoJv9Gakwc/fuEZYYl4YDFiGMBP///TzlI4jhiJzjKnEvqPFki5p2ZRJqcbCiF4pJrxUQR/RXqVFQdbRLZgYfJ8xGB878RENq3yQ39d8dVOkq4edbkzwcUmwwwkYVPIoDGsYLaRHnG+To7FvMeyO7xDVQkMKzopTQV8AuKpyvpqu0a9pWOMaiCyDytO7GGN you@me.com"
+  }
   os_disk {
     caching              = "ReadWrite"
     storage_account_type = "Standard_LRS"
@@ -79,7 +81,7 @@ resource "azurerm_virtual_machine_data_disk_attachment" "test" {
 `, d.RandomRgName(), d.RandomStringOfLength(8))
 }
 
-func (CaseComputeVMDisk) ResourceMapping(d Data) resmap.ResourceMapping {
+func (CaseComputeVMDisk) ResourceMapping(d Data) (resmap.ResourceMapping, error) {
 	rm := fmt.Sprintf(`{
 "/subscriptions/%[1]s/resourceGroups/%[2]s": "azurerm_resource_group.test",
 "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/disks/aztfy-test-%[3]s": "azurerm_managed_disk.test",
@@ -91,7 +93,7 @@ func (CaseComputeVMDisk) ResourceMapping(d Data) resmap.ResourceMapping {
 `, d.subscriptionId, d.RandomRgName(), d.RandomStringOfLength(8))
 	m := resmap.ResourceMapping{}
 	if err := json.Unmarshal([]byte(rm), &m); err != nil {
-		panic(err)
+		return nil, err
 	}
-	return m
+	return m, nil
 }
