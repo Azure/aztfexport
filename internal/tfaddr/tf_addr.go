@@ -5,20 +5,13 @@ import (
 	"strings"
 )
 
-// TFResourceTypeSkip is a special resource type which represents to skip this resource from importing.
-const TFResourceTypeSkip string = "Skip"
-
 type TFAddr struct {
 	Type string
 	Name string
 }
 
-func (res TFAddr) Skip() bool {
-	return res.Type == TFResourceTypeSkip
-}
-
 func (res TFAddr) String() string {
-	if res.Skip() {
+	if res.Type == "" {
 		return ""
 	}
 	return res.Type + "." + res.Name

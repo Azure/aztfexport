@@ -184,27 +184,29 @@ func (meta *MetaImpl) ListResource() (ImportList, error) {
 	rgid, _ := armtemplate.ResourceGroupId.ProviderId(meta.subscriptionId, meta.resourceGroup, nil)
 	ids = append(ids, rgid)
 
-	l := make(ImportList, 0, len(ids))
+	var l ImportList
+
+	// No resource mapping specified, simply insert each listed id to the import list.
 	for i, id := range ids {
 		recommendations := RecommendationsForId(id)
 		item := ImportItem{
 			ResourceID: id,
 			TFAddr: tfaddr.TFAddr{
-				Type: tfaddr.TFResourceTypeSkip,
+				Type: "",
 				Name: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, i, meta.resourceNameSuffix),
 			},
 			Recommendations: recommendations,
 		}
-		if len(recommendations) == 1 {
-			item.TFAddr.Type = recommendations[0]
-			item.IsRecommended = true
-		}
 
-		// If users have specified the resource mapping, then the each item in the generated import list
-		// must be non-empty: either the resource addr, or TFResourceTypeSkip.
 		if len(meta.resourceMapping) != 0 {
 			if addr, ok := meta.resourceMapping[id]; ok {
 				item.TFAddr = addr
+			}
+		} else {
+			// Only auto deduce the TF resource type from recommendations when there is no resource mapping file specified.
+			if len(recommendations) == 1 {
+				item.TFAddr.Type = recommendations[0]
+				item.IsRecommended = true
 			}
 		}
 		l = append(l, item)
@@ -254,9 +256,6 @@ func (meta MetaImpl) GenerateCfg(l ImportList) error {
 func (meta MetaImpl) ExportResourceMapping(l ImportList) error {
 	m := resmap.ResourceMapping{}
 	for _, item := range l {
-		if item.Skip() {
-			continue
-		}
 		m[item.ResourceID] = item.TFAddr
 	}
 	output := filepath.Join(meta.outdir, ResourceMappingFileName)

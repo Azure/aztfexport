@@ -100,16 +100,20 @@ func (m Model) View() string {
 	}
 
 	s := fmt.Sprintf(" %s\n\n", msg)
-
 	for _, res := range m.results {
-		switch {
-		case res.item.Skip():
-			s += fmt.Sprintf("%s %s skipped\n", res.emoji, res.item.ResourceID)
-		default:
-			if res.item.ImportError == nil {
-				s += fmt.Sprintf("%s %s import successfully\n", res.emoji, res.item.ResourceID)
-			} else {
-				s += fmt.Sprintf("%s %s import failed\n", res.emoji, res.item.ResourceID)
+		// This indicates the state before the item is inserted as the to results.
+		if res.item.ResourceID == "" {
+			s += "...\n"
+		} else {
+			switch {
+			case res.item.Skip():
+				s += fmt.Sprintf("%s %s skipped\n", res.emoji, res.item.ResourceID)
+			default:
+				if res.item.ImportError == nil {
+					s += fmt.Sprintf("%s %s import successfully\n", res.emoji, res.item.ResourceID)
+				} else {
+					s += fmt.Sprintf("%s %s import failed\n", res.emoji, res.item.ResourceID)
+				}
 			}
 		}
 	}
