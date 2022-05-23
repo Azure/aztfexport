@@ -40,7 +40,7 @@ Then you can go ahead and run `aztfy [option] <resource group name>`. The tool c
 
 In interactive mode, `aztfy` list all the resources resides in the specified resource group. For each resource, user is expected to input the Terraform resource type (e.g. `azurerm_linux_virtual_machine`). Users can press `r` to see the possible resource type(s) for the selected import item (though this is not guaranteed to be 100% accurate). In case there is exactly one resource type match for the import item, that resource type will be automatically filled in the text input for the users, with a 💡 line prefix as an indication.
 
-In some cases, there are Azure resources that have no corresponding Terraform resource (e.g. due to lacks of Terraform support), or some resource might be created as a side effect of provisioning another resource (e.g. the Disk resource is created automatically when provisioning a VM). In these cases, you can skip these resources without typing anything.
+In some cases, there are Azure resources that have no corresponding Terraform resource (e.g. due to lacks of Terraform support), or some resource might be created as a side effect of provisioning another resource (e.g. the OS Disk resource is created automatically when provisioning a VM). In these cases, you can skip these resources without typing anything.
 
 > 💡 Option `-m` can be used to specify a resource mapping file, either constructed manually or from other runs of `aztfy` (generated in the output directory with name: _.aztfyResourceMapping.json_).
 
@@ -52,7 +52,7 @@ After going through all the resources to be imported, users press `w` to instruc
 
 ### Batch Mode
 
-In batch mode, instead of interactively specifying the mapping from Azurem resource id to the Terraform resource address, `aztfy` requires the user to provide that mapping via the resource mapping file (via `-m`), with the following format:
+In batch mode, instead of interactively specifying the mapping from Azurem resource id to the Terraform resource address, users are expected to provide that mapping via the resource mapping file (via `-m`), with the following format:
 
 ```json
 {
@@ -75,6 +75,8 @@ Example:
 ```
 
 Then the tool will import each specified resource in the mapping file (if exists) and skip the others.
+
+Especially if the no resource mapping file is specified, `aztfy` will only import the "recognized" resources for you, based on its limited knowledge on the ARM and Terraform resource mappings.
 
 In the batch import mode, users can further specify the `-k` option to make the tool continue even on hitting import error(s) on any resource.
 

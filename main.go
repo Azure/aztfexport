@@ -49,7 +49,7 @@ const usage = `aztfy [option] <resource group name>
 `
 
 func fatal(err error) {
-	fmt.Fprintln(os.Stderr, err)
+	fmt.Fprintln(os.Stderr, "Error: "+err.Error())
 	os.Exit(1)
 }
 
@@ -91,7 +91,7 @@ func main() {
 		os.Exit(1)
 	}
 	if *flagBatchMode && *flagMappingFile == "" {
-		fatal(errors.New("`-b` must be used together with `-m`"))
+		fmt.Println("[WARN]: No resource mapping file specified! Only the recognized resources will be imported.")
 	}
 	if *flagContinue && !*flagBatchMode {
 		fatal(errors.New("`-k` must be used together with `-q`"))
