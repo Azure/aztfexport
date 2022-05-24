@@ -34,7 +34,7 @@ Although `aztfy` depends on `terraform`, it is not required to have `terraform` 
 
 Follow the [authentication guide](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs#authenticating-to-azure) from the Terraform AzureRM provider to authenticate to Azure.
 
-Then you can go ahead and run `aztfy [option] <resource group name>`. The tool can run in two modes: interactive mode and batch mode, depending on whether `-b` is specified.
+Then you can go ahead and run `aztfy [option] <resource group name>`. The tool can run in two modes: interactive mode and batch mode, depending on whether `--batch`/`-b` is specified.
 
 ### Interactive Mode
 
@@ -42,7 +42,7 @@ In interactive mode, `aztfy` list all the resources resides in the specified res
 
 In some cases, there are Azure resources that have no corresponding Terraform resource (e.g. due to lacks of Terraform support), or some resource might be created as a side effect of provisioning another resource (e.g. the OS Disk resource is created automatically when provisioning a VM). In these cases, you can skip these resources without typing anything.
 
-> 💡 Option `-m` can be used to specify a resource mapping file, either constructed manually or from other runs of `aztfy` (generated in the output directory with name: _.aztfyResourceMapping.json_).
+> 💡 Option `--resource-mapping`/`-m` can be used to specify a resource mapping file, either constructed manually or from other runs of `aztfy` (generated in the output directory with name: _.aztfyResourceMapping.json_).
 
 After going through all the resources to be imported, users press `w` to instruct `aztfy` to proceed importing resources into Terraform state and generating the Terraform configuration.
 
@@ -52,7 +52,7 @@ After going through all the resources to be imported, users press `w` to instruc
 
 ### Batch Mode
 
-In batch mode, instead of interactively specifying the mapping from Azurem resource id to the Terraform resource address, users are expected to provide that mapping via the resource mapping file (via `-m`), with the following format:
+In batch mode, instead of interactively specifying the mapping from Azurem resource id to the Terraform resource address, users are expected to provide that mapping via the resource mapping file, with the following format:
 
 ```json
 {
@@ -78,7 +78,7 @@ Then the tool will import each specified resource in the mapping file (if exists
 
 Especially if the no resource mapping file is specified, `aztfy` will only import the "recognized" resources for you, based on its limited knowledge on the ARM and Terraform resource mappings.
 
-In the batch import mode, users can further specify the `-k` option to make the tool continue even on hitting import error(s) on any resource.
+In the batch import mode, users can further specify the `--continue`/`-k` option to make the tool continue even on hitting import error(s) on any resource.
 
 ## Demo
 

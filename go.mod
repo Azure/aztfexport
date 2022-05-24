@@ -16,21 +16,23 @@ require (
 	github.com/hashicorp/terraform-exec v0.16.0
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
 	github.com/magodo/tfadd v0.7.0
-	github.com/meowgorithm/babyenv v1.3.1
 	github.com/mitchellh/go-wordwrap v1.0.0
 	github.com/muesli/reflow v0.3.0
 	github.com/stretchr/testify v1.7.0
 	github.com/tidwall/gjson v1.14.1
+	github.com/urfave/cli/v2 v2.8.0
 )
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.0.0 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v0.4.0 // indirect
 	github.com/agext/levenshtein v1.2.2 // indirect
+	github.com/antzucaro/matchr v0.0.0-20210222213004-b04723ef80f0 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/charmbracelet/harmonica v0.1.0 // indirect
 	github.com/containerd/console v1.0.2 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.7.0 // indirect
 	github.com/golang-jwt/jwt v3.2.1+incompatible // indirect
@@ -65,6 +67,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sahilm/fuzzy v0.1.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
