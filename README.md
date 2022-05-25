@@ -80,6 +80,16 @@ Especially if the no resource mapping file is specified, `aztfy` will only impor
 
 In the batch import mode, users can further specify the `--continue`/`-k` option to make the tool continue even on hitting import error(s) on any resource.
 
+### Remote Backend
+
+By default `aztfy` uses local backend to store the state file. While it is also possible to use [remote backend](https://www.terraform.io/language/settings/backends), via the `--backend-type` and `--backend-config` options.
+
+E.g. to use the [`azurerm` backend](https://www.terraform.io/language/settings/backends/azurerm#azurerm), users can invoke `aztfy` like following:
+
+```shell
+aztfy --backend-type=azurerm --backend-config=resource_group_name=<resource group name> --backend-config=storage_account_name=<account name> --backend-config=container_name=<container name> --backend-config=key=terraform.tfstate <importing resource group name>
+```
+
 ## Demo
 
 [![asciicast](https://asciinema.org/a/475516.svg)](https://asciinema.org/a/475516)
