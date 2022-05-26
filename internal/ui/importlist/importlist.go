@@ -2,6 +2,7 @@ package importlist
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -54,17 +55,23 @@ func NewModel(c meta.Meta, l meta.ImportList, idx int) Model {
 	lst.StatusMessageLifetime = 3 * time.Second
 	lst.Select(idx)
 	lst.Filter = func(term string, targets []string) []list.Rank {
+		p, err := regexp.Compile(term)
+		if err != nil {
+			return nil
+		}
 		result := []list.Rank{}
 		for idx, tgt := range targets {
-			if midx := strings.Index(tgt, term); midx != -1 {
-				rnk := list.Rank{
-					Index: idx,
-				}
-				for i := 0; i < len(term); i++ {
-					rnk.MatchedIndexes = append(rnk.MatchedIndexes, i+midx)
-				}
-				result = append(result, rnk)
+			m := p.FindStringIndex(tgt)
+			if m == nil {
+				continue
 			}
+			rnk := list.Rank{
+				Index: idx,
+			}
+			for i := m[0]; i < m[1]; i++ {
+				rnk.MatchedIndexes = append(rnk.MatchedIndexes, i)
+			}
+			result = append(result, rnk)
 		}
 		return result
 	}
