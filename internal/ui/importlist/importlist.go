@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Azure/aztfy/internal/meta"
+	"github.com/Azure/aztfy/internal/tfaddr"
 	"github.com/Azure/aztfy/internal/ui/aztfyclient"
 	"github.com/Azure/aztfy/internal/ui/common"
 
@@ -123,6 +124,16 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 
 			return m, aztfyclient.StartImport(m.c, m.importList(true))
+		case key.Matches(msg, m.listkeys.skip):
+			sel := m.list.SelectedItem()
+			if sel == nil {
+				return m, nil
+			}
+			selItem := sel.(Item)
+			selItem.v.TFAddr = tfaddr.TFAddr{}
+			selItem.textinput.Model.SetValue("")
+			m.list.SetItem(selItem.idx, selItem)
+			return m, nil
 		case key.Matches(msg, m.listkeys.error):
 			sel := m.list.SelectedItem()
 			if sel == nil {
