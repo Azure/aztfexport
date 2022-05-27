@@ -129,6 +129,8 @@ func (res ResourceId) ProviderId(sub, rg string, b *client.ClientBuilder) (strin
 	switch res.Type {
 	case "microsoft.insights/webtests":
 		return res.providerIdForInsightsWebtests(sub, rg, b)
+	case "Microsoft.Network/frontdoors":
+		return res.providerIdForFrontDoor(sub, rg, b)
 	case "Microsoft.KeyVault/vaults/keys",
 		"Microsoft.KeyVault/vaults/secrets",
 		"Microsoft.KeyVault/vaults/certificates":
@@ -136,6 +138,12 @@ func (res ResourceId) ProviderId(sub, rg string, b *client.ClientBuilder) (strin
 	default:
 		return res.ID(sub, rg), nil
 	}
+}
+
+func (res ResourceId) providerIdForFrontDoor(sub, rg string, b *client.ClientBuilder) (string, error) {
+	// See issue: https://github.com/Azure/aztfy/issues/118
+	res.Type = "Microsoft.Network/frontDoors"
+	return res.ID(sub, rg), nil
 }
 
 func (res ResourceId) providerIdForInsightsWebtests(sub, rg string, b *client.ClientBuilder) (string, error) {
