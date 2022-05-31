@@ -128,3 +128,10 @@ func TestKeyVaultNestedItems(t *testing.T) {
 	c, d := CaseKeyVaultNestedItems{}, NewData()
 	runCase(t, d, c)
 }
+
+func TestFunctionAppSlot(t *testing.T) {
+	t.Parallel()
+	precheck(t)
+	c, d := CaseFunctionAppSlot{}, NewData()
+	runCase(t, d, c)
+}
