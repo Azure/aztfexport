@@ -152,7 +152,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			selItem := sel.(Item)
 
 			if len(selItem.v.Recommendations) == 0 {
-				return m, m.list.NewStatusMessage(common.InfoStyle.Render("No resource type recommendation is avaialble..."))
+				return m, m.list.NewStatusMessage(common.InfoStyle.Render("No resource type recommendation is available..."))
 			}
 			return m, m.list.NewStatusMessage(common.InfoStyle.Render(fmt.Sprintf("Possible resource type(s): %s", strings.Join(selItem.v.Recommendations, ","))))
 		case key.Matches(msg, m.listkeys.save):
