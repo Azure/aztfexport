@@ -144,9 +144,11 @@ type FQTemplate struct {
 }
 
 type FQResource struct {
+	// The Id is representing the TF resource ID.
 	Id         string
 	Properties interface{}
-	DependsOn  []string
+	// The IDs in the DependsOn are TF resource IDs.
+	DependsOn []string
 }
 
 func (tpl FQTemplate) DependencyInfo() (map[string][]string, error) {

@@ -135,3 +135,10 @@ func TestFunctionAppSlot(t *testing.T) {
 	c, d := CaseFunctionAppSlot{}, NewData()
 	runCase(t, d, c)
 }
+
+func TestStorageFileShare(t *testing.T) {
+	t.Parallel()
+	precheck(t)
+	c, d := CaseStorageFileShare{}, NewData()
+	runCase(t, d, c)
+}
