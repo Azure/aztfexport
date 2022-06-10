@@ -135,6 +135,8 @@ func (res ResourceId) ProviderId(sub, rg string, b *client.ClientBuilder) (strin
 		"Microsoft.KeyVault/vaults/secrets",
 		"Microsoft.KeyVault/vaults/certificates":
 		return res.providerIdForKeyVaultNestedItems(sub, rg, b)
+	case "Microsoft.Storage/storageAccounts/fileServices/shares":
+		return res.providerIdForStoragFileShare(sub, rg, b)
 	default:
 		return res.ID(sub, rg), nil
 	}
@@ -163,7 +165,7 @@ func (res ResourceId) providerIdForKeyVaultNestedItems(sub, rg string, b *client
 		}
 		segs := strings.Split(res.Name, "/")
 		if len(segs) != 2 {
-			return "", fmt.Errorf("malformed resource name %q for %q", res.Type, res.Name)
+			return "", fmt.Errorf("malformed resource name %q for %q", res.Name, res.Type)
 		}
 		resp, err := client.Get(ctx, rg, segs[0], segs[1], nil)
 		if err != nil {
@@ -180,7 +182,7 @@ func (res ResourceId) providerIdForKeyVaultNestedItems(sub, rg string, b *client
 		}
 		segs := strings.Split(res.Name, "/")
 		if len(segs) != 2 {
-			return "", fmt.Errorf("malformed resource name %q for %q", res.Type, res.Name)
+			return "", fmt.Errorf("malformed resource name %q for %q", res.Name, res.Type)
 		}
 		resp, err := client.Get(ctx, rg, segs[0], segs[1], nil)
 		if err != nil {
@@ -200,7 +202,7 @@ func (res ResourceId) providerIdForKeyVaultNestedItems(sub, rg string, b *client
 		}
 		segs := strings.Split(res.Name, "/")
 		if len(segs) != 2 {
-			return "", fmt.Errorf("malformed resource name %q for %q", res.Type, res.Name)
+			return "", fmt.Errorf("malformed resource name %q for %q", res.Name, res.Type)
 		}
 		resp, err := client.Get(ctx, rg, segs[0], segs[1], nil)
 		if err != nil {
@@ -215,4 +217,16 @@ func (res ResourceId) providerIdForKeyVaultNestedItems(sub, rg string, b *client
 		return strings.Join(segs, "/"), nil
 	}
 	panic("never reach here")
+}
+
+func (res ResourceId) providerIdForStoragFileShare(sub, rg string, b *client.ClientBuilder) (string, error) {
+	// See issue: https://github.com/Azure/aztfy/issues/130
+
+	// Normally we should retrieve the data plane URL of the storage file share via API. While there is no such attribute in its mgmt plane API model.
+	// Therefore, we simply construct the data plane URL via its mgmt plane resource ID.
+	segs := strings.Split(res.Name, "/")
+	if len(segs) != 3 {
+		return "", fmt.Errorf("malformed resource name %q for %q", res.Name, res.Type)
+	}
+	return fmt.Sprintf("https://%s.file.core.windows.net/%s", segs[0], segs[2]), nil
 }
