@@ -13,6 +13,8 @@ import (
 )
 
 func TestMutateOutputDir(t *testing.T) {
+	t.Parallel()
+	precheck(t)
 	d := NewData()
 	tfexecPath := ensureTF(t)
 	provisionDir := t.TempDir()
