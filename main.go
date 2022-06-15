@@ -21,15 +21,16 @@ import (
 
 func main() {
 	var (
-		flagBatchMode      bool
-		flagSubscriptionId string
-		flagOutputDir      string
-		flagMappingFile    string
-		flagContinue       bool
-		flagPattern        string
-		flagOverwrite      bool
-		flagBackendType    string
-		flagBackendConfig  cli.StringSlice
+		flagBatchMode       bool
+		flagSubscriptionId  string
+		flagOutputDir       string
+		flagMappingFile     string
+		flagContinue        bool
+		flagPattern         string
+		flagOverwrite       bool
+		flagMutateOutputDir bool
+		flagBackendType     string
+		flagBackendConfig   cli.StringSlice
 
 		// hidden flags
 		hflagLogPath    string
@@ -96,6 +97,12 @@ func main() {
 				Usage:       "Whether to overwrite the output directory if it is not empty (use with caution)",
 				Destination: &flagOverwrite,
 			},
+			&cli.BoolFlag{
+				Name:        "mutate-output-dir",
+				EnvVars:     []string{"AZTFY_MUTATE_OUTPUT_DIR"},
+				Usage:       "Do not clean up the output directory prior to importing, everything will be imported to the existing state file if any (local backend only)",
+				Destination: &flagMutateOutputDir,
+			},
 			&cli.StringFlag{
 				Name:        "backend-type",
 				EnvVars:     []string{"AZTFY_BACKEND_TYPE"},
@@ -139,6 +146,11 @@ func main() {
 			}
 			if flagContinue && !flagBatchMode {
 				return fmt.Errorf("`--continue` must be used together with `--batch`")
+			}
+			if flagMutateOutputDir {
+				if flagBackendType != "local" {
+					return fmt.Errorf("`--mutate-output-dir` only works for local backend")
+				}
 			}
 
 			rg := c.Args().First()
@@ -192,6 +204,7 @@ func main() {
 			cfg.OutputDir = flagOutputDir
 			cfg.ResourceNamePattern = flagPattern
 			cfg.Overwrite = flagOverwrite
+			cfg.MutateOutputDir = flagMutateOutputDir
 			cfg.BatchMode = flagBatchMode
 			cfg.BackendType = flagBackendType
 			cfg.BackendConfig = flagBackendConfig.Value()

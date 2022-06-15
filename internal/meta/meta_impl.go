@@ -1,6 +1,7 @@
 package meta
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -8,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -46,6 +48,10 @@ type MetaImpl struct {
 
 	backendType   string
 	backendConfig []string
+
+	// Use a safer name which is less likely to conflicts with users' existing files.
+	// This is mainly used for the --mutate-output-directory option.
+	useSafeName bool
 }
 
 func newMetaImpl(cfg config.Config) (Meta, error) {
@@ -71,38 +77,31 @@ func newMetaImpl(cfg config.Config) (Meta, error) {
 			return nil, err
 		}
 	}
-	stat, err := os.Stat(outdir)
-	if os.IsNotExist(err) {
-		return nil, fmt.Errorf("the output directory %q doesn't exist", outdir)
-	}
-	if !stat.IsDir() {
-		return nil, fmt.Errorf("the output path %q is not a directory", outdir)
-	}
-	dir, err := os.Open(outdir)
+	empty, err := dirIsEmpty(outdir)
 	if err != nil {
 		return nil, err
 	}
-	_, err = dir.Readdirnames(1)
-	dir.Close()
-	if err != io.EOF {
-		if cfg.Overwrite {
-			if err := removeEverythingUnder(outdir); err != nil {
-				return nil, err
-			}
-		} else {
-			if cfg.BatchMode {
-				return nil, fmt.Errorf("the output directory %q is not empty", outdir)
-			}
-
-			// Interactive mode
-			fmt.Printf("The output directory is not empty - overwrite (Y/N)? ")
-			var ans string
-			fmt.Scanf("%s", &ans)
-			if !strings.EqualFold(ans, "y") {
-				return nil, fmt.Errorf("the output directory %q is not empty", outdir)
-			} else {
+	if !empty {
+		if !cfg.MutateOutputDir {
+			if cfg.Overwrite {
 				if err := removeEverythingUnder(outdir); err != nil {
 					return nil, err
+				}
+			} else {
+				if cfg.BatchMode {
+					return nil, fmt.Errorf("the output directory %q is not empty", outdir)
+				}
+
+				// Interactive mode
+				fmt.Printf("The output directory is not empty - overwrite (Y/N)? ")
+				var ans string
+				fmt.Scanf("%s", &ans)
+				if !strings.EqualFold(ans, "y") {
+					return nil, fmt.Errorf("the output directory %q is not empty", outdir)
+				} else {
+					if err := removeEverythingUnder(outdir); err != nil {
+						return nil, err
+					}
 				}
 			}
 		}
@@ -126,6 +125,7 @@ func newMetaImpl(cfg config.Config) (Meta, error) {
 		resourceMapping: cfg.ResourceMapping,
 		backendType:     cfg.BackendType,
 		backendConfig:   cfg.BackendConfig,
+		useSafeName:     cfg.MutateOutputDir,
 	}
 
 	if pos := strings.LastIndex(cfg.ResourceNamePattern, "*"); pos != -1 {
@@ -186,7 +186,6 @@ func (meta *MetaImpl) ListResource() (ImportList, error) {
 
 	var l ImportList
 
-	// No resource mapping specified, simply insert each listed id to the import list.
 	for i, id := range ids {
 		recommendations := RecommendationsForId(id)
 		item := ImportItem{
@@ -224,7 +223,7 @@ func (meta MetaImpl) Import(item *ImportItem) {
 
 	// Generate a temp Terraform config to include the empty template for each resource.
 	// This is required for the following importing.
-	cfgFile := filepath.Join(meta.outdir, "main.tf")
+	cfgFile := filepath.Join(meta.outdir, meta.filenameMainCfg())
 	tpl := fmt.Sprintf(`resource "%s" "%s" {}`, item.TFAddr.Type, item.TFAddr.Name)
 	if err := os.WriteFile(cfgFile, []byte(tpl), 0644); err != nil {
 		item.ImportError = fmt.Errorf("generating resource template file: %w", err)
@@ -286,20 +285,56 @@ provider "azurerm" {
 `, meta.backendType, azurerm.ProviderSchemaInfo.Version)
 }
 
+func (meta MetaImpl) filenameProviderSetting() string {
+	if meta.useSafeName {
+		return "provider.aztfy.tf"
+	}
+	return "provider.tf"
+}
+
+func (meta MetaImpl) filenameMainCfg() string {
+	if meta.useSafeName {
+		return "main.aztfy.tf"
+	}
+	return "main.tf"
+}
+
 func (meta *MetaImpl) initProvider(ctx context.Context) error {
-	cfgFile := filepath.Join(meta.outdir, "provider.tf")
-
-	// Always use the latest provider version here, as this is a one shot tool, which should guarantees to work with the latest version.
-	if err := os.WriteFile(cfgFile, []byte(meta.providerConfig()), 0644); err != nil {
-		return fmt.Errorf("error creating provider config: %w", err)
+	empty, err := dirIsEmpty(meta.outdir)
+	if err != nil {
+		return err
 	}
 
-	var opts []tfexec.InitOption
-	for _, opt := range meta.backendConfig {
-		opts = append(opts, tfexec.BackendConfig(opt))
+	// If the directory is empty, generate the full config as the output directory is empty.
+	// Otherwise:
+	// - If the output directory already exists the `azurerm` provider setting, then do nothing
+	// - Otherwise, just generate the `azurerm` provider setting (as it is only for local backend)
+	if empty {
+		cfgFile := filepath.Join(meta.outdir, meta.filenameProviderSetting())
+		if err := os.WriteFile(cfgFile, []byte(meta.providerConfig()), 0644); err != nil {
+			return fmt.Errorf("error creating provider config: %w", err)
+		}
+
+		var opts []tfexec.InitOption
+		for _, opt := range meta.backendConfig {
+			opts = append(opts, tfexec.BackendConfig(opt))
+		}
+		if err := meta.tf.Init(ctx, opts...); err != nil {
+			return fmt.Errorf("error running terraform init: %s", err)
+		}
+		return nil
 	}
-	if err := meta.tf.Init(ctx, opts...); err != nil {
-		return fmt.Errorf("error running terraform init: %s", err)
+
+	exists, err := dirContainsProviderSetting(meta.outdir)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		if err := os.WriteFile(meta.filenameProviderSetting(), []byte(`provider "azurerm" {
+  features {}
+}`), 0644); err != nil {
+			return fmt.Errorf("error creating provider config: %w", err)
+		}
 	}
 
 	return nil
@@ -418,7 +453,7 @@ func (meta MetaImpl) resolveDependency(configs ConfigInfos) (ConfigInfos, error)
 }
 
 func (meta MetaImpl) generateConfig(cfgs ConfigInfos) error {
-	cfgFile := filepath.Join(meta.outdir, "main.tf")
+	cfgFile := filepath.Join(meta.outdir, meta.filenameMainCfg())
 	buf := bytes.NewBuffer([]byte{})
 	for i, cfg := range cfgs {
 		if _, err := cfg.DumpHCL(buf); err != nil {
@@ -464,4 +499,73 @@ func removeEverythingUnder(path string) error {
 	}
 	dir.Close()
 	return nil
+}
+
+func dirIsEmpty(path string) (bool, error) {
+	stat, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false, fmt.Errorf("the path %q doesn't exist", path)
+	}
+	if !stat.IsDir() {
+		return false, fmt.Errorf("the path %q is not a directory", path)
+	}
+	dir, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+	_, err = dir.Readdirnames(1)
+	if err != nil {
+		if err == io.EOF {
+			dir.Close()
+			return true, nil
+		}
+		return false, err
+	}
+	dir.Close()
+	return false, nil
+}
+
+func dirContainsProviderSetting(path string) (bool, error) {
+	stat, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false, fmt.Errorf("the path %q doesn't exist", path)
+	}
+	if !stat.IsDir() {
+		return false, fmt.Errorf("the path %q is not a directory", path)
+	}
+	dir, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+	defer dir.Close()
+
+	fnames, err := dir.Readdirnames(0)
+	if err != nil {
+		return false, err
+	}
+
+	// Ideally, we shall use hclgrep for a perfect match. But as the provider setting is simple enough, we do a text matching here.
+	p := regexp.MustCompile(`^\s*provider\s+"azurerm"\s*{\s*$`)
+	for _, fname := range fnames {
+		// fmt.Println(fname)
+		// fmt.Println(filepath.Ext(fname))
+		if filepath.Ext(fname) != ".tf" {
+			continue
+		}
+		f, err := os.Open(filepath.Join(path, fname))
+		if err != nil {
+			return false, fmt.Errorf("openning %s: %v", fname, err)
+		}
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			if p.MatchString(scanner.Text()) {
+				return true, nil
+			}
+		}
+		if err := scanner.Err(); err != nil {
+			return false, fmt.Errorf("reading file %s: %v", fname, err)
+		}
+		f.Close()
+	}
+	return false, nil
 }
