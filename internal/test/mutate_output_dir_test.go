@@ -31,6 +31,10 @@ resource "azurerm_resource_group" "test2" {
   name     = "%[1]s2"
   location = "WestEurope"
 }
+resource "azurerm_resource_group" "test3" {
+  name     = "%[1]s3"
+  location = "WestEurope"
+}
 `, d.RandomRgName())), 0644); err != nil {
 		t.Fatalf("created to create the TF config file: %v", err)
 	}
@@ -71,6 +75,13 @@ resource "azurerm_resource_group" "test2" {
 	if err := internal.BatchImport(cfg, false); err != nil {
 		t.Fatalf("failed to run second batch import: %v", err)
 	}
+	// Import the third resource group mutably
+	cfg.MutateOutputDir = true
+	cfg.ResourceGroupName = d.RandomRgName() + "3"
+	cfg.ResourceNamePattern = "round3_"
+	if err := internal.BatchImport(cfg, false); err != nil {
+		t.Fatalf("failed to run second batch import: %v", err)
+	}
 
 	// Verify
 	tf2, err := tfexec.NewTerraform(aztfyDir, tfexecPath)
@@ -88,7 +99,7 @@ resource "azurerm_resource_group" "test2" {
 	if err != nil {
 		t.Fatalf("terraform state show in the generated workspace failed: %v", err)
 	}
-	if n := len(state.Values.RootModule.Resources); n != 2 {
-		t.Fatalf("expected terrafied resource: %d, got=%d", 2, n)
+	if n := len(state.Values.RootModule.Resources); n != 3 {
+		t.Fatalf("expected terrafied resource: %d, got=%d", 3, n)
 	}
 }

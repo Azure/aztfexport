@@ -51,7 +51,7 @@ type MetaImpl struct {
 
 	// Use a safer name which is less likely to conflicts with users' existing files.
 	// This is mainly used for the --mutate-output-directory option.
-	useSafeName bool
+	useSafeFilename bool
 }
 
 func newMetaImpl(cfg config.Config) (Meta, error) {
@@ -125,7 +125,7 @@ func newMetaImpl(cfg config.Config) (Meta, error) {
 		resourceMapping: cfg.ResourceMapping,
 		backendType:     cfg.BackendType,
 		backendConfig:   cfg.BackendConfig,
-		useSafeName:     cfg.MutateOutputDir,
+		useSafeFilename: cfg.MutateOutputDir,
 	}
 
 	if pos := strings.LastIndex(cfg.ResourceNamePattern, "*"); pos != -1 {
@@ -223,7 +223,7 @@ func (meta MetaImpl) Import(item *ImportItem) {
 
 	// Generate a temp Terraform config to include the empty template for each resource.
 	// This is required for the following importing.
-	cfgFile := filepath.Join(meta.outdir, meta.filenameMainCfg())
+	cfgFile := filepath.Join(meta.outdir, meta.filenameTmpCfg())
 	tpl := fmt.Sprintf(`resource "%s" "%s" {}`, item.TFAddr.Type, item.TFAddr.Name)
 	if err := os.WriteFile(cfgFile, []byte(tpl), 0644); err != nil {
 		item.ImportError = fmt.Errorf("generating resource template file: %w", err)
@@ -286,17 +286,21 @@ provider "azurerm" {
 }
 
 func (meta MetaImpl) filenameProviderSetting() string {
-	if meta.useSafeName {
+	if meta.useSafeFilename {
 		return "provider.aztfy.tf"
 	}
 	return "provider.tf"
 }
 
 func (meta MetaImpl) filenameMainCfg() string {
-	if meta.useSafeName {
+	if meta.useSafeFilename {
 		return "main.aztfy.tf"
 	}
 	return "main.tf"
+}
+
+func (meta MetaImpl) filenameTmpCfg() string {
+	return "tmp.aztfy.tf"
 }
 
 func (meta *MetaImpl) initProvider(ctx context.Context) error {
@@ -330,9 +334,10 @@ func (meta *MetaImpl) initProvider(ctx context.Context) error {
 		return err
 	}
 	if !exists {
-		if err := os.WriteFile(meta.filenameProviderSetting(), []byte(`provider "azurerm" {
+		if err := appendToFile(meta.filenameProviderSetting(), `provider "azurerm" {
   features {}
-}`), 0644); err != nil {
+}
+`); err != nil {
 			return fmt.Errorf("error creating provider config: %w", err)
 		}
 	}
@@ -455,15 +460,13 @@ func (meta MetaImpl) resolveDependency(configs ConfigInfos) (ConfigInfos, error)
 func (meta MetaImpl) generateConfig(cfgs ConfigInfos) error {
 	cfgFile := filepath.Join(meta.outdir, meta.filenameMainCfg())
 	buf := bytes.NewBuffer([]byte{})
-	for i, cfg := range cfgs {
+	for _, cfg := range cfgs {
 		if _, err := cfg.DumpHCL(buf); err != nil {
 			return err
 		}
-		if i != len(cfgs)-1 {
-			buf.Write([]byte("\n"))
-		}
+		buf.Write([]byte("\n"))
 	}
-	if err := os.WriteFile(cfgFile, buf.Bytes(), 0644); err != nil {
+	if err := appendToFile(cfgFile, buf.String()); err != nil {
 		return fmt.Errorf("generating main configuration file: %w", err)
 	}
 
@@ -568,4 +571,14 @@ func dirContainsProviderSetting(path string) (bool, error) {
 		f.Close()
 	}
 	return false, nil
+}
+
+func appendToFile(path, content string) error {
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.WriteString(content)
+	return err
 }
