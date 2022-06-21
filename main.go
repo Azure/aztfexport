@@ -28,6 +28,7 @@ func main() {
 		flagContinue       bool
 		flagPattern        string
 		flagOverwrite      bool
+		flagAppend         bool
 		flagBackendType    string
 		flagBackendConfig  cli.StringSlice
 
@@ -96,6 +97,12 @@ func main() {
 				Usage:       "Whether to overwrite the output directory if it is not empty (use with caution)",
 				Destination: &flagOverwrite,
 			},
+			&cli.BoolFlag{
+				Name:        "append",
+				EnvVars:     []string{"AZTFY_APPEND"},
+				Usage:       "Skip cleaning up the output directory prior to importing, everything will be imported to the existing state file if any (local backend only)",
+				Destination: &flagAppend,
+			},
 			&cli.StringFlag{
 				Name:        "backend-type",
 				EnvVars:     []string{"AZTFY_BACKEND_TYPE"},
@@ -139,6 +146,14 @@ func main() {
 			}
 			if flagContinue && !flagBatchMode {
 				return fmt.Errorf("`--continue` must be used together with `--batch`")
+			}
+			if flagAppend {
+				if flagBackendType != "local" {
+					return fmt.Errorf("`--append` only works for local backend")
+				}
+				if flagOverwrite {
+					return fmt.Errorf("`--append` conflicts with `--overwrite`")
+				}
 			}
 
 			rg := c.Args().First()
@@ -192,6 +207,7 @@ func main() {
 			cfg.OutputDir = flagOutputDir
 			cfg.ResourceNamePattern = flagPattern
 			cfg.Overwrite = flagOverwrite
+			cfg.Append = flagAppend
 			cfg.BatchMode = flagBatchMode
 			cfg.BackendType = flagBackendType
 			cfg.BackendConfig = flagBackendConfig.Value()

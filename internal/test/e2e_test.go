@@ -104,7 +104,7 @@ func runCase(t *testing.T, d Data, c Case) {
 		t.Fatalf("terraform state show in the generated workspace failed: %v", err)
 	}
 	if n, expect := len(state.Values.RootModule.Resources), len(resourceMapping); n != expect {
-		t.Fatalf("expected terrified resource: %d, got=%d", expect, n)
+		t.Fatalf("expected terrafied resource: %d, got=%d", expect, n)
 	}
 }
 
