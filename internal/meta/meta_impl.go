@@ -557,15 +557,17 @@ func dirContainsProviderSetting(path string) (bool, error) {
 		}
 		f, err := os.Open(filepath.Join(path, fname))
 		if err != nil {
-			return false, fmt.Errorf("openning %s: %v", fname, err)
+			return false, fmt.Errorf("opening %s: %v", fname, err)
 		}
 		scanner := bufio.NewScanner(f)
 		for scanner.Scan() {
 			if p.MatchString(scanner.Text()) {
+				f.Close()
 				return true, nil
 			}
 		}
 		if err := scanner.Err(); err != nil {
+			f.Close()
 			return false, fmt.Errorf("reading file %s: %v", fname, err)
 		}
 		f.Close()
