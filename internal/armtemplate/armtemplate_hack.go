@@ -127,6 +127,8 @@ func populateManagedResourcesByPath(res Resource, paths ...string) (*Resource, [
 // API interaction with ARM, where a non-nil client builder is required.
 func (res ResourceId) ProviderId(sub, rg string, b *client.ClientBuilder) (string, error) {
 	switch res.Type {
+	case "Microsoft.SignalRService/SignalR":
+		return res.providerIdForSignalR(sub, rg, b)
 	case "microsoft.insights/webtests":
 		return res.providerIdForInsightsWebtests(sub, rg, b)
 	case "Microsoft.Network/frontdoors":
@@ -140,6 +142,12 @@ func (res ResourceId) ProviderId(sub, rg string, b *client.ClientBuilder) (strin
 	default:
 		return res.ID(sub, rg), nil
 	}
+}
+
+func (res ResourceId) providerIdForSignalR(sub, rg string, b *client.ClientBuilder) (string, error) {
+	// See issue: https://github.com/Azure/aztfy/issues/154
+	res.Type = "Microsoft.SignalRService/signalR"
+	return res.ID(sub, rg), nil
 }
 
 func (res ResourceId) providerIdForFrontDoor(sub, rg string, b *client.ClientBuilder) (string, error) {
