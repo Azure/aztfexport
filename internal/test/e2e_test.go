@@ -115,6 +115,13 @@ func TestComputeVMDisk(t *testing.T) {
 	runCase(t, d, c)
 }
 
+func TestSignalRService(t *testing.T) {
+	t.Parallel()
+	precheck(t)
+	c, d := CaseSignalRService{}, NewData()
+	runCase(t, d, c)
+}
+
 func TestApplicationInsightWebTest(t *testing.T) {
 	t.Parallel()
 	precheck(t)
