@@ -11,7 +11,7 @@ type Config struct {
 	OutputDir           string
 	ResourceNamePattern string
 	Overwrite           bool
-	MutateOutputDir     bool
+	Append              bool
 	BatchMode           bool
 	BackendType         string
 	BackendConfig       []string

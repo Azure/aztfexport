@@ -21,16 +21,16 @@ import (
 
 func main() {
 	var (
-		flagBatchMode       bool
-		flagSubscriptionId  string
-		flagOutputDir       string
-		flagMappingFile     string
-		flagContinue        bool
-		flagPattern         string
-		flagOverwrite       bool
-		flagMutateOutputDir bool
-		flagBackendType     string
-		flagBackendConfig   cli.StringSlice
+		flagBatchMode      bool
+		flagSubscriptionId string
+		flagOutputDir      string
+		flagMappingFile    string
+		flagContinue       bool
+		flagPattern        string
+		flagOverwrite      bool
+		flagAppend         bool
+		flagBackendType    string
+		flagBackendConfig  cli.StringSlice
 
 		// hidden flags
 		hflagLogPath    string
@@ -98,10 +98,10 @@ func main() {
 				Destination: &flagOverwrite,
 			},
 			&cli.BoolFlag{
-				Name:        "mutate-output-dir",
-				EnvVars:     []string{"AZTFY_MUTATE_OUTPUT_DIR"},
-				Usage:       "Do not clean up the output directory prior to importing, everything will be imported to the existing state file if any (local backend only)",
-				Destination: &flagMutateOutputDir,
+				Name:        "append",
+				EnvVars:     []string{"AZTFY_APPEND"},
+				Usage:       "Skip cleaning up the output directory prior to importing, everything will be imported to the existing state file if any (local backend only)",
+				Destination: &flagAppend,
 			},
 			&cli.StringFlag{
 				Name:        "backend-type",
@@ -147,9 +147,12 @@ func main() {
 			if flagContinue && !flagBatchMode {
 				return fmt.Errorf("`--continue` must be used together with `--batch`")
 			}
-			if flagMutateOutputDir {
+			if flagAppend {
 				if flagBackendType != "local" {
-					return fmt.Errorf("`--mutate-output-dir` only works for local backend")
+					return fmt.Errorf("`--append` only works for local backend")
+				}
+				if flagOverwrite {
+					return fmt.Errorf("`--append` conflicts with `--overwrite`")
 				}
 			}
 
@@ -204,7 +207,7 @@ func main() {
 			cfg.OutputDir = flagOutputDir
 			cfg.ResourceNamePattern = flagPattern
 			cfg.Overwrite = flagOverwrite
-			cfg.MutateOutputDir = flagMutateOutputDir
+			cfg.Append = flagAppend
 			cfg.BatchMode = flagBatchMode
 			cfg.BackendType = flagBackendType
 			cfg.BackendConfig = flagBackendConfig.Value()

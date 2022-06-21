@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
-func TestMutateOutputDir(t *testing.T) {
+func TestAppendMode(t *testing.T) {
 	t.Parallel()
 	precheck(t)
 	d := NewData()
@@ -69,14 +69,14 @@ resource "azurerm_resource_group" "test3" {
 		t.Fatalf("failed to run first batch import: %v", err)
 	}
 	// Import the second resource group mutably
-	cfg.MutateOutputDir = true
+	cfg.Append = true
 	cfg.ResourceGroupName = d.RandomRgName() + "2"
 	cfg.ResourceNamePattern = "round2_"
 	if err := internal.BatchImport(cfg, false); err != nil {
 		t.Fatalf("failed to run second batch import: %v", err)
 	}
 	// Import the third resource group mutably
-	cfg.MutateOutputDir = true
+	cfg.Append = true
 	cfg.ResourceGroupName = d.RandomRgName() + "3"
 	cfg.ResourceNamePattern = "round3_"
 	if err := internal.BatchImport(cfg, false); err != nil {

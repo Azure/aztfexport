@@ -50,7 +50,7 @@ type MetaImpl struct {
 	backendConfig []string
 
 	// Use a safer name which is less likely to conflicts with users' existing files.
-	// This is mainly used for the --mutate-output-directory option.
+	// This is mainly used for the --append option.
 	useSafeFilename bool
 }
 
@@ -82,7 +82,7 @@ func newMetaImpl(cfg config.Config) (Meta, error) {
 		return nil, err
 	}
 	if !empty {
-		if !cfg.MutateOutputDir {
+		if !cfg.Append {
 			if cfg.Overwrite {
 				if err := removeEverythingUnder(outdir); err != nil {
 					return nil, err
@@ -125,7 +125,7 @@ func newMetaImpl(cfg config.Config) (Meta, error) {
 		resourceMapping: cfg.ResourceMapping,
 		backendType:     cfg.BackendType,
 		backendConfig:   cfg.BackendConfig,
-		useSafeFilename: cfg.MutateOutputDir,
+		useSafeFilename: cfg.Append,
 	}
 
 	if pos := strings.LastIndex(cfg.ResourceNamePattern, "*"); pos != -1 {
