@@ -12,6 +12,12 @@ Azure Terrafy imports the resources that are supported by the [Terraform AzureRM
 
 Precompiled binaries are available at [Releases](https://github.com/Azure/aztfy/releases).
 
+### From Homebrew
+
+```bash
+brew update && brew install aztfy
+```
+
 ### From Go toolchain
 
 ```bash
