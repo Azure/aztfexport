@@ -14,7 +14,7 @@ var (
 	pTrack1 = regexp.MustCompile(`github.com/Azure/azure-sdk-for-go/services/(preview/)?[\w-]+/mgmt`)
 
 	// The embedded SDK can be either Azure Go SDK Track1 or Pandora SDK
-	pEmbeddedSDK = regexp.MustCompile(`github.com/hashicorp/terraform-provider-azurerm/internal/services/\w+/sdk`)
+	pEmbeddedSDK = regexp.MustCompile(`github.com/hashicorp/terraform-provider-azurerm/internal/services/\w+/sdk|github.com/hashicorp/go-azure-sdk`)
 )
 
 var (
