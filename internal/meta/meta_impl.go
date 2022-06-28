@@ -93,15 +93,23 @@ func newMetaImpl(cfg config.Config) (Meta, error) {
 				}
 
 				// Interactive mode
-				fmt.Printf("The output directory is not empty - overwrite (Y/N)? ")
+				fmt.Printf(`The output directory is not empty. Please choose one of actions below:
+
+[O] To overwrite everything inside the output directory, press "O"
+[A] To append (state and config) into the output directory, press "A"
+[Other] Press other keys to quit
+`)
 				var ans string
 				fmt.Scanf("%s", &ans)
-				if !strings.EqualFold(ans, "y") {
-					return nil, fmt.Errorf("the output directory %q is not empty", outdir)
-				} else {
+				switch strings.ToLower(ans) {
+				case "o":
 					if err := removeEverythingUnder(outdir); err != nil {
 						return nil, err
 					}
+				case "a":
+					cfg.Append = true
+				default:
+					return nil, fmt.Errorf("the output directory %q is not empty", outdir)
 				}
 			}
 		}
