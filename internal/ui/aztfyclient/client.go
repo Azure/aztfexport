@@ -8,7 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type NewClientMsg meta.Meta
+type NewClientMsg meta.RgMeta
 
 type ErrMsg error
 
@@ -48,13 +48,13 @@ type CleanTFStateMsg struct {
 	Addr string
 }
 
-func NewClient(meta meta.Meta) tea.Cmd {
+func NewClient(meta meta.RgMeta) tea.Cmd {
 	return func() tea.Msg {
 		return NewClientMsg(meta)
 	}
 }
 
-func Init(c meta.Meta) tea.Cmd {
+func Init(c meta.RgMeta) tea.Cmd {
 	return func() tea.Msg {
 		err := c.Init()
 		if err != nil {
@@ -64,7 +64,7 @@ func Init(c meta.Meta) tea.Cmd {
 	}
 }
 
-func ListResource(c meta.Meta) tea.Cmd {
+func ListResource(c meta.RgMeta) tea.Cmd {
 	return func() tea.Msg {
 		list, err := c.ListResource()
 		if err != nil {
@@ -80,13 +80,13 @@ func ShowImportError(item meta.ImportItem, idx int, l meta.ImportList) tea.Cmd {
 	}
 }
 
-func StartImport(c meta.Meta, l meta.ImportList) tea.Cmd {
+func StartImport(c meta.RgMeta, l meta.ImportList) tea.Cmd {
 	return func() tea.Msg {
 		return StartImportMsg{List: l}
 	}
 }
 
-func ImportOneItem(c meta.Meta, item meta.ImportItem) tea.Cmd {
+func ImportOneItem(c meta.RgMeta, item meta.ImportItem) tea.Cmd {
 	return func() tea.Msg {
 		if !item.Skip() && !item.Imported {
 			c.Import(&item)
@@ -104,7 +104,7 @@ func FinishImport(l meta.ImportList) tea.Cmd {
 	}
 }
 
-func GenerateCfg(c meta.Meta, l meta.ImportList) tea.Cmd {
+func GenerateCfg(c meta.RgMeta, l meta.ImportList) tea.Cmd {
 	return func() tea.Msg {
 		if err := c.GenerateCfg(l); err != nil {
 			return ErrMsg(err)
@@ -113,7 +113,7 @@ func GenerateCfg(c meta.Meta, l meta.ImportList) tea.Cmd {
 	}
 }
 
-func ExportResourceMapping(c meta.Meta, l meta.ImportList) tea.Cmd {
+func ExportResourceMapping(c meta.RgMeta, l meta.ImportList) tea.Cmd {
 	return func() tea.Msg {
 		if err := c.ExportResourceMapping(l); err != nil {
 			return ErrMsg(err)

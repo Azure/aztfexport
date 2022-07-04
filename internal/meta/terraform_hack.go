@@ -9,7 +9,7 @@ import (
 )
 
 // lifecycleAddon adds lifecycle meta arguments for some identified resources, which are mandatory to make them usable.
-func (meta MetaImpl) lifecycleAddon(configs ConfigInfos) (ConfigInfos, error) {
+func (meta Meta) lifecycleAddon(configs ConfigInfos) (ConfigInfos, error) {
 	out := make(ConfigInfos, len(configs))
 	for i, cfg := range configs {
 		switch cfg.TFAddr.Type {
@@ -23,7 +23,7 @@ func (meta MetaImpl) lifecycleAddon(configs ConfigInfos) (ConfigInfos, error) {
 	return out, nil
 }
 
-func (meta MetaImpl) hclBlockAppendDependency(body *hclwrite.Body, ids []string, cfgset map[string]ConfigInfo) error {
+func (meta Meta) hclBlockAppendDependency(body *hclwrite.Body, ids []string, cfgset map[string]ConfigInfo) error {
 	dependencies := []string{}
 	for _, id := range ids {
 		cfg, ok := cfgset[id]

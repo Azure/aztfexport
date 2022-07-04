@@ -78,12 +78,14 @@ func runCase(t *testing.T, d Data, c Case) {
 	if err != nil {
 		t.Fatalf("failed to get resource mapping: %v", err)
 	}
-	cfg := config.Config{
-		SubscriptionId:    os.Getenv("ARM_SUBSCRIPTION_ID"),
+	cfg := config.RgConfig{
+		CommonConfig: config.CommonConfig{
+			SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
+			OutputDir:      aztfyDir,
+			BackendType:    "local",
+		},
 		ResourceGroupName: d.RandomRgName(),
-		OutputDir:         aztfyDir,
 		ResourceMapping:   resourceMapping,
-		BackendType:       "local",
 	}
 	if err := internal.BatchImport(cfg, false); err != nil {
 		t.Fatalf("failed to run batch import: %v", err)

@@ -7,8 +7,8 @@ import (
 	"github.com/Azure/aztfy/internal/meta"
 )
 
-func BatchImport(cfg config.Config, continueOnError bool) error {
-	c, err := meta.NewMeta(cfg)
+func BatchImport(cfg config.RgConfig, continueOnError bool) error {
+	c, err := meta.NewRgMeta(cfg)
 	if err != nil {
 		return err
 	}
