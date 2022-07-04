@@ -277,8 +277,7 @@ func main() {
 
 					resId := c.Args().First()
 
-					id, err := armid.ParseResourceId(resId)
-					if err != nil {
+					if _, err := armid.ParseResourceId(resId); err != nil {
 						return fmt.Errorf("invalid resource id: %v", err)
 					}
 
@@ -311,7 +310,7 @@ func main() {
 							BackendType:    flagBackendType,
 							BackendConfig:  flagBackendConfig.Value(),
 						},
-						ResourceId:   id,
+						ResourceId:   resId,
 						ResourceName: flagName,
 					}
 

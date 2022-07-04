@@ -1,7 +1,8 @@
-package resourcegroup
+package resource
 
 import (
 	"context"
+	"fmt"
 	"github.com/Azure/aztfy/internal"
 	"github.com/Azure/aztfy/internal/config"
 	"github.com/Azure/aztfy/internal/test"
@@ -37,21 +38,21 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 	}()
 
 	aztfyDir := t.TempDir()
-	resourceMapping, err := c.ResourceMapping(d)
-	if err != nil {
-		t.Fatalf("failed to get resource mapping: %v", err)
-	}
-	cfg := config.RgConfig{
-		CommonConfig: config.CommonConfig{
-			SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
-			OutputDir:      aztfyDir,
-			BackendType:    "local",
-		},
-		ResourceGroupName: d.RandomRgName(),
-		ResourceMapping:   resourceMapping,
-	}
-	if err := internal.BatchImport(cfg, false); err != nil {
-		t.Fatalf("failed to run batch import: %v", err)
+
+	for idx, id := range c.AzureResourceIds(d) {
+		cfg := config.ResConfig{
+			CommonConfig: config.CommonConfig{
+				SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
+				OutputDir:      aztfyDir,
+				BackendType:    "local",
+				Append:         true,
+			},
+			ResourceId:   id,
+			ResourceName: fmt.Sprintf("res-%d", idx),
+		}
+		if err := internal.ResourceImport(cfg); err != nil {
+			t.Fatalf("failed to run resource import: %v", err)
+		}
 	}
 	tf2, err := tfexec.NewTerraform(aztfyDir, tfexecPath)
 	if err != nil {
@@ -68,11 +69,10 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 	if err != nil {
 		t.Fatalf("terraform state show in the generated workspace failed: %v", err)
 	}
-	if n, expect := len(state.Values.RootModule.Resources), len(resourceMapping); n != expect {
+	if n, expect := len(state.Values.RootModule.Resources), len(c.AzureResourceIds(d)); n != expect {
 		t.Fatalf("expected terrafied resource: %d, got=%d", expect, n)
 	}
 }
-
 func TestComputeVMDisk(t *testing.T) {
 	t.Parallel()
 	test.Precheck(t)

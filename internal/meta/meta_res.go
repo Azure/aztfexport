@@ -19,7 +19,7 @@ func NewResMeta(cfg config.ResConfig) (*ResMeta, error) {
 	}
 	meta := &ResMeta{
 		Meta:         *baseMeta,
-		Id:           cfg.ResourceId.String(),
+		Id:           cfg.ResourceId,
 		ResourceName: cfg.ResourceName,
 	}
 	return meta, nil

@@ -1,4 +1,4 @@
-package resourcegroup
+package cases
 
 import (
 	"encoding/json"
@@ -7,6 +7,8 @@ import (
 
 	"github.com/Azure/aztfy/internal/resmap"
 )
+
+var _ Case = CaseApplicationInsightWebTest{}
 
 type CaseApplicationInsightWebTest struct{}
 
@@ -58,4 +60,13 @@ func (CaseApplicationInsightWebTest) ResourceMapping(d test.Data) (resmap.Resour
 		return nil, err
 	}
 	return m, nil
+}
+
+func (CaseApplicationInsightWebTest) AzureResourceIds(d test.Data) []string {
+	return []string{
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/microsoft.insights/components/test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.insights/webTests/test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+	}
+
 }

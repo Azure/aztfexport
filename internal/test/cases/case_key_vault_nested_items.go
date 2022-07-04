@@ -1,4 +1,4 @@
-package resourcegroup
+package cases
 
 import (
 	"context"
@@ -11,6 +11,8 @@ import (
 	"github.com/Azure/aztfy/internal/client"
 	"github.com/Azure/aztfy/internal/resmap"
 )
+
+var _ Case = CaseKeyVaultNestedItems{}
 
 type CaseKeyVaultNestedItems struct{}
 
@@ -180,4 +182,12 @@ func (CaseKeyVaultNestedItems) ResourceMapping(d test.Data) (resmap.ResourceMapp
 		return nil, err
 	}
 	return m, nil
+}
+
+// TODO: Support importing keys and secrets
+func (CaseKeyVaultNestedItems) AzureResourceIds(d test.Data) []string {
+	return []string{
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+	}
 }

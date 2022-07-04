@@ -2,7 +2,6 @@ package config
 
 import (
 	"github.com/Azure/aztfy/internal/resmap"
-	"github.com/magodo/armid"
 )
 
 type Config interface {
@@ -33,7 +32,7 @@ func (RgConfig) isConfig() {}
 type ResConfig struct {
 	CommonConfig
 
-	ResourceId   armid.ResourceId
+	ResourceId   string
 	ResourceName string
 }
 

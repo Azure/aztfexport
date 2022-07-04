@@ -1,4 +1,4 @@
-package resourcegroup
+package cases
 
 import (
 	"encoding/json"
@@ -7,6 +7,8 @@ import (
 
 	"github.com/Azure/aztfy/internal/resmap"
 )
+
+var _ Case = CaseSignalRService{}
 
 type CaseSignalRService struct{}
 
@@ -42,4 +44,11 @@ func (CaseSignalRService) ResourceMapping(d test.Data) (resmap.ResourceMapping, 
 		return nil, err
 	}
 	return m, nil
+}
+
+func (CaseSignalRService) AzureResourceIds(d test.Data) []string {
+	return []string{
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.SignalRService/signalR/test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+	}
 }

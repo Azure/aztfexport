@@ -1,4 +1,4 @@
-package resourcegroup
+package cases
 
 import (
 	"encoding/json"
@@ -7,6 +7,8 @@ import (
 
 	"github.com/Azure/aztfy/internal/resmap"
 )
+
+var _ Case = CaseFunctionAppSlot{}
 
 type CaseFunctionAppSlot struct{}
 
@@ -67,4 +69,13 @@ func (CaseFunctionAppSlot) ResourceMapping(d test.Data) (resmap.ResourceMapping,
 		return nil, err
 	}
 	return m, nil
+}
+func (CaseFunctionAppSlot) AzureResourceIds(d test.Data) []string {
+	return []string{
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Storage/storageAccounts/aztfytest%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Web/serverfarms/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Web/sites/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Web/sites/aztfy-test-%[3]s/slots/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+	}
 }
