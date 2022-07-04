@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/magodo/armid"
 	"io"
 	"log"
 	"os"
@@ -40,6 +41,9 @@ func main() {
 
 		// rg-only flags (hidden)
 		hflagMockClient bool
+
+		// res-only flags
+		flagName string
 	)
 
 	commonFlagsCheck := func() error {
@@ -243,6 +247,75 @@ func main() {
 						return err
 					}
 					return nil
+				},
+			},
+			{
+				Name:      "resource",
+				Aliases:   []string{"res"},
+				Usage:     "Terrafying a single resource",
+				UsageText: "aztfy resource [option] <resource id>",
+				Flags: append([]cli.Flag{
+					&cli.StringFlag{
+						Name:        "name",
+						EnvVars:     []string{"AZTFY_NAME"},
+						Aliases:     []string{"n"},
+						Usage:       `The Terraform resource name.`,
+						Value:       "res-0",
+						Destination: &flagName,
+					},
+				}, commonFlags...),
+				Action: func(c *cli.Context) error {
+					if err := commonFlagsCheck(); err != nil {
+						return err
+					}
+					if c.NArg() == 0 {
+						return fmt.Errorf("No resource id specified")
+					}
+					if c.NArg() > 1 {
+						return fmt.Errorf("More than one resource ids specified")
+					}
+
+					resId := c.Args().First()
+
+					id, err := armid.ParseResourceId(resId)
+					if err != nil {
+						return fmt.Errorf("invalid resource id: %v", err)
+					}
+
+					// Initialize log
+					if err := initLog(hflagLogPath); err != nil {
+						return err
+					}
+
+					// Identify the subscription id, which comes from one of following (starts from the highest priority):
+					// - Command line option
+					// - Env variable: AZTFY_SUBSCRIPTION_ID
+					// - Env variable: ARM_SUBSCRIPTION_ID
+					// - Output of azure cli, the current active subscription
+					subscriptionId := flagSubscriptionId
+					if subscriptionId == "" {
+						var err error
+						subscriptionId, err = subscriptionIdFromCLI()
+						if err != nil {
+							return fmt.Errorf("retrieving subscription id from CLI: %v", err)
+						}
+					}
+
+					// Initialize the config
+					cfg := config.ResConfig{
+						CommonConfig: config.CommonConfig{
+							SubscriptionId: subscriptionId,
+							OutputDir:      flagOutputDir,
+							Overwrite:      flagOverwrite,
+							Append:         flagAppend,
+							BackendType:    flagBackendType,
+							BackendConfig:  flagBackendConfig.Value(),
+						},
+						ResourceId:   id,
+						ResourceName: flagName,
+					}
+
+					return internal.ResourceImport(cfg)
 				},
 			},
 		},
