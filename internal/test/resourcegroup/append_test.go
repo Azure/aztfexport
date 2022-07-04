@@ -1,8 +1,9 @@
-package test
+package resourcegroup
 
 import (
 	"context"
 	"fmt"
+	"github.com/Azure/aztfy/internal/test"
 	"os"
 	"path/filepath"
 	"testing"
@@ -14,9 +15,9 @@ import (
 
 func TestAppendMode(t *testing.T) {
 	t.Parallel()
-	precheck(t)
-	d := NewData()
-	tfexecPath := ensureTF(t)
+	test.Precheck(t)
+	d := test.NewData()
+	tfexecPath := test.EnsureTF(t)
 	provisionDir := t.TempDir()
 	os.Chdir(provisionDir)
 	if err := os.WriteFile("main.tf", []byte(fmt.Sprintf(`

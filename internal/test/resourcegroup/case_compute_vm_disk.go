@@ -1,15 +1,16 @@
-package test
+package resourcegroup
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Azure/aztfy/internal/test"
 
 	"github.com/Azure/aztfy/internal/resmap"
 )
 
 type CaseComputeVMDisk struct{}
 
-func (CaseComputeVMDisk) Tpl(d Data) string {
+func (CaseComputeVMDisk) Tpl(d test.Data) string {
 	return fmt.Sprintf(`
 provider "azurerm" {
   features {}
@@ -81,7 +82,7 @@ resource "azurerm_virtual_machine_data_disk_attachment" "test" {
 `, d.RandomRgName(), d.RandomStringOfLength(8))
 }
 
-func (CaseComputeVMDisk) ResourceMapping(d Data) (resmap.ResourceMapping, error) {
+func (CaseComputeVMDisk) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
 	rm := fmt.Sprintf(`{
 "/subscriptions/%[1]s/resourceGroups/%[2]s": "azurerm_resource_group.test",
 "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/disks/aztfy-test-%[3]s": "azurerm_managed_disk.test",
@@ -90,7 +91,7 @@ func (CaseComputeVMDisk) ResourceMapping(d Data) (resmap.ResourceMapping, error)
 "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfy-test-%[3]s": "azurerm_virtual_network.test",
 "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfy-test-%[3]s/subnets/internal": "azurerm_subnet.test"
 }
-`, d.subscriptionId, d.RandomRgName(), d.RandomStringOfLength(8))
+`, d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8))
 	m := resmap.ResourceMapping{}
 	if err := json.Unmarshal([]byte(rm), &m); err != nil {
 		return nil, err

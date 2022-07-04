@@ -1,15 +1,16 @@
-package test
+package resourcegroup
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Azure/aztfy/internal/test"
 
 	"github.com/Azure/aztfy/internal/resmap"
 )
 
 type CaseApplicationInsightWebTest struct{}
 
-func (CaseApplicationInsightWebTest) Tpl(d Data) string {
+func (CaseApplicationInsightWebTest) Tpl(d test.Data) string {
 	return fmt.Sprintf(`
 provider "azurerm" {
   features {}
@@ -45,13 +46,13 @@ XML
 `, d.RandomRgName(), d.RandomStringOfLength(8))
 }
 
-func (CaseApplicationInsightWebTest) ResourceMapping(d Data) (resmap.ResourceMapping, error) {
+func (CaseApplicationInsightWebTest) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
 	rm := fmt.Sprintf(`{
 "/subscriptions/%[1]s/resourceGroups/%[2]s": "azurerm_resource_group.test",
 "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/microsoft.insights/components/test-%[3]s": "azurerm_application_insights.test",
 "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.insights/webTests/test-%[3]s": "azurerm_application_insights_web_test.test"
 }
-`, d.subscriptionId, d.RandomRgName(), d.RandomStringOfLength(8))
+`, d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8))
 	m := resmap.ResourceMapping{}
 	if err := json.Unmarshal([]byte(rm), &m); err != nil {
 		return nil, err

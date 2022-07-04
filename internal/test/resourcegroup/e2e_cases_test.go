@@ -1,56 +1,18 @@
-package test
+package resourcegroup
 
 import (
 	"context"
+	"github.com/Azure/aztfy/internal"
+	"github.com/Azure/aztfy/internal/config"
+	"github.com/Azure/aztfy/internal/test"
+	"github.com/hashicorp/terraform-exec/tfexec"
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/hashicorp/go-version"
-	install "github.com/hashicorp/hc-install"
-	"github.com/hashicorp/hc-install/fs"
-	"github.com/hashicorp/hc-install/product"
-	"github.com/hashicorp/hc-install/src"
-
-	"github.com/Azure/aztfy/internal"
-	"github.com/Azure/aztfy/internal/config"
-	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
-const TestToggleEnvVar = "AZTFY_E2E"
-
-func precheck(t *testing.T) {
-	variables := []string{
-		TestToggleEnvVar,
-		"ARM_CLIENT_ID",
-		"ARM_CLIENT_SECRET",
-		"ARM_SUBSCRIPTION_ID",
-		"ARM_TENANT_ID",
-	}
-	for _, variable := range variables {
-		value := os.Getenv(variable)
-		if value == "" {
-			t.Skipf("`%s` must be set for e2e tests!", variable)
-		}
-	}
-}
-
-func ensureTF(t *testing.T) string {
-	i := install.NewInstaller()
-	execPath, err := i.Ensure(context.Background(), []src.Source{
-		&fs.Version{
-			Product:     product.Terraform,
-			Constraints: version.MustConstraints(version.NewConstraint(">=0.12")),
-		},
-	})
-	if err != nil {
-		t.Fatalf("failed to find a Terraform executable: %v", err)
-	}
-	return execPath
-}
-
-func runCase(t *testing.T, d Data, c Case) {
-	tfexecPath := ensureTF(t)
+func runCase(t *testing.T, d test.Data, c Case) {
+	tfexecPath := test.EnsureTF(t)
 	provisionDir := t.TempDir()
 	os.Chdir(provisionDir)
 	if err := os.WriteFile("main.tf", []byte(c.Tpl(d)), 0644); err != nil {
@@ -112,42 +74,42 @@ func runCase(t *testing.T, d Data, c Case) {
 
 func TestComputeVMDisk(t *testing.T) {
 	t.Parallel()
-	precheck(t)
-	c, d := CaseComputeVMDisk{}, NewData()
+	test.Precheck(t)
+	c, d := CaseComputeVMDisk{}, test.NewData()
 	runCase(t, d, c)
 }
 
 func TestSignalRService(t *testing.T) {
 	t.Parallel()
-	precheck(t)
-	c, d := CaseSignalRService{}, NewData()
+	test.Precheck(t)
+	c, d := CaseSignalRService{}, test.NewData()
 	runCase(t, d, c)
 }
 
 func TestApplicationInsightWebTest(t *testing.T) {
 	t.Parallel()
-	precheck(t)
-	c, d := CaseApplicationInsightWebTest{}, NewData()
+	test.Precheck(t)
+	c, d := CaseApplicationInsightWebTest{}, test.NewData()
 	runCase(t, d, c)
 }
 
 func TestKeyVaultNestedItems(t *testing.T) {
 	t.Parallel()
-	precheck(t)
-	c, d := CaseKeyVaultNestedItems{}, NewData()
+	test.Precheck(t)
+	c, d := CaseKeyVaultNestedItems{}, test.NewData()
 	runCase(t, d, c)
 }
 
 func TestFunctionAppSlot(t *testing.T) {
 	t.Parallel()
-	precheck(t)
-	c, d := CaseFunctionAppSlot{}, NewData()
+	test.Precheck(t)
+	c, d := CaseFunctionAppSlot{}, test.NewData()
 	runCase(t, d, c)
 }
 
 func TestStorageFileShare(t *testing.T) {
 	t.Parallel()
-	precheck(t)
-	c, d := CaseStorageFileShare{}, NewData()
+	test.Precheck(t)
+	c, d := CaseStorageFileShare{}, test.NewData()
 	runCase(t, d, c)
 }

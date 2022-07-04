@@ -1,15 +1,16 @@
-package test
+package resourcegroup
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Azure/aztfy/internal/test"
 
 	"github.com/Azure/aztfy/internal/resmap"
 )
 
 type CaseFunctionAppSlot struct{}
 
-func (CaseFunctionAppSlot) Tpl(d Data) string {
+func (CaseFunctionAppSlot) Tpl(d test.Data) string {
 	return fmt.Sprintf(`
 provider "azurerm" {
   features {}
@@ -52,7 +53,7 @@ resource "azurerm_windows_function_app_slot" "test" {
 `, d.RandomRgName(), d.RandomStringOfLength(8))
 }
 
-func (CaseFunctionAppSlot) ResourceMapping(d Data) (resmap.ResourceMapping, error) {
+func (CaseFunctionAppSlot) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
 	rm := fmt.Sprintf(`{
 "/subscriptions/%[1]s/resourceGroups/%[2]s": "azurerm_resource_group.test",
 "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Storage/storageAccounts/aztfytest%[3]s": "azurerm_storage_account.test",
@@ -60,7 +61,7 @@ func (CaseFunctionAppSlot) ResourceMapping(d Data) (resmap.ResourceMapping, erro
 "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Web/sites/aztfy-test-%[3]s": "azurerm_windows_function_app.test",
 "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Web/sites/aztfy-test-%[3]s/slots/aztfy-test-%[3]s": "azurerm_windows_function_app_slot.test"
 }
-`, d.subscriptionId, d.RandomRgName(), d.RandomStringOfLength(8))
+`, d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8))
 	m := resmap.ResourceMapping{}
 	if err := json.Unmarshal([]byte(rm), &m); err != nil {
 		return nil, err
