@@ -126,7 +126,7 @@ When generating the Terraform configuration, not all properties of the resource 
 
 One reason is because there are flexible cross-property constraints defined in the AzureRM Terraform provider. E.g. `property_a` conflits with `property_b`. This might due to the nature of the API, or might be due to some deprecation process of the provider (e.g. `property_a` is deprecated in favor of `property_b`, but kept for backwards compatibility). These constraints require some properties must be absent in the Terraform configuration, otherwise, the configuration is not a valid and will fail during `terraform validate`.
 
-Another reason is that an Azure resource can be a property of its parent resource (e.g. `azurerm_subnet` can be its own resource, or be a property of `azurerm_virtual_network`). Per Terraform's best practice, users should only use one of the forms, not both. `aztfy` chooses to always generate all the resources, but omit the property in the parent resource that represents to the child resource.
+Another reason is that an Azure resource can be a property of its parent resource (e.g. `azurerm_subnet` can be its own resource, or be a property of `azurerm_virtual_network`). Per Terraform's best practice, users should only use one of the forms, not both. `aztfy` chooses to always generate all the resources, but omit the property in the parent resource that represents the child resource.
 
 ## Additional Resources
 
