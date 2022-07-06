@@ -14,8 +14,8 @@ require (
 	github.com/hashicorp/hc-install v0.3.3-0.20220510130859-d615262197ec
 	github.com/hashicorp/hcl/v2 v2.11.1
 	github.com/hashicorp/terraform-exec v0.16.0
-	github.com/magodo/armid v0.0.0-20220628063852-9290f2dd6f59
-	github.com/magodo/aztft v0.0.0-20220704064924-39f2d431c3f0
+	github.com/magodo/armid v0.0.0-20220705080505-f3eab15f3beb
+	github.com/magodo/aztft v0.0.0-20220706055919-0d36caa029e6
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
 	github.com/magodo/tfadd v0.9.0
 	github.com/mitchellh/go-wordwrap v1.0.0
@@ -27,6 +27,7 @@ require (
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.0.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/alertsmanagement/armalertsmanagement v0.6.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/apimanagement/armapimanagement v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appplatform/armappplatform v1.1.0-beta.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appservice/armappservice v1.0.0 // indirect

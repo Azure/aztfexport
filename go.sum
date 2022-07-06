@@ -6,6 +6,8 @@ github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.1.0 h1:QkAcEIAKbNL4KoFr4Sath
 github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.1.0/go.mod h1:bhXu1AjYL+wutSL/kpSq6s7733q2Rb0yuot9Zgfqa/0=
 github.com/Azure/azure-sdk-for-go/sdk/internal v1.0.0 h1:jp0dGvZ7ZK0mgqnTSClMxa5xuRL7NZgHameVYF6BurY=
 github.com/Azure/azure-sdk-for-go/sdk/internal v1.0.0/go.mod h1:eWRD7oawr1Mu1sLCawqVc0CUiF43ia3qQMxLscsKQ9w=
+github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/alertsmanagement/armalertsmanagement v0.6.0 h1:pks1dpbMetOpU0LLAMGqQWDmf6KH3YaZZFbvLdczkLY=
+github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/alertsmanagement/armalertsmanagement v0.6.0/go.mod h1:ScVCRUj/xrIX0/L+CPzpgFBB3kHuE0OfT7ZkKJL4tFg=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/apimanagement/armapimanagement v1.0.0 h1:Ai3+BE11JvwQ2PxLGNKAfMNSceYXjeijReLJiCouO6o=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/apimanagement/armapimanagement v1.0.0/go.mod h1:gr6fiHmIii3Zw3riWMSr+P0tWTz4hfqTVcFttdi2JBo=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appplatform/armappplatform v1.1.0-beta.1 h1:hQJe8H6ZruSIWEzoNCB/GH9gGa7ntRDqaebxj8UeguI=
@@ -239,10 +241,10 @@ github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69Aj6K7nkY=
 github.com/lucasb-eyer/go-colorful v1.2.0/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
-github.com/magodo/armid v0.0.0-20220628063852-9290f2dd6f59 h1:ayNZPA3U7MT0/9mf7z5RkzPbtsv2ylQ93lsL1DqGpU0=
-github.com/magodo/armid v0.0.0-20220628063852-9290f2dd6f59/go.mod h1:rR8E7zfGMbmfnSQvrkFiWYdhrfTqsVSltelnZB09BwA=
-github.com/magodo/aztft v0.0.0-20220704064924-39f2d431c3f0 h1:mzv6N+qEATp0UWsyirGAcO7VgLc5dM308oUIfw4Kyb0=
-github.com/magodo/aztft v0.0.0-20220704064924-39f2d431c3f0/go.mod h1:XHUkJpF9iNzEr+qy5DCVnmsyWBy9QiCIiYhPySi/OT8=
+github.com/magodo/armid v0.0.0-20220705080505-f3eab15f3beb h1:2Q94VVMnTdnyGolLQVwvmlKuVjclMHYuupssp2+3smY=
+github.com/magodo/armid v0.0.0-20220705080505-f3eab15f3beb/go.mod h1:rR8E7zfGMbmfnSQvrkFiWYdhrfTqsVSltelnZB09BwA=
+github.com/magodo/aztft v0.0.0-20220706055919-0d36caa029e6 h1:AAlfueOnuv1RiId/OP3SduTMAx/cWUrZneJ0Y/fgMso=
+github.com/magodo/aztft v0.0.0-20220706055919-0d36caa029e6/go.mod h1:8VJ2hG7X2G0okdGMo1IOBu29ruaTlxF0v430di45O9g=
 github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0 h1:aNtr4iNv/tex2t8W1u3scAoNHEnFlTKhNNHOpYStqbs=
 github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0/go.mod h1:MqYhNP+PC386Bjsx5piZe7T4vDm5QIPv8b1RU0prVnU=
 github.com/magodo/tfadd v0.9.0 h1:+1P0dSuroI4ILju1rJGVH53jWDMbEQy7KZHZu2Ky7/Y=
