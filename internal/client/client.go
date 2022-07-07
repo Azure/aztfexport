@@ -16,6 +16,7 @@ import (
 
 type ClientBuilder struct {
 	credential azcore.TokenCredential
+	opt        *arm.ClientOptions
 }
 
 func NewClientBuilder() (*ClientBuilder, error) {
@@ -54,26 +55,26 @@ func NewClientBuilder() (*ClientBuilder, error) {
 
 	return &ClientBuilder{
 		credential: cred,
+		opt: &arm.ClientOptions{
+			ClientOptions: policy.ClientOptions{
+				Cloud: cloudCfg,
+				Telemetry: policy.TelemetryOptions{
+					ApplicationID: "aztfy",
+					Disabled:      false,
+				},
+				Logging: policy.LogOptions{
+					IncludeBody: true,
+				},
+			},
+		},
 	}, nil
-}
-
-var clientOpt = &arm.ClientOptions{
-	ClientOptions: policy.ClientOptions{
-		Telemetry: policy.TelemetryOptions{
-			ApplicationID: "aztfy",
-			Disabled:      false,
-		},
-		Logging: policy.LogOptions{
-			IncludeBody: true,
-		},
-	},
 }
 
 func (b *ClientBuilder) NewResourceGroupClient(subscriptionId string) (*armresources.ResourceGroupsClient, error) {
 	return armresources.NewResourceGroupsClient(
 		subscriptionId,
 		b.credential,
-		clientOpt,
+		b.opt,
 	)
 }
 
@@ -81,7 +82,7 @@ func (b *ClientBuilder) NewKeyvaultKeysClient(subscriptionId string) (*armkeyvau
 	return armkeyvault.NewKeysClient(
 		subscriptionId,
 		b.credential,
-		clientOpt,
+		b.opt,
 	)
 }
 
@@ -89,6 +90,6 @@ func (b *ClientBuilder) NewKeyvaultSecretsClient(subscriptionId string) (*armkey
 	return armkeyvault.NewSecretsClient(
 		subscriptionId,
 		b.credential,
-		clientOpt,
+		b.opt,
 	)
 }
