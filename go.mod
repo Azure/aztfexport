@@ -14,8 +14,8 @@ require (
 	github.com/hashicorp/hc-install v0.3.3-0.20220510130859-d615262197ec
 	github.com/hashicorp/hcl/v2 v2.11.1
 	github.com/hashicorp/terraform-exec v0.16.0
-	github.com/magodo/armid v0.0.0-20220705080505-f3eab15f3beb
-	github.com/magodo/aztft v0.0.0-20220707095838-b8693210521a
+	github.com/magodo/armid v0.0.0-20220707115142-d2d9f6fb551b
+	github.com/magodo/aztft v0.0.0-20220707121825-577c585511cc
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
 	github.com/magodo/tfadd v0.9.0
 	github.com/mitchellh/go-wordwrap v1.0.0
