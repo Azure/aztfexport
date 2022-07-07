@@ -58,6 +58,8 @@ aztfy resource /subscriptions/0000/resourceGroups/rg1/providers/Microsoft.Comput
 
 The command will automatically identify the Terraform resource type (e.g. correctly identifies above resource as `azurerm_linux_virtual_machine`), and import it into state file and generate the Terraform configuration.
 
+> ❗Currently, data plane only resources are not supported.
+
 ### Terrafy a Resource Group
 
 `aztfy resource-group [option] <resource group name>` terrafies a resource group and its including resources by its name. Depending on whether `--batch` is used, it can work in either interactive mode or batch mode.
