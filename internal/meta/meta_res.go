@@ -2,6 +2,7 @@ package meta
 
 import (
 	"fmt"
+
 	"github.com/Azure/aztfy/internal/config"
 	"github.com/magodo/aztft/aztft"
 )
@@ -25,13 +26,16 @@ func NewResMeta(cfg config.ResConfig) (*ResMeta, error) {
 	return meta, nil
 }
 
-func (meta ResMeta) QueryResourceType() (string, error) {
-	l, err := aztft.Query(meta.Id, true)
+func (meta ResMeta) QueryResourceTypeAndId() (string, string, error) {
+	lrt, lid, err := aztft.QueryTypeAndId(meta.Id, true)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	if len(l) != 1 {
-		return "", fmt.Errorf("expect exactly one resource type, got=%d", len(l))
+	if len(lrt) != 1 {
+		return "", "", fmt.Errorf("expect exactly one resource type, got=%d", len(lrt))
 	}
-	return l[0], nil
+	if len(lid) != 1 {
+		return "", "", fmt.Errorf("expect exactly one resource id, got=%d", len(lid))
+	}
+	return lrt[0], lid[0], nil
 }

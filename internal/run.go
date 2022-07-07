@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+
 	"github.com/Azure/aztfy/internal/config"
 	"github.com/Azure/aztfy/internal/meta"
 	"github.com/Azure/aztfy/internal/tfaddr"
@@ -12,27 +13,27 @@ func ResourceImport(cfg config.ResConfig) error {
 	if err != nil {
 		return err
 	}
-
 	fmt.Println("Initializing...")
 	if err := c.Init(); err != nil {
 		return err
 	}
 
-	fmt.Println("Identifying reource type...")
-	rt, err := c.QueryResourceType()
+	fmt.Println("Querying Terraform resource type and id...")
+	rt, tfid, err := c.QueryResourceTypeAndId()
 	if err != nil {
 		return err
 	}
 
 	item := meta.ImportItem{
-		ResourceID: c.Id,
+		ResourceID: tfid,
 		TFAddr: tfaddr.TFAddr{
 			Type: rt,
 			Name: c.ResourceName,
 		},
 	}
 
-	fmt.Printf("Importing %s as %s\n", item.ResourceID, item.TFAddr)
+	fmt.Printf("\nResource type: %s\nResource Id: %s\n\n", item.TFAddr.Type, item.ResourceID)
+	fmt.Println("Importing...")
 	c.Import(&item)
 	if err := item.ImportError; err != nil {
 		return fmt.Errorf("failed to import %s as %s: %v", item.ResourceID, item.TFAddr, err)
