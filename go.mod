@@ -15,7 +15,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.11.1
 	github.com/hashicorp/terraform-exec v0.16.0
 	github.com/magodo/armid v0.0.0-20220707115142-d2d9f6fb551b
-	github.com/magodo/aztft v0.0.0-20220707121825-577c585511cc
+	github.com/magodo/aztft v0.0.0-20220708053540-2828837cd497
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
 	github.com/magodo/tfadd v0.9.0
 	github.com/mitchellh/go-wordwrap v1.0.0

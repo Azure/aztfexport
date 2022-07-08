@@ -245,8 +245,8 @@ github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69
 github.com/lucasb-eyer/go-colorful v1.2.0/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
 github.com/magodo/armid v0.0.0-20220707115142-d2d9f6fb551b h1:MizLjMfDMkcTcgb9hoevnEhBKsMKdpyIhviKFHWm5qI=
 github.com/magodo/armid v0.0.0-20220707115142-d2d9f6fb551b/go.mod h1:rR8E7zfGMbmfnSQvrkFiWYdhrfTqsVSltelnZB09BwA=
-github.com/magodo/aztft v0.0.0-20220707121825-577c585511cc h1:ZN2uH5Qgt9sZVvxzgzXJFUjwQW+S7psiQQnIzq+u7RA=
-github.com/magodo/aztft v0.0.0-20220707121825-577c585511cc/go.mod h1:WILeqPrRdqjmnlu+zbLpGZdaERQJ+TWjcmfUxGFdKfY=
+github.com/magodo/aztft v0.0.0-20220708053540-2828837cd497 h1:l7AyeVfojMysq7FnvMSrqzJ8pyGvZ1m2a4inMBnNJj4=
+github.com/magodo/aztft v0.0.0-20220708053540-2828837cd497/go.mod h1:WILeqPrRdqjmnlu+zbLpGZdaERQJ+TWjcmfUxGFdKfY=
 github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0 h1:aNtr4iNv/tex2t8W1u3scAoNHEnFlTKhNNHOpYStqbs=
 github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0/go.mod h1:MqYhNP+PC386Bjsx5piZe7T4vDm5QIPv8b1RU0prVnU=
 github.com/magodo/tfadd v0.9.0 h1:+1P0dSuroI4ILju1rJGVH53jWDMbEQy7KZHZu2Ky7/Y=
