@@ -38,10 +38,18 @@ func NewClientBuilder() (*ClientBuilder, error) {
 	}
 
 	// Maps the auth related environment variables used in the provider to what azidentity honors.
-	os.Setenv("AZURE_TENANT_ID", os.Getenv("ARM_TENANT_ID"))
-	os.Setenv("AZURE_CLIENT_ID", os.Getenv("ARM_CLIENT_ID"))
-	os.Setenv("AZURE_CLIENT_SECRET", os.Getenv("ARM_CLIENT_SECRET"))
-	os.Setenv("AZURE_CLIENT_CERTIFICATE_PATH", os.Getenv("ARM_CLIENT_CERTIFICATE_PATH"))
+	if v, ok := os.LookupEnv("ARM_TENANT_ID"); ok {
+		os.Setenv("AZURE_TENANT_ID", v)
+	}
+	if v, ok := os.LookupEnv("ARM_CLIENT_ID"); ok {
+		os.Setenv("AZURE_CLIENT_ID", v)
+	}
+	if v, ok := os.LookupEnv("ARM_CLIENT_SECRET"); ok {
+		os.Setenv("AZURE_CLIENT_SECRET", v)
+	}
+	if v, ok := os.LookupEnv("ARM_CLIENT_CERTIFICATE_PATH"); ok {
+		os.Setenv("AZURE_CLIENT_CERTIFICATE_PATH", v)
+	}
 
 	cred, err := azidentity.NewDefaultAzureCredential(&azidentity.DefaultAzureCredentialOptions{
 		ClientOptions: policy.ClientOptions{
