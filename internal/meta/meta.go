@@ -5,6 +5,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
 	"github.com/Azure/aztfy/internal/client"
 	"github.com/Azure/aztfy/internal/config"
 	"github.com/hashicorp/hcl/v2"
@@ -12,11 +18,6 @@ import (
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/magodo/tfadd/providers/azurerm"
 	"github.com/magodo/tfadd/tfadd"
-	"io"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
 )
 
 type TFConfigTransformer func(configs ConfigInfos) (ConfigInfos, error)
@@ -113,6 +114,10 @@ func NewMeta(cfg config.CommonConfig) (*Meta, error) {
 
 	// AzureRM provider will honor env.var "AZURE_HTTP_USER_AGENT" when constructing for HTTP "User-Agent" header.
 	os.Setenv("AZURE_HTTP_USER_AGENT", "aztfy")
+
+	// Avoid the AzureRM provider to call the expensive RP listing API, repeatedly.
+	os.Setenv("ARM_PROVIDER_ENHANCED_VALIDATION", "false")
+	os.Setenv("ARM_SKIP_PROVIDER_REGISTRATION", "true")
 
 	meta := &Meta{
 		subscriptionId:  cfg.SubscriptionId,
