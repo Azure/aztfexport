@@ -58,7 +58,7 @@ aztfy resource /subscriptions/0000/resourceGroups/rg1/providers/Microsoft.Comput
 
 The command will automatically identify the Terraform resource type (e.g. correctly identifies above resource as `azurerm_linux_virtual_machine`), and import it into state file and generate the Terraform configuration.
 
-> ❗Currently, data plane only resources are not supported.
+> ❗For data plane only resources (e.g. `azurerm_key_vault_certificate`), the resource id is using a pesudo format, as is defined [here](https://github.com/magodo/aztft#pesudo-resource-id).
 
 ### Terrafy a Resource Group
 
