@@ -1,9 +1,10 @@
-package test
+package cases
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/Azure/aztfy/internal/test"
 	"os"
 	"strings"
 
@@ -11,9 +12,11 @@ import (
 	"github.com/Azure/aztfy/internal/resmap"
 )
 
+var _ Case = CaseKeyVaultNestedItems{}
+
 type CaseKeyVaultNestedItems struct{}
 
-func (CaseKeyVaultNestedItems) Tpl(d Data) string {
+func (CaseKeyVaultNestedItems) Tpl(d test.Data) string {
 	return fmt.Sprintf(`
 provider "azurerm" {
   features {}
@@ -113,7 +116,7 @@ resource "azurerm_key_vault_key" "test" {
 `, d.RandomRgName(), d.RandomStringOfLength(8))
 }
 
-func (CaseKeyVaultNestedItems) ResourceMapping(d Data) (resmap.ResourceMapping, error) {
+func (CaseKeyVaultNestedItems) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
 	b, err := client.NewClientBuilder()
 	if err != nil {
 		return nil, err
@@ -173,10 +176,18 @@ func (CaseKeyVaultNestedItems) ResourceMapping(d Data) (resmap.ResourceMapping, 
 %[5]q: "azurerm_key_vault_secret.test",
 %[6]q: "azurerm_key_vault_certificate.test"
 }
-`, d.subscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), keyId, secretId, certId)
+`, d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), keyId, secretId, certId)
 	m := resmap.ResourceMapping{}
 	if err := json.Unmarshal([]byte(rm), &m); err != nil {
 		return nil, err
 	}
 	return m, nil
+}
+
+// TODO: Support importing keys and secrets
+func (CaseKeyVaultNestedItems) AzureResourceIds(d test.Data) []string {
+	return []string{
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+	}
 }

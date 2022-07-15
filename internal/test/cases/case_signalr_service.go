@@ -1,15 +1,18 @@
-package test
+package cases
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Azure/aztfy/internal/test"
 
 	"github.com/Azure/aztfy/internal/resmap"
 )
 
+var _ Case = CaseSignalRService{}
+
 type CaseSignalRService struct{}
 
-func (CaseSignalRService) Tpl(d Data) string {
+func (CaseSignalRService) Tpl(d test.Data) string {
 	return fmt.Sprintf(`
 provider "azurerm" {
   features {}
@@ -30,15 +33,22 @@ resource "azurerm_signalr_service" "test" {
 `, d.RandomRgName(), d.RandomStringOfLength(8))
 }
 
-func (CaseSignalRService) ResourceMapping(d Data) (resmap.ResourceMapping, error) {
+func (CaseSignalRService) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
 	rm := fmt.Sprintf(`{
 "/subscriptions/%[1]s/resourceGroups/%[2]s": "azurerm_resource_group.test",
 "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.SignalRService/signalR/test-%[3]s": "azurerm_signalr_service.test"
 }
-`, d.subscriptionId, d.RandomRgName(), d.RandomStringOfLength(8))
+`, d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8))
 	m := resmap.ResourceMapping{}
 	if err := json.Unmarshal([]byte(rm), &m); err != nil {
 		return nil, err
 	}
 	return m, nil
+}
+
+func (CaseSignalRService) AzureResourceIds(d test.Data) []string {
+	return []string{
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.SignalRService/signalR/test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+	}
 }

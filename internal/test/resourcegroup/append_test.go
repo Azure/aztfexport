@@ -1,8 +1,9 @@
-package test
+package resourcegroup
 
 import (
 	"context"
 	"fmt"
+	"github.com/Azure/aztfy/internal/test"
 	"os"
 	"path/filepath"
 	"testing"
@@ -14,9 +15,9 @@ import (
 
 func TestAppendMode(t *testing.T) {
 	t.Parallel()
-	precheck(t)
-	d := NewData()
-	tfexecPath := ensureTF(t)
+	test.Precheck(t)
+	d := test.NewData()
+	tfexecPath := test.EnsureTF(t)
 	provisionDir := t.TempDir()
 	os.Chdir(provisionDir)
 	if err := os.WriteFile("main.tf", []byte(fmt.Sprintf(`
@@ -57,10 +58,12 @@ resource "azurerm_resource_group" "test3" {
 
 	// Import the first resource group
 	aztfyDir := t.TempDir()
-	cfg := config.Config{
-		SubscriptionId:      os.Getenv("ARM_SUBSCRIPTION_ID"),
-		OutputDir:           aztfyDir,
-		BackendType:         "local",
+	cfg := config.RgConfig{
+		CommonConfig: config.CommonConfig{
+			SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
+			OutputDir:      aztfyDir,
+			BackendType:    "local",
+		},
 		ResourceNamePattern: "t1",
 	}
 	cfg.ResourceGroupName = d.RandomRgName() + "1"

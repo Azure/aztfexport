@@ -21,7 +21,7 @@ import (
 
 const indentLevel = 2
 
-func NewProgram(cfg config.Config) (*tea.Program, error) {
+func NewProgram(cfg config.RgConfig) (*tea.Program, error) {
 	m, err := newModel(cfg)
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (s status) String() string {
 }
 
 type model struct {
-	meta   meta.Meta
+	meta   meta.RgMeta
 	status status
 	err    error
 
@@ -72,7 +72,7 @@ type model struct {
 	importerrormsg aztfyclient.ShowImportErrorMsg
 }
 
-func newModel(cfg config.Config) (*model, error) {
+func newModel(cfg config.RgConfig) (*model, error) {
 	s := spinner.NewModel()
 	s.Spinner = common.Spinner
 
@@ -80,7 +80,7 @@ func newModel(cfg config.Config) (*model, error) {
 		status:  statusInit,
 		spinner: s,
 	}
-	meta, err := meta.NewMeta(cfg)
+	meta, err := meta.NewRgMeta(cfg)
 	if err != nil {
 		return nil, err
 	}
