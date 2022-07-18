@@ -21,12 +21,6 @@ func (tpl *Template) TweakResources() error {
 		return err
 	}
 
-	// Populate the resource group into the resouce list
-	tpl.Resources = append(tpl.Resources, Resource{
-		ResourceId: ResourceId{},
-		DependsOn:  []ResourceId{},
-	})
-
 	// For resources with no dependency, add the resource group to the depends on list.
 	var newResources []Resource
 	for _, res := range tpl.Resources {
@@ -37,6 +31,13 @@ func (tpl *Template) TweakResources() error {
 		}
 		newResources = append(newResources, res)
 	}
+
+	// Populate the resource group into the resouce list
+	newResources = append(newResources, Resource{
+		ResourceId: ResourceId{},
+		DependsOn:  []ResourceId{},
+	})
+
 	tpl.Resources = newResources
 
 	return nil

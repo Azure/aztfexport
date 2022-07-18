@@ -196,7 +196,7 @@ func (meta Meta) generateCfg(l ImportList, cfgTrans ...TFConfigTransformer) erro
 	if err != nil {
 		return fmt.Errorf("converting from state to configurations: %w", err)
 	}
-	cfginfos, err = meta.terraformMetaHook(cfginfos)
+	cfginfos, err = meta.terraformMetaHook(cfginfos, cfgTrans...)
 	if err != nil {
 		return fmt.Errorf("Terraform HCL meta hook: %w", err)
 	}
