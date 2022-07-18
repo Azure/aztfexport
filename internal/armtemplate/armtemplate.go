@@ -138,7 +138,7 @@ func (resids *ResourceIds) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// Key is the Azure Resource Id
+// Key is the TF Resource Id
 type TFResources map[string]TFResource
 
 type TFResource struct {
@@ -150,20 +150,22 @@ type TFResource struct {
 }
 
 func (tpl Template) ToTFResources(subId, rg string) TFResources {
+	// A temporary mapping to map from the azure ID to TF ID. This mapping assumes that azure and TF resource has 1:1 mapping.
+	azToTf := map[string]string{}
 	tfresources := TFResources{}
 	for _, res := range tpl.Resources {
 		azureId := res.ResourceId.ID(subId, rg)
-		tfres := TFResource{
-			AzureId: azureId,
+
+		var (
 			// Use the azure ID as the TF ID as a fallback
-			TFId:       azureId,
-			Properties: res.Properties,
-		}
+			tfId   string = azureId
+			tfType string
+		)
 		tftypes, tfids, err := aztft.QueryTypeAndId(azureId, true)
 		if err == nil {
 			if len(tfids) == 1 && len(tftypes) == 1 {
-				tfres.TFId = tfids[0]
-				tfres.TFType = tftypes[0]
+				tfId = tfids[0]
+				tfType = tftypes[0]
 			} else {
 				log.Printf("Expect one query result for resource type and TF id for %s, got %d type and %d id.\n", azureId, len(tftypes), len(tfids))
 			}
@@ -171,10 +173,28 @@ func (tpl Template) ToTFResources(subId, rg string) TFResources {
 			log.Printf("Failed to query resource type for %s: %v\n", azureId, err)
 		}
 
+		var dependsOn []string
 		for _, d := range res.DependsOn {
-			tfres.DependsOn = append(tfres.DependsOn, d.ID(subId, rg))
+			dependsOn = append(dependsOn, d.ID(subId, rg))
 		}
-		tfresources[azureId] = tfres
+		azToTf[azureId] = tfId
+		tfresources[tfId] = TFResource{
+			AzureId:    azureId,
+			TFId:       tfId,
+			TFType:     tfType,
+			Properties: res.Properties,
+			DependsOn:  dependsOn,
+		}
+	}
+
+	// Converting the DependsOn of each TFResource from Azure IDs to TF IDs.
+	for k, res := range tfresources {
+		dependsOn := []string{}
+		for _, azureId := range res.DependsOn {
+			// Every entry in the tfresoruces msut be recorded in the azToTf mapping, so no need to check existance here.
+			dependsOn = append(dependsOn, azToTf[azureId])
+		}
+		tfresources[k] = res
 	}
 
 	return tfresources

@@ -197,11 +197,28 @@ func (c CaseKeyVaultNestedItems) AzureResourceIds(d test.Data) ([]string, error)
 	if err != nil {
 		return nil, err
 	}
+	var (
+		keyIdSuffix    string
+		secretIdSuffix string
+		certIdSuffix   string
+	)
+	{
+		segs := strings.Split(keyId, "/")
+		keyIdSuffix = strings.Join(segs[len(segs)-3:], "/")
+	}
+	{
+		segs := strings.Split(secretId, "/")
+		secretIdSuffix = strings.Join(segs[len(segs)-3:], "/")
+	}
+	{
+		segs := strings.Split(certId, "/")
+		certIdSuffix = strings.Join(segs[len(segs)-3:], "/")
+	}
 	return []string{
 		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
 		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
-		keyId,
-		secretId,
-		certId,
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s/%[4]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), keyIdSuffix),
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s/%[4]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), secretIdSuffix),
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s/%[4]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), certIdSuffix),
 	}, nil
 }

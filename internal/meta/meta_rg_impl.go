@@ -171,15 +171,14 @@ func (meta MetaRgImpl) resolveDependency(configs ConfigInfos) (ConfigInfos, erro
 	// Iterate each config to add dependency by querying the dependency info from arm template.
 	var out ConfigInfos
 	rgid := armtemplate.ResourceGroupId.ID(meta.subscriptionId, meta.resourceGroup)
-	for id, cfg := range configSet {
-		if id == rgid {
+	for tfid, cfg := range configSet {
+		if tfid == rgid {
 			out = append(out, cfg)
 			continue
 		}
-		// This should never happen as we always ensure there is at least one implicit dependency on the resource group for each resource.
-		tfres, ok := meta.resources[id]
+		tfres, ok := meta.resources[tfid]
 		if !ok {
-			return nil, fmt.Errorf("can't find resource %q in the arm template's resources", id)
+			return nil, fmt.Errorf("can't find resource %q in the arm template's resources", tfid)
 		}
 
 		if err := hclBlockAppendDependency(cfg.hcl.Body().Blocks()[0].Body(), tfres.DependsOn, configSet); err != nil {

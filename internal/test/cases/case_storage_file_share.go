@@ -56,6 +56,6 @@ func (CaseStorageFileShare) AzureResourceIds(d test.Data) ([]string, error) {
 	return []string{
 		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
 		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Storage/storageAccounts/aztfy%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
-		fmt.Sprintf("https://aztfy%[1]s.file.core.windows.net/aztfy%[1]s", d.RandomStringOfLength(8)),
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Storage/storageAccounts/aztfy%[3]s/fileServices/default/shares/aztfy%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
 	}, nil
 }
