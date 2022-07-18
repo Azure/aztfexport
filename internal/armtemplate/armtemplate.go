@@ -158,7 +158,7 @@ func (tpl Template) ToTFResources(subId, rg string) TFResources {
 
 		var (
 			// Use the azure ID as the TF ID as a fallback
-			tfId   string = azureId
+			tfId   = azureId
 			tfType string
 		)
 		tftypes, tfids, err := aztft.QueryTypeAndId(azureId, true)

@@ -52,8 +52,8 @@ XML
 func (CaseApplicationInsightWebTest) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
 	rm := fmt.Sprintf(`{
 "/subscriptions/%[1]s/resourceGroups/%[2]s": "azurerm_resource_group.test",
-"/subscriptions/%[1]s/resourceGroups/%[2]s/providers/microsoft.insights/components/test-%[3]s": "azurerm_application_insights.test",
-"/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.insights/webTests/test-%[3]s": "azurerm_application_insights_web_test.test"
+"/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Insights/components/test-%[3]s": "azurerm_application_insights.test",
+"/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Insights/webTests/test-%[3]s": "azurerm_application_insights_web_test.test"
 }
 `, d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8))
 	m := resmap.ResourceMapping{}

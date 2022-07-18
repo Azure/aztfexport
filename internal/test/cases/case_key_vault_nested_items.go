@@ -204,15 +204,15 @@ func (c CaseKeyVaultNestedItems) AzureResourceIds(d test.Data) ([]string, error)
 	)
 	{
 		segs := strings.Split(keyId, "/")
-		keyIdSuffix = strings.Join(segs[len(segs)-3:], "/")
+		keyIdSuffix = strings.Join(segs[len(segs)-3:len(segs)-1], "/")
 	}
 	{
 		segs := strings.Split(secretId, "/")
-		secretIdSuffix = strings.Join(segs[len(segs)-3:], "/")
+		secretIdSuffix = strings.Join(segs[len(segs)-3:len(segs)-1], "/")
 	}
 	{
 		segs := strings.Split(certId, "/")
-		certIdSuffix = strings.Join(segs[len(segs)-3:], "/")
+		certIdSuffix = strings.Join(segs[len(segs)-3:len(segs)-1], "/")
 	}
 	return []string{
 		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
