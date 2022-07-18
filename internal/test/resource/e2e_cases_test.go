@@ -3,14 +3,15 @@ package resource
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"testing"
+
 	"github.com/Azure/aztfy/internal"
 	"github.com/Azure/aztfy/internal/config"
 	"github.com/Azure/aztfy/internal/test"
 	"github.com/Azure/aztfy/internal/test/cases"
 	"github.com/hashicorp/terraform-exec/tfexec"
-	"os"
-	"path/filepath"
-	"testing"
 )
 
 func runCase(t *testing.T, d test.Data, c cases.Case) {
@@ -38,8 +39,11 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 	}()
 
 	aztfyDir := t.TempDir()
-
-	for idx, id := range c.AzureResourceIds(d) {
+	l, err := c.AzureResourceIds(d)
+	if err != nil {
+		t.Fatalf("failed to get resource ids: %v", err)
+	}
+	for idx, id := range l {
 		cfg := config.ResConfig{
 			CommonConfig: config.CommonConfig{
 				SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
@@ -69,7 +73,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 	if err != nil {
 		t.Fatalf("terraform state show in the generated workspace failed: %v", err)
 	}
-	if n, expect := len(state.Values.RootModule.Resources), len(c.AzureResourceIds(d)); n != expect {
+	if n, expect := len(state.Values.RootModule.Resources), len(l); n != expect {
 		t.Fatalf("expected terrafied resource: %d, got=%d", expect, n)
 	}
 }

@@ -3,6 +3,7 @@ package cases
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/Azure/aztfy/internal/test"
 
 	"github.com/Azure/aztfy/internal/resmap"
@@ -101,7 +102,7 @@ func (CaseComputeVMDisk) ResourceMapping(d test.Data) (resmap.ResourceMapping, e
 	return m, nil
 }
 
-func (CaseComputeVMDisk) AzureResourceIds(d test.Data) []string {
+func (CaseComputeVMDisk) AzureResourceIds(d test.Data) ([]string, error) {
 	return []string{
 		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
 		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/disks/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
@@ -109,5 +110,5 @@ func (CaseComputeVMDisk) AzureResourceIds(d test.Data) []string {
 		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/networkInterfaces/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
 		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
 		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfy-test-%[3]s/subnets/internal", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
-	}
+	}, nil
 }
