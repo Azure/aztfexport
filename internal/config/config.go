@@ -32,7 +32,10 @@ func (RgConfig) isConfig() {}
 type ResConfig struct {
 	CommonConfig
 
-	ResourceId   string
+	// Azure resource id
+	ResourceId string
+
+	// TF resource name
 	ResourceName string
 }
 

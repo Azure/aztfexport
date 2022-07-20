@@ -8,5 +8,5 @@ import (
 type Case interface {
 	Tpl(test.Data) string
 	ResourceMapping(test.Data) (resmap.ResourceMapping, error)
-	AzureResourceIds(test.Data) []string
+	AzureResourceIds(test.Data) ([]string, error)
 }

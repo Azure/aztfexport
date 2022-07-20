@@ -3,10 +3,11 @@ package armtemplate
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 
-	"github.com/Azure/aztfy/internal/client"
+	"github.com/magodo/aztft/aztft"
 )
 
 type Template struct {
@@ -137,57 +138,64 @@ func (resids *ResourceIds) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-type FQTemplate struct {
-	subId     string
-	rg        string
-	Resources []FQResource
-}
+// Key is the TF Resource Id
+type TFResources map[string]TFResource
 
-type FQResource struct {
-	// The Id is representing the TF resource ID.
-	Id         string
+type TFResource struct {
+	AzureId    string
+	TFId       string
+	TFType     string
 	Properties interface{}
-	// The IDs in the DependsOn are TF resource IDs.
-	DependsOn []string
+	DependsOn  []string
 }
 
-func (tpl FQTemplate) DependencyInfo() (map[string][]string, error) {
-	s := map[string][]string{}
+func (tpl Template) ToTFResources(subId, rg string) TFResources {
+	// A temporary mapping to map from the azure ID to TF ID. This mapping assumes that azure and TF resource has 1:1 mapping.
+	azToTf := map[string]string{}
+	tfresources := TFResources{}
 	for _, res := range tpl.Resources {
-		if len(res.DependsOn) == 0 {
-			rgid, _ := ResourceGroupId.ProviderId(tpl.subId, tpl.rg, nil)
-			s[res.Id] = []string{rgid}
-			continue
-		}
-		s[res.Id] = res.DependsOn
-	}
-	return s, nil
-}
+		azureId := res.ResourceId.ID(subId, rg)
 
-// Qualify converts the raw ARM template to a fully qualified form in turns of the resource ids, where the ids are converted from the
-// ARM resource id expression to the corresponding TF resource id form.
-func (tpl Template) Qualify(subId, rg string, b *client.ClientBuilder) (*FQTemplate, error) {
-	fqtpl := FQTemplate{
-		subId: subId,
-		rg:    rg,
-	}
-	for _, res := range tpl.Resources {
-		id, err := res.ResourceId.ProviderId(subId, rg, b)
-		if err != nil {
-			return nil, err
-		}
-		fqres := FQResource{
-			Id:         id,
-			Properties: res.Properties,
-		}
-		for _, d := range res.DependsOn {
-			id, err := d.ProviderId(subId, rg, b)
-			if err != nil {
-				return nil, err
+		var (
+			// Use the azure ID as the TF ID as a fallback
+			tfId   = azureId
+			tfType string
+		)
+		tftypes, tfids, err := aztft.QueryTypeAndId(azureId, true)
+		if err == nil {
+			if len(tfids) == 1 && len(tftypes) == 1 {
+				tfId = tfids[0]
+				tfType = tftypes[0]
+			} else {
+				log.Printf("Expect one query result for resource type and TF id for %s, got %d type and %d id.\n", azureId, len(tftypes), len(tfids))
 			}
-			fqres.DependsOn = append(fqres.DependsOn, id)
+		} else {
+			log.Printf("Failed to query resource type for %s: %v\n", azureId, err)
 		}
-		fqtpl.Resources = append(fqtpl.Resources, fqres)
+
+		var dependsOn []string
+		for _, d := range res.DependsOn {
+			dependsOn = append(dependsOn, d.ID(subId, rg))
+		}
+		azToTf[azureId] = tfId
+		tfresources[tfId] = TFResource{
+			AzureId:    azureId,
+			TFId:       tfId,
+			TFType:     tfType,
+			Properties: res.Properties,
+			DependsOn:  dependsOn,
+		}
 	}
-	return &fqtpl, nil
+
+	// Converting the DependsOn of each TFResource from Azure IDs to TF IDs.
+	for k, res := range tfresources {
+		dependsOn := []string{}
+		for _, azureId := range res.DependsOn {
+			// Every entry in the tfresoruces msut be recorded in the azToTf mapping, so no need to check existance here.
+			dependsOn = append(dependsOn, azToTf[azureId])
+		}
+		tfresources[k] = res
+	}
+
+	return tfresources
 }

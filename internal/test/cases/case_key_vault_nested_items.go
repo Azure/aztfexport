@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/Azure/aztfy/internal/test"
 	"os"
 	"strings"
+
+	"github.com/Azure/aztfy/internal/test"
 
 	"github.com/Azure/aztfy/internal/client"
 	"github.com/Azure/aztfy/internal/resmap"
@@ -116,58 +117,65 @@ resource "azurerm_key_vault_key" "test" {
 `, d.RandomRgName(), d.RandomStringOfLength(8))
 }
 
-func (CaseKeyVaultNestedItems) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
+func (CaseKeyVaultNestedItems) getItems(d test.Data) (keyId, secretId, certId string, err error) {
 	b, err := client.NewClientBuilder()
 	if err != nil {
-		return nil, err
+		return "", "", "", err
 	}
-	var keyId, certId, secretId string
 	subid := os.Getenv("ARM_SUBSCRIPTION_ID")
 	ctx := context.Background()
 	{
 		client, err := b.NewKeyvaultKeysClient(subid)
 		if err != nil {
-			return nil, err
+			return "", "", "", err
 		}
 		resp, err := client.Get(ctx, d.RandomRgName(), "aztfy-test-"+d.RandomStringOfLength(8), "key-"+d.RandomStringOfLength(8), nil)
 		if err != nil {
-			return nil, fmt.Errorf("retrieving the key: %v", err)
+			return "", "", "", fmt.Errorf("retrieving the key: %v", err)
 		}
 		if resp.Key.Properties == nil || resp.Key.Properties.KeyURIWithVersion == nil {
-			return nil, fmt.Errorf("failed to get data plane URI from the response for key")
+			return "", "", "", fmt.Errorf("failed to get data plane URI from the response for key")
 		}
 		keyId = *resp.Key.Properties.KeyURIWithVersion
 	}
 	{
 		client, err := b.NewKeyvaultSecretsClient(subid)
 		if err != nil {
-			return nil, err
+			return "", "", "", err
 		}
 		resp, err := client.Get(ctx, d.RandomRgName(), "aztfy-test-"+d.RandomStringOfLength(8), "secret-"+d.RandomStringOfLength(8), nil)
 		if err != nil {
-			return nil, fmt.Errorf("retrieving the secret: %v", err)
+			return "", "", "", fmt.Errorf("retrieving the secret: %v", err)
 		}
 		if resp.Secret.Properties == nil || resp.Secret.Properties.SecretURIWithVersion == nil {
-			return nil, fmt.Errorf("failed to get data plane URI from the response for secret")
+			return "", "", "", fmt.Errorf("failed to get data plane URI from the response for secret")
 		}
 		secretId = *resp.Secret.Properties.SecretURIWithVersion
 	}
 	{
 		client, err := b.NewKeyvaultSecretsClient(subid)
 		if err != nil {
-			return nil, err
+			return "", "", "", err
 		}
 		resp, err := client.Get(ctx, d.RandomRgName(), "aztfy-test-"+d.RandomStringOfLength(8), "cert-"+d.RandomStringOfLength(8), nil)
 		if err != nil {
-			return nil, fmt.Errorf("retrieving the cert (secret): %v", err)
+			return "", "", "", fmt.Errorf("retrieving the cert (secret): %v", err)
 		}
 		if resp.Secret.Properties == nil || resp.Secret.Properties.SecretURIWithVersion == nil {
-			return nil, fmt.Errorf("failed to get data plane URI from the response for cert (secret)")
+			return "", "", "", fmt.Errorf("failed to get data plane URI from the response for cert (secret)")
 		}
 		id := *resp.Secret.Properties.SecretURIWithVersion
 		segs := strings.Split(id, "/")
 		segs[len(segs)-3] = "certificates"
 		certId = strings.Join(segs, "/")
+	}
+	return keyId, secretId, certId, nil
+}
+
+func (c CaseKeyVaultNestedItems) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
+	keyId, secretId, certId, err := c.getItems(d)
+	if err != nil {
+		return nil, err
 	}
 	rm := fmt.Sprintf(`{
 "/subscriptions/%[1]s/resourceGroups/%[2]s": "azurerm_resource_group.test",
@@ -184,10 +192,33 @@ func (CaseKeyVaultNestedItems) ResourceMapping(d test.Data) (resmap.ResourceMapp
 	return m, nil
 }
 
-// TODO: Support importing keys and secrets
-func (CaseKeyVaultNestedItems) AzureResourceIds(d test.Data) []string {
+func (c CaseKeyVaultNestedItems) AzureResourceIds(d test.Data) ([]string, error) {
+	keyId, secretId, certId, err := c.getItems(d)
+	if err != nil {
+		return nil, err
+	}
+	var (
+		keyIdSuffix    string
+		secretIdSuffix string
+		certIdSuffix   string
+	)
+	{
+		segs := strings.Split(keyId, "/")
+		keyIdSuffix = strings.Join(segs[len(segs)-3:len(segs)-1], "/")
+	}
+	{
+		segs := strings.Split(secretId, "/")
+		secretIdSuffix = strings.Join(segs[len(segs)-3:len(segs)-1], "/")
+	}
+	{
+		segs := strings.Split(certId, "/")
+		certIdSuffix = strings.Join(segs[len(segs)-3:len(segs)-1], "/")
+	}
 	return []string{
 		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
 		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
-	}
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s/%[4]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), keyIdSuffix),
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s/%[4]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), secretIdSuffix),
+		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s/%[4]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), certIdSuffix),
+	}, nil
 }

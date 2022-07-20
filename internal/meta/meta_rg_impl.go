@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -23,7 +24,7 @@ var _ RgMeta = &MetaRgImpl{}
 type MetaRgImpl struct {
 	Meta
 	resourceGroup string
-	armTemplate   armtemplate.FQTemplate
+	resources     armtemplate.TFResources
 
 	// Key is azure resource id; Value is terraform resource addr.
 	// For azure resources not in this mapping, they are all initialized as to skip.
@@ -65,34 +66,36 @@ func (meta *MetaRgImpl) ListResource() (ImportList, error) {
 		return nil, err
 	}
 
-	var ids []string
-	for _, res := range meta.armTemplate.Resources {
-		ids = append(ids, res.Id)
-	}
-	rgid, _ := armtemplate.ResourceGroupId.ProviderId(meta.subscriptionId, meta.resourceGroup, nil)
-	ids = append(ids, rgid)
-
 	var l ImportList
 
-	for i, id := range ids {
-		recommendations := RecommendationsForId(id)
+	rl := []armtemplate.TFResource{}
+	for _, res := range meta.resources {
+		rl = append(rl, res)
+	}
+	sort.Slice(rl, func(i, j int) bool {
+		return rl[i].AzureId < rl[j].AzureId
+	})
+
+	for i, res := range rl {
 		item := ImportItem{
-			ResourceID: id,
+			ResourceID: res.TFId,
 			TFAddr: tfaddr.TFAddr{
 				Type: "",
 				Name: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, i, meta.resourceNameSuffix),
 			},
-			Recommendations: recommendations,
+		}
+		if res.TFType != "" {
+			item.Recommendations = []string{res.TFType}
 		}
 
 		if len(meta.resourceMapping) != 0 {
-			if addr, ok := meta.resourceMapping[id]; ok {
+			if addr, ok := meta.resourceMapping[res.TFId]; ok {
 				item.TFAddr = addr
 			}
 		} else {
 			// Only auto deduce the TF resource type from recommendations when there is no resource mapping file specified.
-			if len(recommendations) == 1 {
-				item.TFAddr.Type = recommendations[0]
+			if res.TFType != "" {
+				item.TFAddr.Type = res.TFType
 				item.IsRecommended = true
 			}
 		}
@@ -155,22 +158,11 @@ func (meta *MetaRgImpl) exportArmTemplate(ctx context.Context) error {
 	if err := tpl.TweakResources(); err != nil {
 		return fmt.Errorf("populating managed resources in the ARM template: %v", err)
 	}
-
-	fqTpl, err := tpl.Qualify(meta.subscriptionId, meta.resourceGroup, meta.clientBuilder)
-	if err != nil {
-		return err
-	}
-	meta.armTemplate = *fqTpl
-
+	meta.resources = tpl.ToTFResources(meta.subscriptionId, meta.resourceGroup)
 	return nil
 }
 
 func (meta MetaRgImpl) resolveDependency(configs ConfigInfos) (ConfigInfos, error) {
-	depInfo, err := meta.armTemplate.DependencyInfo()
-	if err != nil {
-		return nil, err
-	}
-
 	configSet := map[string]ConfigInfo{}
 	for _, cfg := range configs {
 		configSet[cfg.ResourceID] = cfg
@@ -178,18 +170,18 @@ func (meta MetaRgImpl) resolveDependency(configs ConfigInfos) (ConfigInfos, erro
 
 	// Iterate each config to add dependency by querying the dependency info from arm template.
 	var out ConfigInfos
-	rgid, _ := armtemplate.ResourceGroupId.ProviderId(meta.subscriptionId, meta.resourceGroup, nil)
-	for id, cfg := range configSet {
-		if id == rgid {
+	rgid := armtemplate.ResourceGroupId.ID(meta.subscriptionId, meta.resourceGroup)
+	for tfid, cfg := range configSet {
+		if tfid == rgid {
 			out = append(out, cfg)
 			continue
 		}
-		// This should never happen as we always ensure there is at least one implicit dependency on the resource group for each resource.
-		if _, ok := depInfo[id]; !ok {
-			return nil, fmt.Errorf("can't find resource %q in the arm template", id)
+		tfres, ok := meta.resources[tfid]
+		if !ok {
+			return nil, fmt.Errorf("can't find resource %q in the arm template's resources", tfid)
 		}
 
-		if err := hclBlockAppendDependency(cfg.hcl.Body().Blocks()[0].Body(), depInfo[id], configSet); err != nil {
+		if err := hclBlockAppendDependency(cfg.hcl.Body().Blocks()[0].Body(), tfres.DependsOn, configSet); err != nil {
 			return nil, err
 		}
 		out = append(out, cfg)

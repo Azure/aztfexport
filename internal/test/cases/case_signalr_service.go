@@ -3,6 +3,7 @@ package cases
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/Azure/aztfy/internal/test"
 
 	"github.com/Azure/aztfy/internal/resmap"
@@ -46,9 +47,9 @@ func (CaseSignalRService) ResourceMapping(d test.Data) (resmap.ResourceMapping, 
 	return m, nil
 }
 
-func (CaseSignalRService) AzureResourceIds(d test.Data) []string {
+func (CaseSignalRService) AzureResourceIds(d test.Data) ([]string, error) {
 	return []string{
 		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
 		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.SignalRService/signalR/test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
-	}
+	}, nil
 }

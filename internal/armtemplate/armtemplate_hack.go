@@ -1,12 +1,10 @@
 package armtemplate
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
 
-	"github.com/Azure/aztfy/internal/client"
 	"github.com/tidwall/gjson"
 )
 
@@ -22,6 +20,26 @@ func (tpl *Template) TweakResources() error {
 	if err := tpl.populateManagedResources(); err != nil {
 		return err
 	}
+
+	// For resources with no dependency, add the resource group to the depends on list.
+	var newResources []Resource
+	for _, res := range tpl.Resources {
+		if len(res.DependsOn) == 0 {
+			res.DependsOn = []ResourceId{
+				{},
+			}
+		}
+		newResources = append(newResources, res)
+	}
+
+	// Populate the resource group into the resouce list
+	newResources = append(newResources, Resource{
+		ResourceId: ResourceId{},
+		DependsOn:  []ResourceId{},
+	})
+
+	tpl.Resources = newResources
+
 	return nil
 }
 
@@ -120,121 +138,4 @@ func populateManagedResourcesByPath(res Resource, paths ...string) (*Resource, [
 		}
 	}
 	return &res, resources, nil
-}
-
-// ProviderId converts the ARM ResourceId to its ARM resource ID literal, based on the specified subscription id and resource
-// group name. Then it will optionally transform the ARM resource ID to its corresponding TF resource ID, which might requires
-// API interaction with ARM, where a non-nil client builder is required.
-func (res ResourceId) ProviderId(sub, rg string, b *client.ClientBuilder) (string, error) {
-	switch res.Type {
-	case "Microsoft.SignalRService/SignalR":
-		return res.providerIdForSignalR(sub, rg, b)
-	case "microsoft.insights/webtests":
-		return res.providerIdForInsightsWebtests(sub, rg, b)
-	case "Microsoft.Network/frontdoors":
-		return res.providerIdForFrontDoor(sub, rg, b)
-	case "Microsoft.KeyVault/vaults/keys",
-		"Microsoft.KeyVault/vaults/secrets",
-		"Microsoft.KeyVault/vaults/certificates":
-		return res.providerIdForKeyVaultNestedItems(sub, rg, b)
-	case "Microsoft.Storage/storageAccounts/fileServices/shares":
-		return res.providerIdForStoragFileShare(sub, rg, b)
-	default:
-		return res.ID(sub, rg), nil
-	}
-}
-
-func (res ResourceId) providerIdForSignalR(sub, rg string, b *client.ClientBuilder) (string, error) {
-	// See issue: https://github.com/Azure/aztfy/issues/154
-	res.Type = "Microsoft.SignalRService/signalR"
-	return res.ID(sub, rg), nil
-}
-
-func (res ResourceId) providerIdForFrontDoor(sub, rg string, b *client.ClientBuilder) (string, error) {
-	// See issue: https://github.com/Azure/aztfy/issues/118
-	res.Type = "Microsoft.Network/frontDoors"
-	return res.ID(sub, rg), nil
-}
-
-func (res ResourceId) providerIdForInsightsWebtests(sub, rg string, b *client.ClientBuilder) (string, error) {
-	// See issue: https://github.com/Azure/aztfy/issues/89
-	res.Type = "Microsoft.insights/webTests"
-	return res.ID(sub, rg), nil
-}
-
-func (res ResourceId) providerIdForKeyVaultNestedItems(sub, rg string, b *client.ClientBuilder) (string, error) {
-	// See issue: https://github.com/Azure/aztfy/issues/86
-	ctx := context.Background()
-	switch res.Type {
-	case "Microsoft.KeyVault/vaults/keys":
-		client, err := b.NewKeyvaultKeysClient(sub)
-		if err != nil {
-			return "", err
-		}
-		segs := strings.Split(res.Name, "/")
-		if len(segs) != 2 {
-			return "", fmt.Errorf("malformed resource name %q for %q", res.Name, res.Type)
-		}
-		resp, err := client.Get(ctx, rg, segs[0], segs[1], nil)
-		if err != nil {
-			return "", fmt.Errorf("retrieving %s: %v", res.ID(sub, rg), err)
-		}
-		if resp.Key.Properties == nil || resp.Key.Properties.KeyURIWithVersion == nil {
-			return "", fmt.Errorf("failed to get data plane URI from the response for %s", res.ID(sub, rg))
-		}
-		return *resp.Key.Properties.KeyURIWithVersion, nil
-	case "Microsoft.KeyVault/vaults/secrets":
-		client, err := b.NewKeyvaultSecretsClient(sub)
-		if err != nil {
-			return "", err
-		}
-		segs := strings.Split(res.Name, "/")
-		if len(segs) != 2 {
-			return "", fmt.Errorf("malformed resource name %q for %q", res.Name, res.Type)
-		}
-		resp, err := client.Get(ctx, rg, segs[0], segs[1], nil)
-		if err != nil {
-			return "", fmt.Errorf("retrieving %s: %v", res.ID(sub, rg), err)
-		}
-		if resp.Secret.Properties == nil || resp.Secret.Properties.SecretURIWithVersion == nil {
-			return "", fmt.Errorf("failed to get data plane URI from the response for %s", res.ID(sub, rg))
-		}
-		return *resp.Secret.Properties.SecretURIWithVersion, nil
-	case "Microsoft.KeyVault/vaults/certificates":
-		// There is no such type called "Microsoft.KeyVault/vaults/certificates" in ARM, this is just a hypothetic type to indicate
-		// the current resoruce corresponds to a certificate in data plane.
-		// We will use secret client to get its secret resource from control plane, and then construct the uri from the data plane uri of the secret.
-		client, err := b.NewKeyvaultSecretsClient(sub)
-		if err != nil {
-			return "", err
-		}
-		segs := strings.Split(res.Name, "/")
-		if len(segs) != 2 {
-			return "", fmt.Errorf("malformed resource name %q for %q", res.Name, res.Type)
-		}
-		resp, err := client.Get(ctx, rg, segs[0], segs[1], nil)
-		if err != nil {
-			return "", fmt.Errorf("retrieving %s: %v", res.ID(sub, rg), err)
-		}
-		if resp.Secret.Properties == nil || resp.Secret.Properties.SecretURIWithVersion == nil {
-			return "", fmt.Errorf("failed to get data plane URI from the response for %s (secret actually)", res.ID(sub, rg))
-		}
-		id := *resp.Secret.Properties.SecretURIWithVersion
-		segs = strings.Split(id, "/")
-		segs[len(segs)-3] = "certificates"
-		return strings.Join(segs, "/"), nil
-	}
-	panic("never reach here")
-}
-
-func (res ResourceId) providerIdForStoragFileShare(sub, rg string, b *client.ClientBuilder) (string, error) {
-	// See issue: https://github.com/Azure/aztfy/issues/130
-
-	// Normally we should retrieve the data plane URL of the storage file share via API. While there is no such attribute in its mgmt plane API model.
-	// Therefore, we simply construct the data plane URL via its mgmt plane resource ID.
-	segs := strings.Split(res.Name, "/")
-	if len(segs) != 3 {
-		return "", fmt.Errorf("malformed resource name %q for %q", res.Name, res.Type)
-	}
-	return fmt.Sprintf("https://%s.file.core.windows.net/%s", segs[0], segs[2]), nil
 }

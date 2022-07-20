@@ -1,14 +1,11 @@
 package meta
 
 import (
-	"strings"
-
 	"github.com/Azure/aztfy/internal/tfaddr"
-	"github.com/Azure/aztfy/mapping"
 )
 
 type ImportItem struct {
-	// The azure resource id
+	// The TF resource id
 	ResourceID string
 
 	// Whether this azure resource failed to import into terraform (this might due to the TFResourceType doesn't match the resource)
@@ -65,13 +62,4 @@ func (l ImportList) Imported() ImportList {
 		}
 	}
 	return out
-}
-
-func RecommendationsForId(rid string) []string {
-	for pattern, resources := range mapping.AzureIdPatternToResourcesMapping {
-		if pattern.MatchString(strings.ToUpper(rid)) {
-			return resources
-		}
-	}
-	return []string{}
 }

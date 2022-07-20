@@ -66,7 +66,7 @@ The command will automatically identify the Terraform resource type (e.g. correc
 
 #### Interactive Mode
 
-In interactive mode, `aztfy` list all the resources resides in the specified resource group. For each resource, user is expected to input the Terraform resource address in form of `<resource type>.<resource name>` (e.g. `azurerm_linux_virtual_machine.test`). Users can press `r` to see the possible resource type(s) for the selected import item (though this is not guaranteed to be 100% accurate). In case there is exactly one resource type match for the import item, that resource type will be automatically filled in the text input for the users, with a 💡 line prefix as an indication.
+In interactive mode, `aztfy` list all the resources resides in the specified resource group. For each resource, user is expected to input the Terraform resource address in form of `<resource type>.<resource name>` (e.g. `azurerm_linux_virtual_machine.test`). Users can press `r` to see the possible resource type(s) for the selected import item. In case there is exactly one resource type match for the import item, that resource type will be automatically filled in the text input for the users, with a 💡 line prefix as an indication.
 
 In some cases, there are Azure resources that have no corresponding Terraform resources (e.g. due to lacks of Terraform support), or some resources might be created as a side effect of provisioning another resource (e.g. the OS Disk resource is created automatically when provisioning a VM). In these cases, you can skip these resources without typing anything.
 
