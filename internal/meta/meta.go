@@ -90,7 +90,8 @@ The output directory is not empty. Please choose one of actions below:
 * To overwrite everything inside the output directory, press "O"
 * To append (state and config) into the output directory, press "A"
 * Press other keys to quit
-`)
+
+> `)
 				var ans string
 				fmt.Scanf("%s", &ans)
 				switch strings.ToLower(ans) {

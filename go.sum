@@ -102,8 +102,9 @@ github.com/charmbracelet/bubbletea v0.20.1-0.20220516164627-a5f28a3a04bb h1:bRxI
 github.com/charmbracelet/bubbletea v0.20.1-0.20220516164627-a5f28a3a04bb/go.mod h1:GgmJMec61d08zXsOhqRC/AiOx4K4pmz+VIcRIm1FKr4=
 github.com/charmbracelet/harmonica v0.1.0 h1:lFKeSd6OAckQ/CEzPVd2mqj+YMEubQ/3FM2IYY3xNm0=
 github.com/charmbracelet/harmonica v0.1.0/go.mod h1:KSri/1RMQOZLbw7AHqgcBycp8pgJnQMYYT8QZRqZ1Ao=
-github.com/charmbracelet/lipgloss v0.4.0 h1:768h64EFkGUr8V5yAKV7/Ta0NiVceiPaV+PphaW1K9g=
 github.com/charmbracelet/lipgloss v0.4.0/go.mod h1:vmdkHvce7UzX6xkyf4cca8WlwdQ5RQr8fzta+xl7BOM=
+github.com/charmbracelet/lipgloss v0.5.0 h1:lulQHuVeodSgDez+3rGiuxlPVXSnhth442DATR2/8t8=
+github.com/charmbracelet/lipgloss v0.5.0/go.mod h1:EZLha/HbzEt7cYqdFPovlqy5FZPj0xFhg5SaqxScmgs=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
 github.com/cncf/udpa/go v0.0.0-20201120205902-5459f2c99403/go.mod h1:WmhPx2Nbnhtbo57+VJT5O0JRkEi1Wbu0z5j0R8u5Hbk=
@@ -249,6 +250,10 @@ github.com/magodo/armid v0.0.0-20220707115142-d2d9f6fb551b h1:MizLjMfDMkcTcgb9ho
 github.com/magodo/armid v0.0.0-20220707115142-d2d9f6fb551b/go.mod h1:rR8E7zfGMbmfnSQvrkFiWYdhrfTqsVSltelnZB09BwA=
 github.com/magodo/aztft v0.1.0 h1:QyNrMBt7ARNG1EZ+6hvHCEkjG9F/K2C8ERFg7h1Uqhc=
 github.com/magodo/aztft v0.1.0/go.mod h1:CQemtiO/6opZSdNTU0URJm/ShvIqT7MTsR2OQhyXwY8=
+github.com/magodo/spinner v0.0.0-20220720063023-0fa6090c10c9 h1:9dW1HgbExl4N8CsZUypLM0TT3GK4nss4x1El9SesTTk=
+github.com/magodo/spinner v0.0.0-20220720063023-0fa6090c10c9/go.mod h1:Cn4fFwFH/Ddw9sjWPeSS72bNaxbM+FRXf7pkGEDReq8=
+github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6 h1:CElHO4hPXC+Eivy8sUC/WrnH3jmQzdF2x0lEXBEYul8=
+github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6/go.mod h1:Cn4fFwFH/Ddw9sjWPeSS72bNaxbM+FRXf7pkGEDReq8=
 github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0 h1:aNtr4iNv/tex2t8W1u3scAoNHEnFlTKhNNHOpYStqbs=
 github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0/go.mod h1:MqYhNP+PC386Bjsx5piZe7T4vDm5QIPv8b1RU0prVnU=
 github.com/magodo/tfadd v0.10.0 h1:HxYLXWksFXldHdaLcQst9Nvr6xJqatgeyGdeSCgM8bA=
@@ -290,6 +295,7 @@ github.com/muesli/reflow v0.2.1-0.20210115123740-9e1d0d53df68/go.mod h1:Xk+z4oIW
 github.com/muesli/reflow v0.3.0 h1:IFsN6K9NfGtjeggFP+68I4chLZV2yIKsXJFNZ+eWh6s=
 github.com/muesli/reflow v0.3.0/go.mod h1:pbwTDkVPibjO2kyvBQRBxTWEEGDGq0FlB1BIKtnHY/8=
 github.com/muesli/termenv v0.9.0/go.mod h1:R/LzAKf+suGs4IsO95y7+7DpFHO0KABgnZqtlyx2mBw=
+github.com/muesli/termenv v0.11.1-0.20220204035834-5ac8409525e0/go.mod h1:Bd5NYQ7pd+SrtBSrSNoBBmXlcY8+Xj4BMJgh8qcZrvs=
 github.com/muesli/termenv v0.11.1-0.20220212125758-44cd13922739 h1:QANkGiGr39l1EESqrE0gZw0/AJNYzIvoGLhIoVYtluI=
 github.com/muesli/termenv v0.11.1-0.20220212125758-44cd13922739/go.mod h1:Bd5NYQ7pd+SrtBSrSNoBBmXlcY8+Xj4BMJgh8qcZrvs=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=

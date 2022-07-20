@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/magodo/armid"
 	"io"
 	"log"
 	"os"
@@ -12,6 +11,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/magodo/armid"
 
 	"github.com/Azure/aztfy/internal"
 	"github.com/Azure/aztfy/internal/config"
@@ -176,9 +177,6 @@ func main() {
 					if c.NArg() > 1 {
 						return fmt.Errorf("More than one resource groups specified")
 					}
-					if flagBatchMode && flagMappingFile == "" {
-						fmt.Println("[WARN]: No resource mapping file specified! Only the recognized resources will be imported.")
-					}
 					if flagContinue && !flagBatchMode {
 						return fmt.Errorf("`--continue` must be used together with `--batch`")
 					}
@@ -307,6 +305,7 @@ func main() {
 							OutputDir:      flagOutputDir,
 							Overwrite:      flagOverwrite,
 							Append:         flagAppend,
+							BatchMode:      true,
 							BackendType:    flagBackendType,
 							BackendConfig:  flagBackendConfig.Value(),
 						},
@@ -323,7 +322,7 @@ func main() {
 	sort.Sort(cli.FlagsByName(app.Flags))
 
 	if err := app.Run(os.Args); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v", err)
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
