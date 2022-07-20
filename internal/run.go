@@ -9,11 +9,11 @@ import (
 )
 
 func ResourceImport(cfg config.ResConfig) error {
-	fmt.Printf("Target Azure Resource: %s\n", cfg.ResourceId)
 	c, err := meta.NewResMeta(cfg)
 	if err != nil {
 		return err
 	}
+
 	fmt.Println("Initializing...")
 	if err := c.Init(); err != nil {
 		return err
