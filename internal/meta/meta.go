@@ -38,6 +38,7 @@ type Meta struct {
 	outdir         string
 	tf             *tfexec.Terraform
 	clientBuilder  *client.ClientBuilder
+	devProvider    bool
 	backendType    string
 	backendConfig  []string
 	// Use a safer name which is less likely to conflicts with users' existing files.
@@ -126,6 +127,7 @@ The output directory is not empty. Please choose one of actions below:
 		rootdir:         rootdir,
 		outdir:          outdir,
 		clientBuilder:   b,
+		devProvider:     cfg.DevProvider,
 		backendType:     cfg.BackendType,
 		backendConfig:   cfg.BackendConfig,
 		useSafeFilename: cfg.Append,
@@ -207,6 +209,17 @@ func (meta Meta) generateCfg(l ImportList, cfgTrans ...TFConfigTransformer) erro
 }
 
 func (meta *Meta) providerConfig() string {
+	if meta.devProvider {
+		return fmt.Sprintf(`terraform {
+  backend %q {}
+}
+
+provider "azurerm" {
+  features {}
+}
+`, meta.backendType)
+	}
+
 	return fmt.Sprintf(`terraform {
   backend %q {}
   required_providers {
