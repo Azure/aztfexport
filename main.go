@@ -97,7 +97,7 @@ func main() {
 		&cli.BoolFlag{
 			Name:        "dev-provider",
 			EnvVars:     []string{"AZTFY_DEV_PROVIDER"},
-			Usage:       fmt.Sprintf("Allows local development AzureRM provider to be used for importing resources, instead of the pinned provider in v%s", azurerm.ProviderSchemaInfo.Version),
+			Usage:       fmt.Sprintf("Use the local development AzureRM provider, instead of the pinned provider in v%s", azurerm.ProviderSchemaInfo.Version),
 			Destination: &flagDevProvider,
 		},
 		&cli.StringFlag{
