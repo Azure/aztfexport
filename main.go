@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/magodo/armid"
+	"github.com/magodo/tfadd/providers/azurerm"
 
 	"github.com/Azure/aztfy/internal"
 	"github.com/Azure/aztfy/internal/config"
@@ -28,6 +29,7 @@ func main() {
 		flagOutputDir      string
 		flagOverwrite      bool
 		flagAppend         bool
+		flagDevProvider    bool
 		flagBackendType    string
 		flagBackendConfig  cli.StringSlice
 
@@ -91,6 +93,12 @@ func main() {
 			EnvVars:     []string{"AZTFY_APPEND"},
 			Usage:       "Skip cleaning up the output directory prior to importing, everything will be imported to the existing state file if any (local backend only)",
 			Destination: &flagAppend,
+		},
+		&cli.BoolFlag{
+			Name:        "dev-provider",
+			EnvVars:     []string{"AZTFY_DEV_PROVIDER"},
+			Usage:       fmt.Sprintf("Use the local development AzureRM provider, instead of the pinned provider in v%s", azurerm.ProviderSchemaInfo.Version),
+			Destination: &flagDevProvider,
 		},
 		&cli.StringFlag{
 			Name:        "backend-type",
@@ -210,6 +218,7 @@ func main() {
 							OutputDir:      flagOutputDir,
 							Overwrite:      flagOverwrite,
 							Append:         flagAppend,
+							DevProvider:    flagDevProvider,
 							BackendType:    flagBackendType,
 							BackendConfig:  flagBackendConfig.Value(),
 						},
@@ -305,6 +314,7 @@ func main() {
 							OutputDir:      flagOutputDir,
 							Overwrite:      flagOverwrite,
 							Append:         flagAppend,
+							DevProvider:    flagDevProvider,
 							BatchMode:      true,
 							BackendType:    flagBackendType,
 							BackendConfig:  flagBackendConfig.Value(),

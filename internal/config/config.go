@@ -13,6 +13,7 @@ type CommonConfig struct {
 	OutputDir      string
 	Overwrite      bool
 	Append         bool
+	DevProvider    bool
 	BatchMode      bool
 	BackendType    string
 	BackendConfig  []string
