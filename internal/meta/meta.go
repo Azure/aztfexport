@@ -84,12 +84,14 @@ func NewMeta(cfg config.CommonConfig) (*Meta, error) {
 				}
 
 				// Interactive mode
-				fmt.Printf(`The output directory is not empty. Please choose one of actions below:
+				fmt.Printf(`
+The output directory is not empty. Please choose one of actions below:
 
-[O] To overwrite everything inside the output directory, press "O"
-[A] To append (state and config) into the output directory, press "A"
-[Other] Press other keys to quit
-`)
+* To overwrite everything inside the output directory, press "O"
+* To append (state and config) into the output directory, press "A"
+* Press other keys to quit
+
+> `)
 				var ans string
 				fmt.Scanf("%s", &ans)
 				switch strings.ToLower(ans) {

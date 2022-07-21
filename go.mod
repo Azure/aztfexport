@@ -9,13 +9,14 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources v1.0.0
 	github.com/charmbracelet/bubbles v0.10.4-0.20220412141214-292a1dd7ba97
 	github.com/charmbracelet/bubbletea v0.20.1-0.20220516164627-a5f28a3a04bb
-	github.com/charmbracelet/lipgloss v0.4.0
+	github.com/charmbracelet/lipgloss v0.5.0
 	github.com/hashicorp/go-version v1.4.0
 	github.com/hashicorp/hc-install v0.3.3-0.20220510130859-d615262197ec
 	github.com/hashicorp/hcl/v2 v2.11.1
 	github.com/hashicorp/terraform-exec v0.16.0
 	github.com/magodo/armid v0.0.0-20220707115142-d2d9f6fb551b
 	github.com/magodo/aztft v0.1.0
+	github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
 	github.com/magodo/tfadd v0.10.0
 	github.com/mitchellh/go-wordwrap v1.0.0
