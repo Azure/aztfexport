@@ -10,10 +10,10 @@ require (
 	github.com/charmbracelet/bubbles v0.10.4-0.20220412141214-292a1dd7ba97
 	github.com/charmbracelet/bubbletea v0.20.1-0.20220516164627-a5f28a3a04bb
 	github.com/charmbracelet/lipgloss v0.5.0
-	github.com/hashicorp/go-version v1.4.0
-	github.com/hashicorp/hc-install v0.3.3-0.20220510130859-d615262197ec
+	github.com/hashicorp/go-version v1.6.0
+	github.com/hashicorp/hc-install v0.4.0
 	github.com/hashicorp/hcl/v2 v2.11.1
-	github.com/hashicorp/terraform-exec v0.16.0
+	github.com/hashicorp/terraform-exec v0.17.2
 	github.com/magodo/armid v0.0.0-20220707115142-d2d9f6fb551b
 	github.com/magodo/aztft v0.1.1-0.20220722021529-f644e184c7e0
 	github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6
@@ -76,7 +76,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-uuid v1.0.2 // indirect
 	github.com/hashicorp/logutils v1.0.0 // indirect
-	github.com/hashicorp/terraform-json v0.13.0 // indirect
+	github.com/hashicorp/terraform-json v0.14.0 // indirect
 	github.com/hashicorp/terraform-plugin-go v0.8.0 // indirect
 	github.com/hashicorp/terraform-plugin-log v0.3.0 // indirect
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.13.0 // indirect

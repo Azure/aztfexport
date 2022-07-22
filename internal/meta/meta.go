@@ -44,6 +44,7 @@ type Meta struct {
 	// Use a safer name which is less likely to conflicts with users' existing files.
 	// This is mainly used for the --append option.
 	useSafeFilename bool
+	empty           bool
 }
 
 func NewMeta(cfg config.CommonConfig) (*Meta, error) {
@@ -79,6 +80,7 @@ func NewMeta(cfg config.CommonConfig) (*Meta, error) {
 				if err := removeEverythingUnder(outdir); err != nil {
 					return nil, err
 				}
+				empty = true
 			} else {
 				if cfg.BatchMode {
 					return nil, fmt.Errorf("the output directory %q is not empty", outdir)
@@ -100,6 +102,7 @@ The output directory is not empty. Please choose one of actions below:
 					if err := removeEverythingUnder(outdir); err != nil {
 						return nil, err
 					}
+					empty = true
 				case "a":
 					cfg.Append = true
 				default:
@@ -131,6 +134,7 @@ The output directory is not empty. Please choose one of actions below:
 		backendType:     cfg.BackendType,
 		backendConfig:   cfg.BackendConfig,
 		useSafeFilename: cfg.Append,
+		empty:           empty,
 	}
 
 	return meta, nil
@@ -155,6 +159,12 @@ func (meta *Meta) Init() error {
 	tf, err := tfexec.NewTerraform(meta.outdir, execPath)
 	if err != nil {
 		return fmt.Errorf("error running NewTerraform: %w", err)
+	}
+	if v, ok := os.LookupEnv("TF_LOG_PATH"); ok {
+		tf.SetLogPath(v)
+	}
+	if v, ok := os.LookupEnv("TF_LOG"); ok {
+		tf.SetLog(v)
 	}
 	meta.tf = tf
 
@@ -255,16 +265,11 @@ func (meta Meta) filenameTmpCfg() string {
 }
 
 func (meta *Meta) initProvider(ctx context.Context) error {
-	empty, err := dirIsEmpty(meta.outdir)
-	if err != nil {
-		return err
-	}
-
 	// If the directory is empty, generate the full config as the output directory is empty.
 	// Otherwise:
 	// - If the output directory already exists the `azurerm` provider setting, then do nothing
 	// - Otherwise, just generate the `azurerm` provider setting (as it is only for local backend)
-	if empty {
+	if meta.empty {
 		cfgFile := filepath.Join(meta.outdir, meta.filenameProviderSetting())
 		if err := os.WriteFile(cfgFile, []byte(meta.providerConfig()), 0644); err != nil {
 			return fmt.Errorf("error creating provider config: %w", err)
