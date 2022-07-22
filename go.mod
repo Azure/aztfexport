@@ -15,10 +15,10 @@ require (
 	github.com/hashicorp/hcl/v2 v2.11.1
 	github.com/hashicorp/terraform-exec v0.17.2
 	github.com/magodo/armid v0.0.0-20220707115142-d2d9f6fb551b
-	github.com/magodo/aztft v0.1.1-0.20220722021529-f644e184c7e0
+	github.com/magodo/aztft v0.1.1-0.20220722065244-fa261569dce5
 	github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
-	github.com/magodo/tfadd v0.10.0
+	github.com/magodo/tfadd v0.10.1-0.20220722065447-a180bd9960db
 	github.com/mitchellh/go-wordwrap v1.0.0
 	github.com/muesli/reflow v0.3.0
 	github.com/stretchr/testify v1.7.5
