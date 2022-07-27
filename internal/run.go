@@ -88,7 +88,7 @@ func BatchImport(cfg config.RgConfig, continueOnError bool) error {
 				msg.SetDetail(strings.Join(warnings, "\n"))
 				continue
 			}
-			msg.SetStatus(fmt.Sprintf("Importing %s as %s", list[i].ResourceID, list[i].TFAddr))
+			msg.SetStatus(fmt.Sprintf("(%d/%d) Importing %s as %s", i+1, len(list), list[i].ResourceID, list[i].TFAddr))
 			c.Import(&list[i])
 			if err := list[i].ImportError; err != nil {
 				msg := fmt.Sprintf("Failed to import %s as %s: %v", list[i].ResourceID, list[i].TFAddr, err)
