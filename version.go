@@ -12,7 +12,7 @@ var revision string
 
 func getVersion() string {
 	if revision != "" {
-		return fmt.Sprintf("%s(%s)\n", version, revision)
+		return fmt.Sprintf("%s(%s)", version, revision)
 	}
 	return version
 }
