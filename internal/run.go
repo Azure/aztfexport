@@ -28,19 +28,30 @@ func ResourceImport(cfg config.ResConfig) error {
 			return err
 		}
 
-		msg.SetStatus("Querying Terraform resource type and id...")
-		rt, tfid, err := c.QueryResourceTypeAndId()
-		if err != nil {
-			return err
-		}
-
 		item := meta.ImportItem{
-			ResourceID: tfid,
 			TFAddr: tfaddr.TFAddr{
-				Type: rt,
 				Name: c.ResourceName,
 			},
 		}
+
+		if c.ResourceType == "" {
+			msg.SetStatus("Querying Terraform resource type and id...")
+			rt, tfid, err := c.QueryResourceTypeAndId()
+			if err != nil {
+				return err
+			}
+			item.ResourceID = tfid
+			item.TFAddr.Type = rt
+		} else {
+			msg.SetStatus("Querying Terraform resource id...")
+			tfid, err := c.QueryResourceId(c.ResourceType)
+			if err != nil {
+				return err
+			}
+			item.ResourceID = tfid
+			item.TFAddr.Type = c.ResourceType
+		}
+
 		msg.SetDetail(fmt.Sprintf(`Resource Type: %s
 Resource Id  : %s`, item.TFAddr.Type, item.ResourceID))
 
