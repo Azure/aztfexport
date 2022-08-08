@@ -38,6 +38,9 @@ type ResConfig struct {
 
 	// TF resource name
 	ResourceName string
+
+	// TF resource type. If this is empty, then uses aztft to deduce the correct resource type.
+	ResourceType string
 }
 
 func (ResConfig) isConfig() {}

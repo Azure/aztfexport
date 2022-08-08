@@ -46,7 +46,8 @@ func main() {
 		hflagMockClient bool
 
 		// res-only flags
-		flagName string
+		flagName    string
+		flagResType string
 	)
 
 	commonFlagsCheck := func() error {
@@ -270,6 +271,12 @@ func main() {
 						Value:       "res-0",
 						Destination: &flagName,
 					},
+					&cli.StringFlag{
+						Name:        "type",
+						EnvVars:     []string{"AZTFY_TYPE"},
+						Usage:       `The Terraform resource type.`,
+						Destination: &flagResType,
+					},
 				}, commonFlags...),
 				Action: func(c *cli.Context) error {
 					if err := commonFlagsCheck(); err != nil {
@@ -321,6 +328,7 @@ func main() {
 						},
 						ResourceId:   resId,
 						ResourceName: flagName,
+						ResourceType: flagResType,
 					}
 
 					return internal.ResourceImport(cfg)

@@ -11,6 +11,7 @@ type ResMeta struct {
 	Meta
 	Id           string
 	ResourceName string
+	ResourceType string
 }
 
 func NewResMeta(cfg config.ResConfig) (*ResMeta, error) {
@@ -22,6 +23,7 @@ func NewResMeta(cfg config.ResConfig) (*ResMeta, error) {
 		Meta:         *baseMeta,
 		Id:           cfg.ResourceId,
 		ResourceName: cfg.ResourceName,
+		ResourceType: cfg.ResourceType,
 	}
 	return meta, nil
 }
@@ -38,4 +40,8 @@ func (meta ResMeta) QueryResourceTypeAndId() (string, string, error) {
 		return "", "", fmt.Errorf("expect exactly one resource id, got=%d", len(lid))
 	}
 	return lrt[0], lid[0], nil
+}
+
+func (meta ResMeta) QueryResourceId(rt string) (string, error) {
+	return aztft.QueryId(meta.Id, rt, true)
 }
