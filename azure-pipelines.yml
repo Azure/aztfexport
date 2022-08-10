@@ -47,7 +47,7 @@ stages:
               version: 1.19
           - script: |
               REVISION=`git rev-parse --short HEAD`
-              dir=${OS}_${ARCH}/${OS}_${ARCH}
+              dir=${OS}-${ARCH}/${OS}-${ARCH}
               mkdir -p $dir
               output=aztfy
               if [[ $OS = windows ]]; then
@@ -62,9 +62,16 @@ stages:
           - task: PublishPipelineArtifact@1
             displayName: "Publish Binary"
             inputs:
-              targetPath: '$(system.defaultWorkingDirectory)/$(OS)_$(ARCH)'
-              artifactName: 'artifact'
+              targetPath: '$(system.defaultWorkingDirectory)/$(OS)-$(ARCH)'
+              artifactName: 'artifact-$(OS)-$(ARCH)'
               artifactType: 'pipeline'
+      - job: sign_binary
+        displayName: "Sign Binaries"
+        dependsOn: build
+        steps:
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              path: $(Build.SourcesDirectory)/dist 
   # - stage: release_linux_packages
   #   displayName: "Release Linux Packages"
   # - stage: release_windows_setup
