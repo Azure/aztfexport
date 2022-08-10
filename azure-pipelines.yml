@@ -9,7 +9,8 @@ parameters:
     type: string
 
 stages:
-  - stage: Build aztfy
+  - stage: build
+    displayName: "Build aztfy"
     jobs:
       - job: build_binary
         displayName: "Build Binaries"
@@ -57,6 +58,9 @@ stages:
               targetPath: '$(system.defaultWorkingDirectory)/dist/'
               artifactName: 'artifact'
               artifactType: 'pipeline'
-  - stage: Release Linux Packages
-  - stage: Release Windows Setup
-  - stage: Draft Github Release
+  - stage: release_linux_packages
+    displayName: "Release Linux Packages"
+  - stage: release_windows_setup
+    displayName: "Release Windows Setup"
+  - stage: draft_github_release
+    displayName: "Draft Github Release"
