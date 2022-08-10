@@ -48,13 +48,12 @@ stages:
           - script: |
               set -e
               REVISION=`git rev-parse --short HEAD`
-              dir=${OS}-${ARCH}/${OS}-${ARCH}
-              mkdir -p $dir
-              output=aztfy
+              mkdir build
+              name=aztfy
               if [[ $OS = windows ]]; then
-                  output=aztfy.exe
+                  name=aztfy.exe
               fi
-              GOOS="${OS}" GOARCH="${ARCH}" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X 'main.version=${VERSION}' -X 'main.revision=${REVISION}'" -o $dir/$output
+              GOOS="${OS}" GOARCH="${ARCH}" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X 'main.version=${VERSION}' -X 'main.revision=${REVISION}'" -o build/$name
             displayName: "Go Build"
             env:
               OS: $(OS)
@@ -63,8 +62,8 @@ stages:
           - task: PublishPipelineArtifact@1
             displayName: "Publish Binary"
             inputs:
-              targetPath: '$(system.defaultWorkingDirectory)/$(OS)-$(ARCH)'
-              artifactName: 'artifact-$(OS)-$(ARCH)'
+              targetPath: '$(system.defaultWorkingDirectory)/build'
+              artifactName: '$(OS)-$(ARCH)'
               artifactType: 'pipeline'
       - job: sign_binary
         displayName: "Sign Binaries"
