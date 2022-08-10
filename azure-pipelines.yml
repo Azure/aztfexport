@@ -46,6 +46,7 @@ stages:
             inputs:
               version: 1.19
           - script: |
+              set -e
               REVISION=`git rev-parse --short HEAD`
               dir=${OS}-${ARCH}/${OS}-${ARCH}
               mkdir -p $dir
@@ -106,6 +107,7 @@ stages:
               MaxConcurrency: '50'
               MaxRetryAttempts: '5'
           - script: |
+              set -e
               NAME="aztfy"
               OS_ARCH=(
                 "windows:amd64"
@@ -125,11 +127,16 @@ stages:
                 if [[ $OS = windows ]]; then
                     name=aztfy.exe
                 fi
-                zip dist/${OS}-${ARCH}/${name} release/${NAME}_${VERSION}_${OS}_${ARCH}.zip
+                zip -j release/${NAME}_${VERSION}_${OS}_${ARCH}.zip dist/${OS}-${ARCH}/${name} 
               done
               cd release
               shasum -a 256 *.zip > ${NAME}_SHA256SUMS
               cp ${NAME}_SHA256SUMS ${NAME}_SHA256SUMS.sig
+              
+              cd -
+              pwd
+              ls release
+            displayName: "Prepare Binary Archives & Digests"
             env:
               VERSION: $(version)
           - task: EsrpCodeSigning@1
