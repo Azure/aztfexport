@@ -105,6 +105,53 @@ stages:
               SessionTimeout: '60'
               MaxConcurrency: '50'
               MaxRetryAttempts: '5'
+          - script: |
+              NAME="aztfy"
+              OS_ARCH=(
+                "windows:amd64"
+                "windows:386"
+                #"linux:amd64"
+                #"linux:386"
+                #"linux:arm"
+                #"linux:arm64"
+                #"darwin:amd64"
+                #"darwin:arm64"
+              )
+              mkdir release
+              for os_arch in "${OS_ARCH[@]}" ; do
+                OS=${os_arch%%:*}
+                ARCH=${os_arch#*:}
+                name=aztfy
+                if [[ $OS = windows ]]; then
+                    name=aztfy.exe
+                fi
+                zip dist/${OS}-${ARCH}/${name} release/${NAME}_${VERSION}_${OS}_${ARCH}.zip
+              done
+              cd release
+              shasum -a 256 *.zip > ${NAME}_SHA256SUMS
+              cp ${NAME}_SHA256SUMS ${NAME}_SHA256SUMS.sig
+            env:
+              VERSION: $(version)
+          - task: EsrpCodeSigning@1
+            displayName: "Sign Binary Archive Digests"
+            inputs:
+              ConnectedServiceName: 'ESRP Signing Service'
+              FolderPath: '$(Build.SourcesDirectory)/release'
+              Pattern: '*_SHA256SUMS.sig'
+              signConfigType: 'inlineSignParams'
+              inlineOperation: |
+                [
+                  {
+                      "keyCode": "CP-461163-Pgp",
+                      "OperationCode": "LinuxSign",
+                      "Parameters": {},
+                      "ToolName": "sign",
+                      "ToolVersion": "1.0"
+                  }
+                ]
+              SessionTimeout: '60'
+              MaxConcurrency: '50'
+              MaxRetryAttempts: '5'
   # - stage: release_linux_packages
   #   displayName: "Release Linux Packages"
   # - stage: release_windows_setup
