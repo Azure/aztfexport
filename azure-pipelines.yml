@@ -72,12 +72,12 @@ stages:
         steps:
           - task: DownloadPipelineArtifact@2
             inputs:
-              path: $(Build.SourcesDirectory)/dist
+              path: $(system.defaultWorkingDirectory)/dist
           - task: EsrpCodeSigning@1
             displayName: "Sign Windows Binaries"
             inputs:
               ConnectedServiceName: 'ESRP Signing Service'
-              FolderPath: '$(Build.SourcesDirectory)/dist'
+              FolderPath: '$(system.defaultWorkingDirectory)/dist'
               Pattern: '*.exe'
               signConfigType: 'inlineSignParams'
               inlineOperation: |
@@ -107,7 +107,9 @@ stages:
               MaxConcurrency: '50'
               MaxRetryAttempts: '5'
           - script: |
-              set -e
+              set -xe
+              pwd
+              ls
               NAME="aztfy"
               OS_ARCH=(
                 "windows:amd64"
@@ -143,7 +145,7 @@ stages:
             displayName: "Sign Binary Archive Digests"
             inputs:
               ConnectedServiceName: 'ESRP Signing Service'
-              FolderPath: '$(Build.SourcesDirectory)/release'
+              FolderPath: '$(system.defaultWorkingDirectory)/release'
               Pattern: '*_SHA256SUMS.sig'
               signConfigType: 'inlineSignParams'
               inlineOperation: |
