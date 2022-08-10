@@ -106,10 +106,7 @@ stages:
               MaxConcurrency: '50'
               MaxRetryAttempts: '5'
           - script: |
-              set -xe
-              pwd
-              ls dist
-              tree dist
+              set -e
               NAME="aztfy"
               OS_ARCH=(
                 "windows:amd64"
@@ -134,10 +131,6 @@ stages:
               cd release
               shasum -a 256 *.zip > ${NAME}_SHA256SUMS
               cp ${NAME}_SHA256SUMS ${NAME}_SHA256SUMS.sig
-              
-              cd -
-              pwd
-              ls release
             displayName: "Prepare Binary Archives & Digests"
             env:
               VERSION: $(version)
