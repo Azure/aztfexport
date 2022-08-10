@@ -12,7 +12,7 @@ stages:
   - stage: build
     displayName: "Build aztfy"
     jobs:
-      - job: build_binary
+      - job: build
         displayName: "Build Binaries"
         strategy:
          matrix:
@@ -51,6 +51,7 @@ stages:
               filePath: '$(system.defaultWorkingDirectory)/scripts/build.sh'
               arguments: '$(OS) $(ARCH) $(version)'
       - job: publish
+        dependsOn: build
         displayName: "Publish Binaries"
         steps: 
           - task: PublishPipelineArtifact@1
