@@ -49,7 +49,7 @@ stages:
               pwd
               set -x
               REVISION=`git rev-parse --short HEAD`
-              dir=$OS_$ARCH
+              dir=${OS}_${ARCH}
               mkdir -p $dir
               output=aztfy
               if [[ $OS = windows ]]; then
