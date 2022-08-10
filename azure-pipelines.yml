@@ -46,10 +46,14 @@ stages:
               version: 1.19
           - bash: '$(system.defaultWorkingDirectory)/scripts/build.sh'
             displayName: 'Building for $(OS):$(ARCH)'
-            arguments: '$(OS) $(ARCH) $(version)'
+            arguments:
+              - '$(OS)'
+              - '$(ARCH)'
+              - '$(version)'
 
       - job: publish
         displayName: "Publish Binaries"
+        steps: 
           - task: PublishPipelineArtifact@1
             inputs:
               targetPath: '$(system.defaultWorkingDirectory)/dist/'
