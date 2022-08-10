@@ -109,7 +109,8 @@ stages:
           - script: |
               set -xe
               pwd
-              ls
+              ls dist
+              tree dist
               NAME="aztfy"
               OS_ARCH=(
                 "windows:amd64"
@@ -151,7 +152,7 @@ stages:
               inlineOperation: |
                 [
                   {
-                      "keyCode": "CP-461163-Pgp",
+                      "KeyCode": "CP-450779-Pgp",
                       "OperationCode": "LinuxSign",
                       "Parameters": {},
                       "ToolName": "sign",
