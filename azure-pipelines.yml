@@ -44,13 +44,11 @@ stages:
             displayName: 'Install Go'
             inputs:
               version: 1.19
-          - bash: '$(system.defaultWorkingDirectory)/scripts/build.sh'
+          - task: Bash@3
             displayName: 'Building for $(OS):$(ARCH)'
-            arguments:
-              - '$(OS)'
-              - '$(ARCH)'
-              - '$(version)'
-
+            inputs:
+              filePath: '$(system.defaultWorkingDirectory)/scripts/build.sh'
+              arguments: '$(OS) $(ARCH) $(version)'
       - job: publish
         displayName: "Publish Binaries"
         steps: 
