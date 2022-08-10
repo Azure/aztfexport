@@ -45,18 +45,24 @@ stages:
             displayName: 'Install Go'
             inputs:
               version: 1.19
-          - task: Bash@3
-            displayName: 'Building for $(OS):$(ARCH)'
-            inputs:
-              filePath: '$(system.defaultWorkingDirectory)/scripts/build.sh'
-              arguments: '$(OS) $(ARCH) $(version)'
-      - job: publish
-        dependsOn: build
-        displayName: "Publish Binaries"
-        steps: 
+          - script: |
+              REVISION=`git rev-parse --short HEAD`
+              dir=$OS_$ARCH
+              mkdir $dir
+              output=aztfy
+              if [[ $OS = windows ]]; then
+                  output=aztfy.exe
+              fi
+              GOOS="${OS}" GOARCH="${ARCH}" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X 'main.version=${VERSION}' -X 'main.revision=${REVISION}'" -o $dir/$output
+            displayName: "Build for $(OS)-$(ARCH)"
+            env:
+              OS: $(OS)
+              ARCH: $(ARCH)
+              VERSION: $(version)
           - task: PublishPipelineArtifact@1
+            displayName: "Publish Binary"
             inputs:
-              targetPath: '$(system.defaultWorkingDirectory)/dist/'
+              targetPath: '$(system.defaultWorkingDirectory)/$(OS)_$(ARCH)'
               artifactName: 'artifact'
               artifactType: 'pipeline'
   # - stage: release_linux_packages
