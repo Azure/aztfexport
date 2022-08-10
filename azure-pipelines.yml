@@ -58,9 +58,9 @@ stages:
               targetPath: '$(system.defaultWorkingDirectory)/dist/'
               artifactName: 'artifact'
               artifactType: 'pipeline'
-  - stage: release_linux_packages
-    displayName: "Release Linux Packages"
-  - stage: release_windows_setup
-    displayName: "Release Windows Setup"
-  - stage: draft_github_release
-    displayName: "Draft Github Release"
+  # - stage: release_linux_packages
+  #   displayName: "Release Linux Packages"
+  # - stage: release_windows_setup
+  #   displayName: "Release Windows Setup"
+  # - stage: draft_github_release
+  #   displayName: "Draft Github Release"
