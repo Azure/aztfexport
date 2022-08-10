@@ -5,31 +5,56 @@
 
 parameters:
   - name: version
-    displayName: Release Version
+    displayName: Release Version (e.g. v0.1.0)
     type: string
 
-jobs:
+stages:
+  - stage: Build aztfy
+    jobs:
+      - job: build_binary
+        displayName: "Build Binaries"
+        strategy:
+         matrix:
+          windows-386:
+            OS: windows
+            ARCH: 386
+          windows-amd64:
+            OS: windows
+            ARCH: amd64
+          linux-386:
+            OS: linux
+            ARCH: 386
+          linux-amd64:
+            OS: linux
+            ARCH: amd64
+          linux-arm:
+            OS: linux
+            ARCH: arm
+          linux-arm64:
+            OS: linux
+            ARCH: arm64
+          darwin-amd64:
+            OS: darwin
+            ARCH: amd64
+          darwin-arm64:
+            OS: darwin
+            ARCH: arm64
+        steps:
+          - task: GoTool@0
+            displayName: 'Install Go'
+            inputs:
+              version: 1.19
+          - bash: '$(system.defaultWorkingDirectory)/scripts/build.sh'
+            displayName: 'Building for $(OS):$(ARCH)'
+            arguments: '$(OS) $(ARCH) $(version)'
 
-- job: Package
-  pool:
-    vmImage: 'ubuntu-latest'
-
-  steps:
-  - task: GoTool@0
-    displayName: 'Install Go'
-    inputs:
-      version: 1.18
-      GOPATH: '$(Pipeline.Workspace)/gopath'
-      GOBIN:  '$(GOPATH)/bin'
-
-  - task: Bash@3
-    displayName: "Build Packages"
-    inputs:
-      filePath: '$(system.defaultWorkingDirectory)/scripts/build.sh'
-    env:
-      VERSION: ${{ parameters.version }}
-  - task: PublishPipelineArtifact@1
-    inputs:
-      targetPath: '$(system.defaultWorkingDirectory)/dist/'
-      artifact: 'artifact'
-      publishLocation: 'pipeline'
+      - job: publish
+        displayName: "Publish Binaries"
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: '$(system.defaultWorkingDirectory)/dist/'
+              artifactName: 'artifact'
+              artifactType: 'pipeline'
+  - stage: Release Linux Packages
+  - stage: Release Windows Setup
+  - stage: Draft Github Release
