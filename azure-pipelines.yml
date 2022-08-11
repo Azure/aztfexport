@@ -135,7 +135,7 @@ stages:
           - script: |
               set -e
 
-              ls -l $WORKDIR/dist/source/*
+              chmod +x $WORKDIR/dist/source/aztfy
 
               # Retrieve the image from ACR
               docker login aztfy.azurecr.io -u aztfy -p $(ACR_PASSWORD)
@@ -228,6 +228,7 @@ stages:
                 if [[ $OS = windows ]]; then
                     name=aztfy.exe
                 fi
+                chmod +x dist/${OS}-${ARCH}/${name}
                 zip -j release/${NAME}_${VERSION}_${OS}_${ARCH}.zip dist/${OS}-${ARCH}/${name} 
               done
               cd release
