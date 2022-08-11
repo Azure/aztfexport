@@ -99,6 +99,25 @@ stages:
               targetPath: '$(system.defaultWorkingDirectory)/build'
               artifactName: '$(OS)-$(ARCH)'
               artifactType: 'pipeline'
+
+      - job: build_windows_setup
+        displayName: "Build Windows Setup"
+        dependsOn: build
+        steps:
+          - script: echo TODO
+
+      - job: build_linux_package_rpm
+        displayName: "Build Linux RPM Packages"
+        dependsOn: build
+        steps:
+          - script: echo TODO
+
+      - job: build_linux_package_deb
+        displayName: "Build Linux Debian Packages"
+        dependsOn: build
+        steps:
+          - script: echo TODO
+          
   # - stage: release_linux_packages
   #   displayName: "Release Linux Packages"
   # - stage: release_windows_setup
