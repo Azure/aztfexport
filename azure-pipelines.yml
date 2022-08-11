@@ -143,7 +143,7 @@ stages:
               version=${version:1}
 
               # Build deb package
-              docker run -t --rm \
+              docker run -it --rm \
                 -v $workdir/dist/source:/build/source \
                 -v $workdir/dst/output:/build/output \
                 aztfybuild \
@@ -161,7 +161,8 @@ stages:
                   /build/source/aztfy=/usr/bin/aztfy
 
               # Build rpm package
-              docker run -t --rm \
+              set -x
+              docker run -it --rm \
                 -v $workdir/dist/source:/build/source \
                 -v $workdir/dst/output:/build/output \
                 aztfybuild \
