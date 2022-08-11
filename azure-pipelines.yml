@@ -58,7 +58,7 @@ stages:
             env:
               OS: $(OS)
               ARCH: $(ARCH)
-              VERSION: $(version)
+              VERSION: ${{ parameters.version }}
           - task: EsrpCodeSigning@1
             displayName: "Sign Binary (Windows Only)"
             condition: eq(variables.OS, 'windows')
@@ -133,7 +133,7 @@ stages:
             env:
               workdir: $(system.defaultWorkingDirectory)
           - script: |
-              set -xe
+              set -e
 
               # Retrieve the image from ACR
               docker login aztfy.azurecr.io -u aztfy -p $(ACR_PASSWORD)
@@ -142,12 +142,12 @@ stages:
               declare -A deb_arch_map=( [386]=i386 [amd64]=amd64 [arm]=armhf [arm64]=arm64 )
               declare -A rpm_arch_map=( [386]=i686 [amd64]=x86_64 [arm]=armv7hl [arm64]=aarch64 )
               
-              version=${version:1}
+              version=${VERSION:1}
 
               # Build deb package
               docker run -t --rm \
-                -v $workdir/dist/source:/build/source \
-                -v $workdir/dst/output:/build/output \
+                -v $WORKDIR/dist/source:/build/source \
+                -v $WORKDIR/dst/output:/build/output \
                 aztfy.azurecr.io/aztfybuild \
                 fpm \
                   --name aztfy \
@@ -165,8 +165,8 @@ stages:
               # Build rpm package
               echo $version
               docker run -t --rm \
-                -v $workdir/dist/source:/build/source \
-                -v $workdir/dst/output:/build/output \
+                -v $WORKDIR/dist/source:/build/source \
+                -v $WORKDIR/dst/output:/build/output \
                 aztfy.azurecr.io/aztfybuild \
                 fpm \
                   --name aztfy \
@@ -182,8 +182,8 @@ stages:
                   /build/source/aztfy=/usr/bin/aztfy
             displayName: "Build Packages"
             env:
-              workdir: $(system.defaultWorkingDirectory)
-              version: $(version)
+              VERSION: ${{ parameters.version }}
+              WORKDIR: $(system.defaultWorkingDirectory)
           - script: |
               echo TODO
             displayName: "Sign Packages"
@@ -233,7 +233,7 @@ stages:
               cp ${NAME}_SHA256SUMS ${NAME}_SHA256SUMS.sig
             displayName: "Prepare Binary Archives & Digests"
             env:
-              VERSION: $(version)
+              VERSION: ${{ parameters.version }}
           - task: EsrpCodeSigning@1
             displayName: "Sign Binary Archive Digests"
             inputs:
