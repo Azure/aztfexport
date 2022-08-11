@@ -60,7 +60,7 @@ stages:
               ARCH: $(ARCH)
               VERSION: $(version)
           - task: EsrpCodeSigning@1
-            displayName: "Sign Windows Binaries"
+            displayName: "Sign Binary (Windows Only)"
             condition: eq(variables.OS, 'windows')
             inputs:
               ConnectedServiceName: 'ESRP Signing Service'
@@ -108,39 +108,75 @@ stages:
       - job: build_linux_packages
         displayName: "Build Linux RPM/Debian Packages"
         dependsOn: build
+        strategy:
+         matrix:
+          linux-386:
+            OS: linux
+            ARCH: 386
+          linux-amd64:
+            OS: linux
+            ARCH: amd64
+          linux-arm:
+            OS: linux
+            ARCH: arm
+          linux-arm64:
+            OS: linux
+            ARCH: arm64
         steps:
           - task: DownloadPipelineArtifact@2
             inputs:
-              artifact: linux-386
-              path: $(system.defaultWorkingDirectory)/dist
-          - task: DownloadPipelineArtifact@2
-            inputs:
-              artifact: linux-amd64
-              path: $(system.defaultWorkingDirectory)/dist
-          - task: DownloadPipelineArtifact@2
-            inputs:
-              artifact: linux-arm
-              path: $(system.defaultWorkingDirectory)/dist
-          - task: DownloadPipelineArtifact@2
-            inputs:
-              artifact: linux-arm64
-              path: $(system.defaultWorkingDirectory)/dist
+              artifact: $(OS)-$(ARCH)
+              path: $(system.defaultWorkingDirectory)/dist/source
           - script: |
-              mv $workdir/dist/linux-386 $workdir/dist/386
-              mv $workdir/dist/linux-amd64 $workdir/dist/amd64
-              mv $workdir/dist/linux-arm $workdir/dist/arm
-              mv $workdir/dist/linux-arm64 $workdir/dist/arm64
-              mkdir $workdir/output
-            displayName: "Prepare the source folder layout"
+              mkdir $workdir/dist/output
+            displayName: "Prepare the output directory"
             env:
               workdir: $(system.defaultWorkingDirectory)
           - script: |
+              set -e
               cd scripts/package/linux
               docker build -t aztfybuild .
+
+              declare -A deb_arch_map=( [386]=i386 [amd64]=amd64 [arm]=armhf [arm64]=arm64 )
+              declare -A rpm_arch_map=( [386]=i686 [amd64]=x86_64 [arm]=armv7hl [arm64]=aarch64 )
+              
+              version=${version:1}
+
+              # Build deb package
               docker run -t --rm \
-                -v $workdir/dist:/build/sources \
-                -v $workdir/output:/build/output \
-                aztfybuild ./buildall.sh $version /build/sources /build/output
+                -v $workdir/dist/source:/build/source \
+                -v $workdir/dst/output:/build/output \
+                aztfybuild \
+                fpm \
+                  --name aztfy \
+                  --license MPL-2.0 \
+                  --version $version \
+                  --description "A tool to bring existing Azure resources under Terraform's management" \
+                  --url "https://github.com/Azure/aztfy" \
+                  --maintainer "magodo <wztdyl@sina.com>" \
+                  --input-type dir \
+                  --output-type deb \
+                  --architecture $(deb_arch_map[$ARCH]) \
+                  --package /build/output/aztfy-$version-$(deb_arch_map[$ARCH]).deb \
+                  /build/source/aztfy=/usr/bin/aztfy
+
+              # Build rpm package
+              docker run -t --rm \
+                -v $workdir/dist/source:/build/source \
+                -v $workdir/dst/output:/build/output \
+                aztfybuild \
+                fpm \
+                  --name aztfy \
+                  --license MPL-2.0 \
+                  --version $version \
+                  --description "A tool to bring existing Azure resources under Terraform's management" \
+                  --url "https://github.com/Azure/aztfy" \
+                  --maintainer "magodo <wztdyl@sina.com>" \
+                  --input-type dir \
+                  --output-type rpm \
+                  --architecture $(rpm_arch_map[$ARCH]) \
+                  --package /build/output/aztfy-$version-$(rpm_arch_map[$ARCH]).rpm \
+                  /build/source/aztfy=/usr/bin/aztfy
             displayName: "Build Packages"
             env:
               workdir: $(system.defaultWorkingDirectory)
@@ -151,8 +187,8 @@ stages:
           - task: PublishPipelineArtifact@1
             displayName: "Publish Packages"
             inputs:
-              targetPath: '$(system.defaultWorkingDirectory)/output'
-              artifactName: 'linux-pkg'
+              targetPath: '$(system.defaultWorkingDirectory)/dist/output'
+              artifactName: $(OS)-$(ARCH)-pkg
   # - stage: release_linux_packages
   #   displayName: "Release Linux Packages"
   # - stage: release_windows_setup
