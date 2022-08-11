@@ -154,6 +154,17 @@ stages:
               SessionTimeout: '60'
               MaxConcurrency: '50'
               MaxRetryAttempts: '5'
+          - task: GitHubRelease@1
+            inputs:
+              gitHubConnection: 'Github'
+              repositoryName: '$(Build.Repository.Name)'
+              action: 'create'
+              target: '$(Build.SourceVersion)'
+              tagSource: 'gitTag'
+              tagPattern: '^v\d+\.\d+\.\d+'
+              assets: '$(system.defaultWorkingDirectory)/release/*'
+              isDraft: true
+              addChangeLog: false
   # - stage: release_linux_packages
   #   displayName: "Release Linux Packages"
   # - stage: release_windows_setup
