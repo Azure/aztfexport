@@ -143,7 +143,7 @@ stages:
               version=${version:1}
 
               # Build deb package
-              docker run -it --rm \
+              docker run -t --rm \
                 -v $workdir/dist/source:/build/source \
                 -v $workdir/dst/output:/build/output \
                 aztfybuild \
@@ -157,12 +157,12 @@ stages:
                   --input-type dir \
                   --output-type deb \
                   --architecture ${deb_arch_map[$ARCH]} \
-                  --package /build/output/aztfy-$version-${deb_arch_map[$ARCH]}.deb \
+                  --package /build/output/aztfy-$version-1-${deb_arch_map[$ARCH]}.deb \
                   /build/source/aztfy=/usr/bin/aztfy
 
               # Build rpm package
               set -x
-              docker run -it --rm \
+              docker run -t --rm \
                 -v $workdir/dist/source:/build/source \
                 -v $workdir/dst/output:/build/output \
                 aztfybuild \
@@ -176,7 +176,7 @@ stages:
                   --input-type dir \
                   --output-type rpm \
                   --architecture ${rpm_arch_map[$ARCH]} \
-                  --package /build/output/aztfy-$version-${rpm_arch_map[$ARCH]}.rpm \
+                  --package /build/output/aztfy-$version-1-${rpm_arch_map[$ARCH]}.rpm \
                   /build/source/aztfy=/usr/bin/aztfy
             displayName: "Build Packages"
             env:
