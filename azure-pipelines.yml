@@ -143,7 +143,7 @@ stages:
               version=${VERSION:1}
 
               # Build the image
-              cd $WORKDIR/scripts/linux
+              cd $WORKDIR/scripts/package/linux
               docker build -t aztfybuild .
 
               # Build deb package
