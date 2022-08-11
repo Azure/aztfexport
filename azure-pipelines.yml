@@ -59,24 +59,12 @@ stages:
               OS: $(OS)
               ARCH: $(ARCH)
               VERSION: $(version)
-          - task: PublishPipelineArtifact@1
-            displayName: "Publish Binary"
-            inputs:
-              targetPath: '$(system.defaultWorkingDirectory)/build'
-              artifactName: '$(OS)-$(ARCH)'
-              artifactType: 'pipeline'
-      - job: sign_binary
-        displayName: "Sign Binaries"
-        dependsOn: build
-        steps:
-          - task: DownloadPipelineArtifact@2
-            inputs:
-              path: $(system.defaultWorkingDirectory)/dist
           - task: EsrpCodeSigning@1
             displayName: "Sign Windows Binaries"
+            condition: eq(variables.OS, 'windows')
             inputs:
               ConnectedServiceName: 'ESRP Signing Service'
-              FolderPath: '$(system.defaultWorkingDirectory)/dist'
+              FolderPath: '$(system.defaultWorkingDirectory)/build'
               Pattern: '*.exe'
               signConfigType: 'inlineSignParams'
               inlineOperation: |
@@ -105,6 +93,25 @@ stages:
               SessionTimeout: '60'
               MaxConcurrency: '50'
               MaxRetryAttempts: '5'
+          - task: PublishPipelineArtifact@1
+            displayName: "Publish Binary"
+            inputs:
+              targetPath: '$(system.defaultWorkingDirectory)/build'
+              artifactName: '$(OS)-$(ARCH)'
+              artifactType: 'pipeline'
+  # - stage: release_linux_packages
+  #   displayName: "Release Linux Packages"
+  # - stage: release_windows_setup
+  #   displayName: "Release Windows Setup"
+  - stage: release
+    displayName: "Release"
+    jobs:
+      - job: release
+        displayName: "Release"
+        steps:
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              path: $(system.defaultWorkingDirectory)/dist
           - script: |
               set -e
               NAME="aztfy"
@@ -155,6 +162,7 @@ stages:
               MaxConcurrency: '50'
               MaxRetryAttempts: '5'
           - task: GitHubRelease@1
+            displayName: "Draft Github Release"
             inputs:
               gitHubConnection: 'Github'
               repositoryName: '$(Build.Repository.Name)'
@@ -165,9 +173,3 @@ stages:
               assets: '$(system.defaultWorkingDirectory)/release/*'
               isDraft: true
               addChangeLog: false
-  # - stage: release_linux_packages
-  #   displayName: "Release Linux Packages"
-  # - stage: release_windows_setup
-  #   displayName: "Release Windows Setup"
-  # - stage: draft_github_release
-  #   displayName: "Draft Github Release"
