@@ -16,24 +16,24 @@ stages:
         displayName: "Build Binaries"
         strategy:
          matrix:
-          windows-386:
-            OS: windows
-            ARCH: 386
-          windows-amd64:
-            OS: windows
-            ARCH: amd64
-          # linux-386:
-          #   OS: linux
+          # windows-386:
+          #   OS: windows
           #   ARCH: 386
-          # linux-amd64:
-          #   OS: linux
+          # windows-amd64:
+          #   OS: windows
           #   ARCH: amd64
-          # linux-arm:
-          #   OS: linux
-          #   ARCH: arm
-          # linux-arm64:
-          #   OS: linux
-          #   ARCH: arm64
+          linux-386:
+            OS: linux
+            ARCH: 386
+          linux-amd64:
+            OS: linux
+            ARCH: amd64
+          linux-arm:
+            OS: linux
+            ARCH: arm
+          linux-arm64:
+            OS: linux
+            ARCH: arm64
           # darwin-amd64:
           #   OS: darwin
           #   ARCH: amd64
@@ -98,7 +98,6 @@ stages:
             inputs:
               targetPath: '$(system.defaultWorkingDirectory)/build'
               artifactName: '$(OS)-$(ARCH)'
-              artifactType: 'pipeline'
 
       - job: build_windows_setup
         displayName: "Build Windows Setup"
@@ -106,18 +105,54 @@ stages:
         steps:
           - script: echo TODO
 
-      - job: build_linux_package_rpm
-        displayName: "Build Linux RPM Packages"
+      - job: build_linux_packages
+        displayName: "Build Linux RPM/Debian Packages"
         dependsOn: build
         steps:
-          - script: echo TODO
-
-      - job: build_linux_package_deb
-        displayName: "Build Linux Debian Packages"
-        dependsOn: build
-        steps:
-          - script: echo TODO
-          
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifact: linux-386
+              path: $(system.defaultWorkingDirectory)/dist
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifact: linux-amd64
+              path: $(system.defaultWorkingDirectory)/dist
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifact: linux-arm
+              path: $(system.defaultWorkingDirectory)/dist
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifact: linux-arm64
+              path: $(system.defaultWorkingDirectory)/dist
+          - script: |
+              mv $workdir/dist/linux-386 $workdir/dist/386
+              mv $workdir/dist/linux-amd64 $workdir/dist/amd64
+              mv $workdir/dist/linux-arm $workdir/dist/arm
+              mv $workdir/dist/linux-arm64 $workdir/dist/arm64
+              mkdir $workdir/output
+            displayName: "Prepare the source folder layout"
+            env:
+              workdir: $(system.defaultWorkingDirectory)
+          - script: |
+              cd scripts/package/linux
+              docker build -t aztfybuild .
+              docker run -t --rm \
+                -v $workdir/dist:/build/sources \
+                -v $workdir/output:/build/output \
+                aztfybuild ./buildall.sh $version /build/sources /build/output
+            displayName: "Build Packages"
+            env:
+              workdir: $(system.defaultWorkingDirectory)
+              version: $(version)
+          - script: |
+              echo TODO
+            displayName: "Sign Packages"
+          - task: PublishPipelineArtifact@1
+            displayName: "Publish Packages"
+            inputs:
+              targetPath: '$(system.defaultWorkingDirectory)/output'
+              artifactName: 'linux-pkg'
   # - stage: release_linux_packages
   #   displayName: "Release Linux Packages"
   # - stage: release_windows_setup
