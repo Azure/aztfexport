@@ -136,7 +136,7 @@ stages:
               set -xe
 
               # Retrieve the image from ACR
-              az login aztfy.azurecr.io -u aztfy -p $(ACR_PASSWORD)
+              docker login aztfy.azurecr.io -u aztfy -p $(ACR_PASSWORD)
               docker pull aztfy.azurecr.io/aztfybuild
 
               declare -A deb_arch_map=( [386]=i386 [amd64]=amd64 [arm]=armhf [arm64]=arm64 )
