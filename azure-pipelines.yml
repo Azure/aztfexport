@@ -134,8 +134,10 @@ stages:
               workdir: $(system.defaultWorkingDirectory)
           - script: |
               set -e
-              cd scripts/package/linux
-              docker build -t aztfybuild .
+
+              # Retrieve the image from ACR
+              az login aztfy.azurecr.io -u $(ACR_USERNAME) -p $(ACR_PASSWORD)
+              docker pull aztfy.azurecr.io/aztfybuild
 
               declare -A deb_arch_map=( [386]=i386 [amd64]=amd64 [arm]=armhf [arm64]=arm64 )
               declare -A rpm_arch_map=( [386]=i686 [amd64]=x86_64 [arm]=armv7hl [arm64]=aarch64 )
@@ -146,7 +148,7 @@ stages:
               docker run -t --rm \
                 -v $workdir/dist/source:/build/source \
                 -v $workdir/dst/output:/build/output \
-                aztfybuild \
+                aztfy.azureacr.io/aztfybuild \
                 fpm \
                   --name aztfy \
                   --license MPL-2.0 \
@@ -161,11 +163,10 @@ stages:
                   /build/source/aztfy=/usr/bin/aztfy
 
               # Build rpm package
-              set -x
               docker run -t --rm \
                 -v $workdir/dist/source:/build/source \
                 -v $workdir/dst/output:/build/output \
-                aztfybuild \
+                aztfy.azureacr.io/aztfybuild \
                 fpm \
                   --name aztfy \
                   --license MPL-2.0 \
