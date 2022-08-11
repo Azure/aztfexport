@@ -137,7 +137,6 @@ stages:
 
               chmod +x $WORKDIR/dist/source/aztfy
 
-
               declare -A deb_arch_map=( [386]=i386 [amd64]=amd64 [arm]=armhf [arm64]=arm64 )
               declare -A rpm_arch_map=( [386]=i686 [amd64]=x86_64 [arm]=armv7hl [arm64]=aarch64 )
               version=${VERSION:1}
@@ -186,9 +185,26 @@ stages:
             env:
               VERSION: ${{ parameters.version }}
               WORKDIR: $(system.defaultWorkingDirectory)
-          - script: |
-              echo TODO
-            displayName: "Sign Packages"
+          - task: EsrpCodeSigning@1
+            displayName: "Sign Package"
+            inputs:
+              ConnectedServiceName: 'ESRP Signing Service'
+              FolderPath: '$(system.defaultWorkingDirectory)/dist/output'
+              Pattern: '*.rpm,*.deb'
+              signConfigType: 'inlineSignParams'
+              inlineOperation: |
+                [
+                  {
+                      "KeyCode": "CP-450779-Pgp",
+                      "OperationCode": "LinuxSign",
+                      "Parameters": {},
+                      "ToolName": "sign",
+                      "ToolVersion": "1.0"
+                  }
+                ]
+              SessionTimeout: '60'
+              MaxConcurrency: '50'
+              MaxRetryAttempts: '5'
           - task: PublishPipelineArtifact@1
             displayName: "Publish Packages"
             inputs:
