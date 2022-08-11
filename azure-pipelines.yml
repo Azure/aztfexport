@@ -137,20 +137,20 @@ stages:
 
               chmod +x $WORKDIR/dist/source/aztfy
 
-              # Retrieve the image from ACR
-              docker login aztfy.azurecr.io -u aztfy -p $(ACR_PASSWORD)
-              docker pull aztfy.azurecr.io/aztfybuild
 
               declare -A deb_arch_map=( [386]=i386 [amd64]=amd64 [arm]=armhf [arm64]=arm64 )
               declare -A rpm_arch_map=( [386]=i686 [amd64]=x86_64 [arm]=armv7hl [arm64]=aarch64 )
-              
               version=${VERSION:1}
+
+              # Build the image
+              cd $WORKDIR/scripts/linux
+              docker build -t aztfybuild .
 
               # Build deb package
               docker run -t --rm \
                 -v $WORKDIR/dist/source:/build/source \
                 -v $WORKDIR/dist/output:/build/output \
-                aztfy.azurecr.io/aztfybuild \
+                aztfybuild \
                 fpm \
                   --name aztfy \
                   --license MPL-2.0 \
@@ -169,7 +169,7 @@ stages:
               docker run -t --rm \
                 -v $WORKDIR/dist/source:/build/source \
                 -v $WORKDIR/dist/output:/build/output \
-                aztfy.azurecr.io/aztfybuild \
+                aztfybuild \
                 fpm \
                   --name aztfy \
                   --license MPL-2.0 \
