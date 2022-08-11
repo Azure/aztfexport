@@ -148,7 +148,7 @@ stages:
               docker run -t --rm \
                 -v $workdir/dist/source:/build/source \
                 -v $workdir/dst/output:/build/output \
-                aztfy.azureacr.io/aztfybuild \
+                aztfy.azurecr.io/aztfybuild \
                 fpm \
                   --name aztfy \
                   --license MPL-2.0 \
@@ -166,7 +166,7 @@ stages:
               docker run -t --rm \
                 -v $workdir/dist/source:/build/source \
                 -v $workdir/dst/output:/build/output \
-                aztfy.azureacr.io/aztfybuild \
+                aztfy.azurecr.io/aztfybuild \
                 fpm \
                   --name aztfy \
                   --license MPL-2.0 \
