@@ -156,8 +156,8 @@ stages:
                   --maintainer "magodo <wztdyl@sina.com>" \
                   --input-type dir \
                   --output-type deb \
-                  --architecture $(deb_arch_map[$ARCH]) \
-                  --package /build/output/aztfy-$version-$(deb_arch_map[$ARCH]).deb \
+                  --architecture ${deb_arch_map[$ARCH]} \
+                  --package /build/output/aztfy-$version-${deb_arch_map[$ARCH]}.deb \
                   /build/source/aztfy=/usr/bin/aztfy
 
               # Build rpm package
@@ -174,8 +174,8 @@ stages:
                   --maintainer "magodo <wztdyl@sina.com>" \
                   --input-type dir \
                   --output-type rpm \
-                  --architecture $(rpm_arch_map[$ARCH]) \
-                  --package /build/output/aztfy-$version-$(rpm_arch_map[$ARCH]).rpm \
+                  --architecture ${rpm_arch_map[$ARCH]} \
+                  --package /build/output/aztfy-$version-${rpm_arch_map[$ARCH]}.rpm \
                   /build/source/aztfy=/usr/bin/aztfy
             displayName: "Build Packages"
             env:
