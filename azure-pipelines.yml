@@ -286,7 +286,7 @@ stages:
               cd dist/tool
               sudo apt install -y ./azure-repoapi-client_2.2.1_amd64.deb
               mkdir ~/.repoclient
-              cat << EOF > ~/.repoclient
+              cat << EOF > ~/.repoclient/config.json
               {
                 "server": "azure-apt-cat.cloudapp.net",
                 "port": "443",
