@@ -284,7 +284,7 @@ stages:
           - script: |
               set -e
               cd dist/tool
-              dpkg -i azure-repoapi-client_2.2.1_amd64.deb
+              sudo dpkg -i azure-repoapi-client_2.2.1_amd64.deb
               mkdir ~/.repoclient
               cat << EOF > ~/.repoclient
               {
