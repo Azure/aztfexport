@@ -298,6 +298,9 @@ stages:
                 "repositoryId": "IGNORE"
               }
               EOF
+              cat ~/.repoclient/config.json
+              pwd
+              tree dist
               ls ./dist/pkg/*.${TYPE}
               pkg=(./dist/pkg/*.${TYPE})
               [[ ${#pkg[@]} == 1 ]] || { echo "not exactly one target packages found: $(declare -p pkg)" > 2;  exit 1; }
