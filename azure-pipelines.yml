@@ -284,7 +284,7 @@ stages:
           - script: |
               set -e
               cd dist/tool
-              sudo apt install -y azure-repoapi-client_2.2.1_amd64.deb
+              sudo apt install -y ./azure-repoapi-client_2.2.1_amd64.deb
               mkdir ~/.repoclient
               cat << EOF > ~/.repoclient
               {
