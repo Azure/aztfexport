@@ -210,8 +210,98 @@ stages:
             inputs:
               targetPath: '$(system.defaultWorkingDirectory)/dist/output'
               artifactName: $(OS)-$(ARCH)-pkg
-  # - stage: release_linux_packages
-  #   displayName: "Release Linux Packages"
+  - stage: publish_linux_packages
+    displayName: "Publish Linux Packages"
+    jobs:
+      - job: publish
+        displayName: "Publish Packages"
+        strategy:
+         matrix:
+          ubuntu-bionic-amd64:
+            TYPE: deb
+            ARCH: amd64
+            REPO_ID: 5a9dc3f2424a5c053cc3ff2e
+          ubuntu-focal-amd64:
+            TYPE: deb
+            ARCH: amd64
+            REPO_ID: 5e852952e45fffa1beda61fe
+          ubuntu-jammy-amd64:
+            TYPE: deb
+            ARCH: amd64
+            REPO_ID: 61faea6cea3a770ab120ac8a
+          debian-buster-amd64:
+            TYPE: deb
+            ARCH: amd64
+            REPO_ID: 5d23b16c9a6e3b375bbba42e
+          debian-bullseye-amd64:
+            TYPE: deb
+            ARCH: amd64
+            REPO_ID: 611ab3a32acdcd0744c8c841
+          centos-8-x86_64:
+            TYPE: rpm
+            ARCH: amd64
+            REPO_ID: 5e5ed94a523a8019fe47607e
+          rhel-8-x86_64:
+            TYPE: rpm
+            ARCH: amd64
+            REPO_ID: 5d4470e1eebce7156eee5407
+          rhel-9-x86_64:
+            TYPE: rpm
+            ARCH: amd64
+            REPO_ID: 627067cc3ac6d7548f4d66cd
+          fedora-34-x86_64:
+            TYPE: rpm
+            ARCH: amd64
+            REPO_ID: 606e1da573e50659b0803a7b
+          fedora-35-x86_64:
+            TYPE: rpm
+            ARCH: amd64
+            REPO_ID: 6196d483ea3a770f011f63fb
+          fedora-36-x86_64:
+            TYPE: rpm
+            ARCH: amd64
+            REPO_ID: 6271bc683ac6d73aa84d6737
+        steps:
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifact: linux-$(ARCH)-pkg
+              path: $(system.defaultWorkingDirectory)/dist/pkg
+          - task: UniversalPackages@0
+            displayName: 'Download repoclient'
+            inputs:
+              command: download
+              vstsFeed: 'release/aztfy'
+              vstsFeedPackage: 'azure-repoapi-client'
+              vstsPackageVersion: '2.2.1'
+              downloadDirectory: $(system.defaultWorkingDirectory)/dist/tool
+          - script: |
+              set -e
+              cd dist/tool
+              dpkg -i azure-repoapi-client_2.2.1_amd64.deb
+              mkdir ~/.repoclient
+              cat << EOF > ~/.repoclient
+              {
+                "server": "azure-apt-cat.cloudapp.net",
+                "port": "443",
+                "AADClientId": "$(LINUX_REPO_SP_CLIENT_ID)",
+                "AADClientSecret": "$(LINUX_REPO_SP_CLIENT_SECRET)",
+                "AADResource": "https://microsoft.onmicrosoft.com/945999e9-da09-4b5b-878f-b66c414602c0",
+                "AADTenant": "72f988bf-86f1-41af-91ab-2d7cd011db47",
+                "AADAuthorityUrl": "https://login.microsoftonline.com",
+                "repositoryId": "IGNORE"
+              }
+              EOF
+              ls ./dist/pkg/*.${TYPE}
+              pkg=(./dist/pkg/*.${TYPE})
+              [[ ${#pkg[@]} == 1 ]] || { echo "not exactly one target packages found: $(declare -p pkg)" > 2;  exit 1; }
+              pkg=${pkg[0]}
+              cat << EOF
+              repoclient package add -r $(REPO_ID) ${pkg}
+              EOF
+              echo "TODO: check result"
+            displayName: "Publish via repoclient"
+            env:
+              TYPE: $(TYPE)
   # - stage: release_windows_setup
   #   displayName: "Release Windows Setup"
   - stage: release
