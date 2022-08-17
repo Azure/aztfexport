@@ -297,20 +297,35 @@ stages:
                 "repositoryId": "IGNORE"
               }
               EOF
-              cat ~/.repoclient/config.json
-              pwd
-              tree dist
-              ls ./dist/pkg/*.${TYPE}
               pkg=(./dist/pkg/*.${TYPE})
               [[ ${#pkg[@]} == 1 ]] || { echo "not exactly one target packages found: $(declare -p pkg)" > 2;  exit 1; }
               pkg=${pkg[0]}
-              cat << EOF
-              repoclient package add -r $(REPO_ID) ${pkg}
-              EOF
-              echo "TODO: check result"
+
+              # Allow error's to occur prior to quit the task, as we are capturing the command output, otherwise, we will have no chance to output that in stdout/stderr. 
+              set +e
+              ret=$(repoclient package add -r ${REPO_ID} $pkg)
+              [[ $? == 0 ]] || { echo "Error: repoclient package add failed: $ret" >&2; exit 1; }
+              echo -e "repoclient package add returns:\n$ret\n"
+
+              location=$(jq -r '.Location' <<< $ret)
+              package_id=${location##*/}
+              [[ -n $package_id ]] || { echo "Error: empty package id got" >&2; exit 1; }
+              echo "package id: $package_id"
+
+              ret=$(repoclient package check $package_id)
+              [[ $? == 0 ]] || { echo "Error: repoclient package check failed: $ret" >&2; exit 1; }
+              echo -e "repoclient package check returns:\n$ret\n"
+
+              msg=$(jq -r .message <<< $ret)
+              [[ -z $msg ]] || {
+                  echo "Error: non zero message indicates an error. removing the package" >&2
+                  ret=$(repoclient package delete $package_id)
+                  echo -e "repoclient package delete returns:\n$ret\n"
+              }
             displayName: "Publish via repoclient"
             env:
               TYPE: $(TYPE)
+              REPO_ID: $(REPO_ID)
   # - stage: release_windows_setup
   #   displayName: "Release Windows Setup"
 
