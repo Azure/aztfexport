@@ -269,6 +269,7 @@ stages:
 
               # TODO: remove this
               source: "specific"
+              project: "release"
               pipeline: 22
               runId: 3448
 
