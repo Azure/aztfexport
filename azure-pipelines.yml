@@ -9,207 +9,208 @@ parameters:
     type: string
 
 stages:
-  # - stage: build
-  #   displayName: "Build aztfy"
-  #   jobs:
-  #     - job: build
-  #       displayName: "Build Binaries"
-  #       strategy:
-  #         matrix:
-  #           windows-386:
-  #             OS: windows
-  #             ARCH: 386
-  #           windows-amd64:
-  #             OS: windows
-  #             ARCH: amd64
-  #           linux-386:
-  #             OS: linux
-  #             ARCH: 386
-  #           linux-amd64:
-  #             OS: linux
-  #             ARCH: amd64
-  #           linux-arm:
-  #             OS: linux
-  #             ARCH: arm
-  #           linux-arm64:
-  #             OS: linux
-  #             ARCH: arm64
-  #           darwin-amd64:
-  #             OS: darwin
-  #             ARCH: amd64
-  #           darwin-arm64:
-  #             OS: darwin
-  #             ARCH: arm64
-  #       steps:
-  #         - task: GoTool@0
-  #           displayName: "Install Go"
-  #           inputs:
-  #             version: 1.19
-  #         - script: |
-  #             set -e
-  #             REVISION=`git rev-parse --short HEAD`
-  #             mkdir build
-  #             name=aztfy
-  #             if [[ $OS = windows ]]; then
-  #                 name=aztfy.exe
-  #             fi
-  #             GOOS="${OS}" GOARCH="${ARCH}" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X 'main.version=${VERSION}' -X 'main.revision=${REVISION}'" -o build/$name
-  #           displayName: "Go Build"
-  #           env:
-  #             OS: $(OS)
-  #             ARCH: $(ARCH)
-  #             VERSION: ${{ parameters.version }}
-  #         - task: EsrpCodeSigning@1
-  #           displayName: "Sign Binary (Windows Only)"
-  #           condition: eq(variables.OS, 'windows')
-  #           inputs:
-  #             ConnectedServiceName: "ESRP Signing Service"
-  #             FolderPath: "$(system.defaultWorkingDirectory)/build"
-  #             Pattern: "*.exe"
-  #             signConfigType: "inlineSignParams"
-  #             inlineOperation: |
-  #               [
-  #                       {
-  #                           "KeyCode" : "CP-230012",
-  #                           "OperationCode" : "SigntoolSign",
-  #                           "Parameters" : {
-  #                               "OpusName" : "Microsoft",
-  #                               "OpusInfo" : "http://www.microsoft.com",
-  #                               "PageHash" : "/NPH",
-  #                               "TimeStamp" : "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256",
-  #                               "FileDigest": "/fd \"SHA256\""
-  #                           },
-  #                           "ToolName" : "sign",
-  #                           "ToolVersion" : "1.0"
-  #                       },
-  #                       {
-  #                           "KeyCode" : "CP-230012",
-  #                           "OperationCode" : "SigntoolVerify",
-  #                           "Parameters" : {},
-  #                           "ToolName" : "sign",
-  #                           "ToolVersion" : "1.0"
-  #                       }
-  #               ]
-  #             SessionTimeout: "60"
-  #             MaxConcurrency: "50"
-  #             MaxRetryAttempts: "5"
-  #         - task: PublishPipelineArtifact@1
-  #           displayName: "Publish Binary"
-  #           inputs:
-  #             targetPath: "$(system.defaultWorkingDirectory)/build"
-  #             artifactName: "$(OS)-$(ARCH)"
+  - stage: build
+    displayName: "Build aztfy"
+    jobs:
+      - job: build
+        displayName: "Build Binaries"
+        strategy:
+          matrix:
+            windows-386:
+              OS: windows
+              ARCH: 386
+            windows-amd64:
+              OS: windows
+              ARCH: amd64
+            linux-386:
+              OS: linux
+              ARCH: 386
+            linux-amd64:
+              OS: linux
+              ARCH: amd64
+            linux-arm:
+              OS: linux
+              ARCH: arm
+            linux-arm64:
+              OS: linux
+              ARCH: arm64
+            darwin-amd64:
+              OS: darwin
+              ARCH: amd64
+            darwin-arm64:
+              OS: darwin
+              ARCH: arm64
+        steps:
+          - task: GoTool@0
+            displayName: "Install Go"
+            inputs:
+              version: 1.19
+          - script: |
+              set -e
+              REVISION=`git rev-parse --short HEAD`
+              mkdir build
+              name=aztfy
+              if [[ $OS = windows ]]; then
+                  name=aztfy.exe
+              fi
+              GOOS="${OS}" GOARCH="${ARCH}" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X 'main.version=${VERSION}' -X 'main.revision=${REVISION}'" -o build/$name
+            displayName: "Go Build"
+            env:
+              OS: $(OS)
+              ARCH: $(ARCH)
+              VERSION: ${{ parameters.version }}
+          - task: EsrpCodeSigning@1
+            displayName: "Sign Binary (Windows Only)"
+            condition: eq(variables.OS, 'windows')
+            inputs:
+              ConnectedServiceName: "ESRP Signing Service"
+              FolderPath: "$(system.defaultWorkingDirectory)/build"
+              Pattern: "*.exe"
+              signConfigType: "inlineSignParams"
+              inlineOperation: |
+                [
+                        {
+                            "KeyCode" : "CP-230012",
+                            "OperationCode" : "SigntoolSign",
+                            "Parameters" : {
+                                "OpusName" : "Microsoft",
+                                "OpusInfo" : "http://www.microsoft.com",
+                                "PageHash" : "/NPH",
+                                "TimeStamp" : "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256",
+                                "FileDigest": "/fd \"SHA256\""
+                            },
+                            "ToolName" : "sign",
+                            "ToolVersion" : "1.0"
+                        },
+                        {
+                            "KeyCode" : "CP-230012",
+                            "OperationCode" : "SigntoolVerify",
+                            "Parameters" : {},
+                            "ToolName" : "sign",
+                            "ToolVersion" : "1.0"
+                        }
+                ]
+              SessionTimeout: "60"
+              MaxConcurrency: "50"
+              MaxRetryAttempts: "5"
+          - task: PublishPipelineArtifact@1
+            displayName: "Publish Binary"
+            inputs:
+              targetPath: "$(system.defaultWorkingDirectory)/build"
+              artifactName: "$(OS)-$(ARCH)"
 
-  #     - job: build_windows_setup
-  #       displayName: "Build Windows Setup"
-  #       dependsOn: build
-  #       steps:
-  #         - script: echo TODO
+      - job: build_windows_setup
+        displayName: "Build Windows Setup"
+        dependsOn: build
+        steps:
+          - script: echo TODO
 
-  #     - job: build_linux_packages
-  #       displayName: "Build Linux RPM/Debian Packages"
-  #       dependsOn: build
-  #       strategy:
-  #         matrix:
-  #           linux-386:
-  #             OS: linux
-  #             ARCH: 386
-  #           linux-amd64:
-  #             OS: linux
-  #             ARCH: amd64
-  #           linux-arm:
-  #             OS: linux
-  #             ARCH: arm
-  #           linux-arm64:
-  #             OS: linux
-  #             ARCH: arm64
-  #       steps:
-  #         - task: DownloadPipelineArtifact@2
-  #           inputs:
-  #             artifact: $(OS)-$(ARCH)
-  #             path: $(system.defaultWorkingDirectory)/dist/source
-  #         - script: |
-  #             mkdir $workdir/dist/output
-  #           displayName: "Prepare the output directory"
-  #           env:
-  #             workdir: $(system.defaultWorkingDirectory)
-  #         - script: |
-  #             set -e
+      - job: build_linux_packages
+        displayName: "Build Linux RPM/Debian Packages"
+        dependsOn: build
+        strategy:
+          matrix:
+            linux-386:
+              OS: linux
+              ARCH: 386
+            linux-amd64:
+              OS: linux
+              ARCH: amd64
+            linux-arm:
+              OS: linux
+              ARCH: arm
+            linux-arm64:
+              OS: linux
+              ARCH: arm64
+        steps:
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifact: $(OS)-$(ARCH)
+              path: $(system.defaultWorkingDirectory)/dist/source
+          - script: |
+              mkdir $workdir/dist/output
+            displayName: "Prepare the output directory"
+            env:
+              workdir: $(system.defaultWorkingDirectory)
+          - script: |
+              set -e
 
-  #             chmod +x $WORKDIR/dist/source/aztfy
+              chmod +x $WORKDIR/dist/source/aztfy
 
-  #             declare -A deb_arch_map=( [386]=i386 [amd64]=amd64 [arm]=armhf [arm64]=arm64 )
-  #             declare -A rpm_arch_map=( [386]=i686 [amd64]=x86_64 [arm]=armv7hl [arm64]=aarch64 )
-  #             version=${VERSION:1}
+              declare -A deb_arch_map=( [386]=i386 [amd64]=amd64 [arm]=armhf [arm64]=arm64 )
+              declare -A rpm_arch_map=( [386]=i686 [amd64]=x86_64 [arm]=armv7hl [arm64]=aarch64 )
+              version=${VERSION:1}
 
-  #             # Build the image
-  #             cd $WORKDIR/scripts/package/linux
-  #             docker build -t aztfybuild .
+              # Build the image
+              cd $WORKDIR/scripts/package/linux
+              docker build -t aztfybuild .
 
-  #             # Build deb package
-  #             docker run -t --rm \
-  #               -v $WORKDIR/dist/source:/build/source \
-  #               -v $WORKDIR/dist/output:/build/output \
-  #               aztfybuild \
-  #               fpm \
-  #                 --name aztfy \
-  #                 --license MPL-2.0 \
-  #                 --version $version \
-  #                 --description "A tool to bring existing Azure resources under Terraform's management" \
-  #                 --url "https://github.com/Azure/aztfy" \
-  #                 --maintainer "magodo <wztdyl@sina.com>" \
-  #                 --input-type dir \
-  #                 --output-type deb \
-  #                 --architecture ${deb_arch_map[$ARCH]} \
-  #                 --package /build/output/aztfy-$version-1-${deb_arch_map[$ARCH]}.deb \
-  #                 /build/source/aztfy=/usr/bin/aztfy
+              # Build deb package
+              docker run -t --rm \
+                -v $WORKDIR/dist/source:/build/source \
+                -v $WORKDIR/dist/output:/build/output \
+                aztfybuild \
+                fpm \
+                  --name aztfy \
+                  --license MPL-2.0 \
+                  --version $version \
+                  --description "A tool to bring existing Azure resources under Terraform's management" \
+                  --url "https://github.com/Azure/aztfy" \
+                  --maintainer "magodo <wztdyl@sina.com>" \
+                  --input-type dir \
+                  --output-type deb \
+                  --architecture ${deb_arch_map[$ARCH]} \
+                  --package /build/output/aztfy-$version-1-${deb_arch_map[$ARCH]}.deb \
+                  /build/source/aztfy=/usr/bin/aztfy
 
-  #             # Build rpm package
-  #             echo $version
-  #             docker run -t --rm \
-  #               -v $WORKDIR/dist/source:/build/source \
-  #               -v $WORKDIR/dist/output:/build/output \
-  #               aztfybuild \
-  #               fpm \
-  #                 --name aztfy \
-  #                 --license MPL-2.0 \
-  #                 --version ${version} \
-  #                 --description "A tool to bring existing Azure resources under Terraform's management" \
-  #                 --url "https://github.com/Azure/aztfy" \
-  #                 --maintainer "magodo <wztdyl@sina.com>" \
-  #                 --input-type dir \
-  #                 --output-type rpm \
-  #                 --architecture ${rpm_arch_map[$ARCH]} \
-  #                 --package /build/output/aztfy-$version-1-${rpm_arch_map[$ARCH]}.rpm \
-  #                 /build/source/aztfy=/usr/bin/aztfy
-  #           displayName: "Build Packages"
-  #           env:
-  #             VERSION: ${{ parameters.version }}
-  #             WORKDIR: $(system.defaultWorkingDirectory)
-  #         - task: EsrpCodeSigning@1
-  #           displayName: "Sign Package"
-  #           inputs:
-  #             ConnectedServiceName: "ESRP Signing Service"
-  #             FolderPath: "$(system.defaultWorkingDirectory)/dist/output"
-  #             Pattern: "*.rpm,*.deb"
-  #             signConfigType: "inlineSignParams"
-  #             inlineOperation: |
-  #               [
-  #                 {
-  #                     "KeyCode": "CP-450779-Pgp",
-  #                     "OperationCode": "LinuxSign",
-  #                     "Parameters": {},
-  #                     "ToolName": "sign",
-  #                     "ToolVersion": "1.0"
-  #                 }
-  #               ]
-  #             SessionTimeout: "60"
-  #             MaxConcurrency: "50"
-  #             MaxRetryAttempts: "5"
-  #         - task: PublishPipelineArtifact@1
-  #           displayName: "Publish Packages"
-  #           inputs:
-  #             targetPath: "$(system.defaultWorkingDirectory)/dist/output"
-  #             artifactName: $(OS)-$(ARCH)-pkg
+              # Build rpm package
+              echo $version
+              docker run -t --rm \
+                -v $WORKDIR/dist/source:/build/source \
+                -v $WORKDIR/dist/output:/build/output \
+                aztfybuild \
+                fpm \
+                  --name aztfy \
+                  --license MPL-2.0 \
+                  --version ${version} \
+                  --description "A tool to bring existing Azure resources under Terraform's management" \
+                  --url "https://github.com/Azure/aztfy" \
+                  --maintainer "magodo <wztdyl@sina.com>" \
+                  --input-type dir \
+                  --output-type rpm \
+                  --architecture ${rpm_arch_map[$ARCH]} \
+                  --package /build/output/aztfy-$version-1-${rpm_arch_map[$ARCH]}.rpm \
+                  /build/source/aztfy=/usr/bin/aztfy
+            displayName: "Build Packages"
+            env:
+              VERSION: ${{ parameters.version }}
+              WORKDIR: $(system.defaultWorkingDirectory)
+          - task: EsrpCodeSigning@1
+            displayName: "Sign Package"
+            inputs:
+              ConnectedServiceName: "ESRP Signing Service"
+              FolderPath: "$(system.defaultWorkingDirectory)/dist/output"
+              Pattern: "*.rpm,*.deb"
+              signConfigType: "inlineSignParams"
+              inlineOperation: |
+                [
+                  {
+                      "KeyCode": "CP-450779-Pgp",
+                      "OperationCode": "LinuxSign",
+                      "Parameters": {},
+                      "ToolName": "sign",
+                      "ToolVersion": "1.0"
+                  }
+                ]
+              SessionTimeout: "60"
+              MaxConcurrency: "50"
+              MaxRetryAttempts: "5"
+          - task: PublishPipelineArtifact@1
+            displayName: "Publish Packages"
+            inputs:
+              targetPath: "$(system.defaultWorkingDirectory)/dist/output"
+              artifactName: $(OS)-$(ARCH)-pkg
+
   - stage: publish_linux_packages
     displayName: "Publish Linux Packages"
     jobs:
@@ -268,10 +269,10 @@ stages:
               path: $(system.defaultWorkingDirectory)/dist/pkg
 
               # TODO: remove this
-              source: "specific"
-              project: "release"
-              pipeline: 22
-              runId: 3448
+              # source: "specific"
+              # project: "release"
+              # pipeline: 22
+              # runId: 3448
 
           - task: UniversalPackages@0
             displayName: "Download repoclient"
