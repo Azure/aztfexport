@@ -218,42 +218,46 @@ stages:
         displayName: "Publish Packages"
         strategy:
           matrix:
-            # ubuntu-bionic-amd64:
-            #   TYPE: deb
-            #   ARCH: amd64
-            #   REPO_ID: 5d16326637164fbc1139c4e1
+            ubuntu-bionic-amd64:
+              TYPE: deb
+              ARCH: amd64
+              REPO_ID: 5d16326637164fbc1139c4e1
             ubuntu-bionic-arm64:
               TYPE: deb
               ARCH: arm64
               REPO_ID: 5d16326637164fbc1139c4e1
-            # ubuntu-focal-amd64:
-            #   TYPE: deb
-            #   ARCH: amd64
-            #   REPO_ID: 5e852952e45fffa1beda61fe
-            # ubuntu-focal-arm64:
-            #   TYPE: deb
-            #   ARCH: arm64
-            #   REPO_ID: 5e852952e45fffa1beda61fe
-            # ubuntu-jammy-amd64:
-            #   TYPE: deb
-            #   ARCH: amd64
-            #   REPO_ID: 61faea6cea3a770ab120ac8a
-            # ubuntu-jammy-arm64:
-            #   TYPE: deb
-            #   ARCH: arm64
-            #   REPO_ID: 61faea6cea3a770ab120ac8a
-            # debian-buster-amd64:
-            #   TYPE: deb
-            #   ARCH: amd64
-            #   REPO_ID: 5d23b16c9a6e3b375bbba42e
-            # debian-bullseye-amd64:
-            #   TYPE: deb
-            #   ARCH: amd64
-            #   REPO_ID: 611ab3a32acdcd0744c8c841
-            # debian-bullseye-arm64:
-            #   TYPE: deb
-            #   ARCH: arm64
-            #   REPO_ID: 611ab3a32acdcd0744c8c841
+            ubuntu-focal-amd64:
+              TYPE: deb
+              ARCH: amd64
+              REPO_ID: 5e852952e45fffa1beda61fe
+            ubuntu-focal-arm64:
+              TYPE: deb
+              ARCH: arm64
+              REPO_ID: 5e852952e45fffa1beda61fe
+            ubuntu-jammy-amd64:
+              TYPE: deb
+              ARCH: amd64
+              REPO_ID: 61faea6cea3a770ab120ac8a
+            ubuntu-jammy-arm64:
+              TYPE: deb
+              ARCH: arm64
+              REPO_ID: 61faea6cea3a770ab120ac8a
+            debian-buster-amd64:
+              TYPE: deb
+              ARCH: amd64
+              REPO_ID: 5d23b16c9a6e3b375bbba42e
+            debian-buster-arm64:
+              TYPE: deb
+              ARCH: arm64
+              REPO_ID: 5d23b16c9a6e3b375bbba42e
+            debian-bullseye-amd64:
+              TYPE: deb
+              ARCH: amd64
+              REPO_ID: 611ab3a32acdcd0744c8c841
+            debian-bullseye-arm64:
+              TYPE: deb
+              ARCH: arm64
+              REPO_ID: 611ab3a32acdcd0744c8c841
             # centos-8-x86_64:
             #   TYPE: rpm
             #   ARCH: amd64
