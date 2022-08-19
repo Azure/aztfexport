@@ -4,12 +4,11 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/go
 
 steps:
-  - task: DownloadPipelineArtifact@2
-    inputs:
-      artifact: linux-amd64-pkg
-      path: $(system.defaultWorkingDirectory)/dist/pkg
-      source: "specific"
-      project: "release"
-      pipeline: 22
-      runVersion: "specific"
-      buildId: 3678
+  - script: |
+      set -e
+
+      apt install qemu-kvm libvirt-clients libvirt-daemon-system bridge-utils virtinst libvirt-daemon
+      systemctl enable --now libvirtd
+      docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+      docker run --rm -t arm64v8/ubuntu uname -m
+    displayName: "Try"
