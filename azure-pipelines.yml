@@ -14,7 +14,7 @@ stages:
             inputs:
               artifact: linux-amd64-pkg
               path: $(system.defaultWorkingDirectory)/dist/pkg
-              # source: "specific"
-              # project: "release"
-              # pipeline: 22
+              source: "specific"
+              project: "release"
+              pipeline: 22
               # runId: 3678
