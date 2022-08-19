@@ -11,4 +11,5 @@ steps:
       source: "specific"
       project: "release"
       pipeline: 22
+      runVersion: "specific"
       buildId: 3678
