@@ -219,226 +219,226 @@ stages:
         strategy:
           matrix:
             # deb platforms
-            ubuntu-bionic-amd64:
-              TYPE: deb
-              ARCH: amd64
-              REPO_ID: 5d16326637164fbc1139c4e1
-              REPO_DISTRO: ubuntu
-              REPO_RELEASE: bionic
-            ubuntu-bionic-arm64:
-              TYPE: deb
-              ARCH: arm64
-              REPO_ID: 5d16326637164fbc1139c4e1
-              REPO_DISTRO: ubuntu
-              REPO_RELEASE: bionic
-            ubuntu-focal-amd64:
-              TYPE: deb
-              ARCH: amd64
-              REPO_ID: 5e852952e45fffa1beda61fe
-              REPO_DISTRO: ubuntu
-              REPO_RELEASE: focal
-            ubuntu-focal-arm64:
-              TYPE: deb
-              ARCH: arm64
-              REPO_ID: 5e852952e45fffa1beda61fe
-              REPO_DISTRO: ubuntu
-              REPO_RELEASE: focal
-            ubuntu-jammy-amd64:
-              TYPE: deb
-              ARCH: amd64
-              REPO_ID: 61faea6cea3a770ab120ac8a
-              REPO_DISTRO: ubuntu
-              REPO_RELEASE: jammy
-            ubuntu-jammy-arm64:
-              TYPE: deb
-              ARCH: arm64
-              REPO_ID: 61faea6cea3a770ab120ac8a
-              REPO_DISTRO: ubuntu
-              REPO_RELEASE: jammy
-            debian-buster-amd64:
-              TYPE: deb
-              ARCH: amd64
-              REPO_ID: 5d23b16c9a6e3b375bbba42e
-              REPO_DISTRO: debian
-              REPO_RELEASE: buster
-            debian-buster-arm64:
-              TYPE: deb
-              ARCH: arm64
-              REPO_ID: 5d23b16c9a6e3b375bbba42e
-              REPO_DISTRO: debian
-              REPO_RELEASE: buster
-            debian-bullseye-amd64:
-              TYPE: deb
-              ARCH: amd64
-              REPO_ID: 611ab3a32acdcd0744c8c841
-              REPO_DISTRO: debian
-              REPO_RELEASE: bullseye
-            debian-bullseye-arm64:
-              TYPE: deb
-              ARCH: arm64
-              REPO_ID: 611ab3a32acdcd0744c8c841
-              REPO_DISTRO: debian
-              REPO_RELEASE: bullseye
+            # ubuntu-bionic-amd64:
+            #   TYPE: deb
+            #   ARCH: amd64
+            #   REPO_ID: 5d16326637164fbc1139c4e1
+            #   REPO_DISTRO: ubuntu
+            #   REPO_RELEASE: bionic
+            # ubuntu-bionic-arm64:
+            #   TYPE: deb
+            #   ARCH: arm64
+            #   REPO_ID: 5d16326637164fbc1139c4e1
+            #   REPO_DISTRO: ubuntu
+            #   REPO_RELEASE: bionic
+            # ubuntu-focal-amd64:
+            #   TYPE: deb
+            #   ARCH: amd64
+            #   REPO_ID: 5e852952e45fffa1beda61fe
+            #   REPO_DISTRO: ubuntu
+            #   REPO_RELEASE: focal
+            # ubuntu-focal-arm64:
+            #   TYPE: deb
+            #   ARCH: arm64
+            #   REPO_ID: 5e852952e45fffa1beda61fe
+            #   REPO_DISTRO: ubuntu
+            #   REPO_RELEASE: focal
+            # ubuntu-jammy-amd64:
+            #   TYPE: deb
+            #   ARCH: amd64
+            #   REPO_ID: 61faea6cea3a770ab120ac8a
+            #   REPO_DISTRO: ubuntu
+            #   REPO_RELEASE: jammy
+            # ubuntu-jammy-arm64:
+            #   TYPE: deb
+            #   ARCH: arm64
+            #   REPO_ID: 61faea6cea3a770ab120ac8a
+            #   REPO_DISTRO: ubuntu
+            #   REPO_RELEASE: jammy
+            # debian-buster-amd64:
+            #   TYPE: deb
+            #   ARCH: amd64
+            #   REPO_ID: 5d23b16c9a6e3b375bbba42e
+            #   REPO_DISTRO: debian
+            #   REPO_RELEASE: buster
+            # debian-buster-arm64:
+            #   TYPE: deb
+            #   ARCH: arm64
+            #   REPO_ID: 5d23b16c9a6e3b375bbba42e
+            #   REPO_DISTRO: debian
+            #   REPO_RELEASE: buster
+            # debian-bullseye-amd64:
+            #   TYPE: deb
+            #   ARCH: amd64
+            #   REPO_ID: 611ab3a32acdcd0744c8c841
+            #   REPO_DISTRO: debian
+            #   REPO_RELEASE: bullseye
+            # debian-bullseye-arm64:
+            #   TYPE: deb
+            #   ARCH: arm64
+            #   REPO_ID: 611ab3a32acdcd0744c8c841
+            #   REPO_DISTRO: debian
+            #   REPO_RELEASE: bullseye
 
             # rpm platforms
-            # centos-8-x86_64:
-            #   TYPE: rpm
-            #   ARCH: amd64
-            #   REPO_ID: 5e5ed94a523a8019fe47607e
-            #   REPO_DISTRO: centos
-            #   REPO_RELEASE: 8
-            # centos-8-aarch64:
-            #   TYPE: rpm
-            #   ARCH: arm64
-            #   REPO_ID: 5e5ed94a523a8019fe47607e
-            #   REPO_DISTRO: centos
-            #   REPO_RELEASE: 8
-            # rhel-8-x86_64:
-            #   TYPE: rpm
-            #   ARCH: amd64
-            #   REPO_ID: 5d4470e1eebce7156eee5407
-            #   REPO_DISTRO: rhel
-            #   REPO_RELEASE: 8
-            # rhel-8-aarch64:
-            #   TYPE: rpm
-            #   ARCH: arm64
-            #   REPO_ID: 5d4470e1eebce7156eee5407
-            #   REPO_DISTRO: rhel
-            #   REPO_RELEASE: 8
-            # rhel-9-x86_64:
-            #   TYPE: rpm
-            #   ARCH: amd64
-            #   REPO_ID: 627067cc3ac6d7548f4d66cd
-            #   REPO_DISTRO: rhel
-            #   REPO_RELEASE: 9
-            # rhel-9-aarch64:
-            #   TYPE: rpm
-            #   ARCH: arm64
-            #   REPO_ID: 627067cc3ac6d7548f4d66cd
-            #   REPO_DISTRO: rhel
-            #   REPO_RELEASE: 9
-            # fedora-34-x86_64:
-            #   TYPE: rpm
-            #   ARCH: amd64
-            #   REPO_ID: 606e1da573e50659b0803a7b
-            #   REPO_DISTRO: fedora
-            #   REPO_RELEASE: 34
-            # fedora-34-aarch64:
-            #   TYPE: rpm
-            #   ARCH: arm64
-            #   REPO_ID: 606e1da573e50659b0803a7b
-            #   REPO_DISTRO: fedora
-            #   REPO_RELEASE: 34
-            # fedora-35-x86_64:
-            #   TYPE: rpm
-            #   ARCH: amd64
-            #   REPO_ID: 6196d483ea3a770f011f63fb
-            #   REPO_DISTRO: fedora
-            #   REPO_RELEASE: 35
-            # fedora-35-aarch64:
-            #   TYPE: rpm
-            #   ARCH: arm64
-            #   REPO_ID: 6196d483ea3a770f011f63fb
-            #   REPO_DISTRO: fedora
-            #   REPO_RELEASE: 35
-            # fedora-36-x86_64:
-            #   TYPE: rpm
-            #   ARCH: amd64
-            #   REPO_ID: 6271bc683ac6d73aa84d6737
-            #   REPO_DISTRO: fedora
-            #   REPO_RELEASE: 36
-            # fedora-36-aarch64:
-            #   TYPE: rpm
-            #   ARCH: arm64
-            #   REPO_ID: 6271bc683ac6d73aa84d6737
-            #   REPO_DISTRO: fedora
-            #   REPO_RELEASE: 36
+            centos-8-x86_64:
+              TYPE: rpm
+              ARCH: amd64
+              REPO_ID: 5e5ed94a523a8019fe47607e
+              REPO_DISTRO: centos
+              REPO_RELEASE: 8
+            centos-8-aarch64:
+              TYPE: rpm
+              ARCH: arm64
+              REPO_ID: 5e5ed94a523a8019fe47607e
+              REPO_DISTRO: centos
+              REPO_RELEASE: 8
+            rhel-8-x86_64:
+              TYPE: rpm
+              ARCH: amd64
+              REPO_ID: 5d4470e1eebce7156eee5407
+              REPO_DISTRO: rhel
+              REPO_RELEASE: 8
+            rhel-8-aarch64:
+              TYPE: rpm
+              ARCH: arm64
+              REPO_ID: 5d4470e1eebce7156eee5407
+              REPO_DISTRO: rhel
+              REPO_RELEASE: 8
+            rhel-9-x86_64:
+              TYPE: rpm
+              ARCH: amd64
+              REPO_ID: 627067cc3ac6d7548f4d66cd
+              REPO_DISTRO: rhel
+              REPO_RELEASE: 9
+            rhel-9-aarch64:
+              TYPE: rpm
+              ARCH: arm64
+              REPO_ID: 627067cc3ac6d7548f4d66cd
+              REPO_DISTRO: rhel
+              REPO_RELEASE: 9
+            fedora-34-x86_64:
+              TYPE: rpm
+              ARCH: amd64
+              REPO_ID: 606e1da573e50659b0803a7b
+              REPO_DISTRO: fedora
+              REPO_RELEASE: 34
+            fedora-34-aarch64:
+              TYPE: rpm
+              ARCH: arm64
+              REPO_ID: 606e1da573e50659b0803a7b
+              REPO_DISTRO: fedora
+              REPO_RELEASE: 34
+            fedora-35-x86_64:
+              TYPE: rpm
+              ARCH: amd64
+              REPO_ID: 6196d483ea3a770f011f63fb
+              REPO_DISTRO: fedora
+              REPO_RELEASE: 35
+            fedora-35-aarch64:
+              TYPE: rpm
+              ARCH: arm64
+              REPO_ID: 6196d483ea3a770f011f63fb
+              REPO_DISTRO: fedora
+              REPO_RELEASE: 35
+            fedora-36-x86_64:
+              TYPE: rpm
+              ARCH: amd64
+              REPO_ID: 6271bc683ac6d73aa84d6737
+              REPO_DISTRO: fedora
+              REPO_RELEASE: 36
+            fedora-36-aarch64:
+              TYPE: rpm
+              ARCH: arm64
+              REPO_ID: 6271bc683ac6d73aa84d6737
+              REPO_DISTRO: fedora
+              REPO_RELEASE: 36
         steps:
-          # - task: DownloadPipelineArtifact@2
-          #   inputs:
-          #     artifact: linux-$(ARCH)-pkg
-          #     path: $(system.defaultWorkingDirectory)/dist/pkg
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifact: linux-$(ARCH)-pkg
+              path: $(system.defaultWorkingDirectory)/dist/pkg
 
-          #     # Debug purpose only: Accelerate debugging on this stage
-          #     # source: "specific"
-          #     # project: "release"
-          #     # pipeline: 22
-          #     # runVersion: "specific"
-          #     # runId: 3760
+              # Debug purpose only: Accelerate debugging on this stage
+              source: "specific"
+              project: "release"
+              pipeline: 22
+              runVersion: "specific"
+              runId: 3760
 
-          # - task: UniversalPackages@0
-          #   displayName: "Download repoclient"
-          #   inputs:
-          #     command: download
-          #     vstsFeed: "release/aztfy"
-          #     vstsFeedPackage: "azure-repoapi-client"
-          #     vstsPackageVersion: "2.2.1"
-          #     downloadDirectory: $(system.defaultWorkingDirectory)/dist/tool
-          # - script: |
-          #     set -e
-          #     sudo apt install -y ./dist/tool/azure-repoapi-client_2.2.1_amd64.deb
-          #     mkdir ~/.repoclient
-          #     cat << EOF > ~/.repoclient/config.json
-          #     {
-          #       "server": "azure-apt-cat.cloudapp.net",
-          #       "port": "443",
-          #       "AADClientId": "$(LINUX_REPO_SP_CLIENT_ID)",
-          #       "AADClientSecret": "$(LINUX_REPO_SP_CLIENT_SECRET)",
-          #       "AADResource": "https://microsoft.onmicrosoft.com/945999e9-da09-4b5b-878f-b66c414602c0",
-          #       "AADTenant": "72f988bf-86f1-41af-91ab-2d7cd011db47",
-          #       "AADAuthorityUrl": "https://login.microsoftonline.com",
-          #       "repositoryId": "IGNORE"
-          #     }
-          #     EOF
-          #     pkg=(./dist/pkg/*.${TYPE})
-          #     [[ ${#pkg[@]} == 1 ]] || { echo "not exactly one target packages found: $(declare -p pkg)" > 2;  exit 1; }
-          #     pkg=${pkg[0]}
-
-          #     # Allow error's to occur prior to quit the task, as we are capturing the command output, otherwise, we will have no chance to output that in stdout/stderr. 
-          #     set +e
-          #     ret=$(repoclient package add -r ${REPO_ID} $pkg)
-          #     [[ $? == 0 ]] || { echo "Error: repoclient package add failed: $ret" >&2; exit 1; }
-          #     echo -e "repoclient package add returns:\n$ret\n"
-
-          #     location=$(jq -r '.Location' <<< $ret)
-          #     package_id=${location##*/}
-          #     [[ -n $package_id ]] || { echo "Error: empty package id got" >&2; exit 1; }
-          #     echo "package id: $package_id"
-
-          #     ret=$(repoclient package check $package_id)
-          #     [[ $? == 0 ]] || { echo "Error: repoclient package check failed: $ret" >&2; exit 1; }
-          #     echo -e "repoclient package check returns:\n$ret\n"
-          #   displayName: "Publish via repoclient"
-          #   env:
-          #     TYPE: $(TYPE)
-          #     REPO_ID: $(REPO_ID)
+          - task: UniversalPackages@0
+            displayName: "Download repoclient"
+            inputs:
+              command: download
+              vstsFeed: "release/aztfy"
+              vstsFeedPackage: "azure-repoapi-client"
+              vstsPackageVersion: "2.2.1"
+              downloadDirectory: $(system.defaultWorkingDirectory)/dist/tool
           - script: |
               set -e
-              
-              # Skip verifying rhel distros as they don't have a docker image available
-              [[ $REPO_DISTRO == rhel ]] && exit 0
+              sudo apt install -y ./dist/tool/azure-repoapi-client_2.2.1_amd64.deb
+              mkdir ~/.repoclient
+              cat << EOF > ~/.repoclient/config.json
+              {
+                "server": "azure-apt-cat.cloudapp.net",
+                "port": "443",
+                "AADClientId": "$(LINUX_REPO_SP_CLIENT_ID)",
+                "AADClientSecret": "$(LINUX_REPO_SP_CLIENT_SECRET)",
+                "AADResource": "https://microsoft.onmicrosoft.com/945999e9-da09-4b5b-878f-b66c414602c0",
+                "AADTenant": "72f988bf-86f1-41af-91ab-2d7cd011db47",
+                "AADAuthorityUrl": "https://login.microsoftonline.com",
+                "repositoryId": "IGNORE"
+              }
+              EOF
+              pkg=(./dist/pkg/*.${TYPE})
+              [[ ${#pkg[@]} == 1 ]] || { echo "not exactly one target packages found: $(declare -p pkg)" > 2;  exit 1; }
+              pkg=${pkg[0]}
 
-              # Install and run kvm service
-              sudo apt install qemu-kvm libvirt-clients libvirt-daemon-system bridge-utils virtinst libvirt-daemon
-              sudo systemctl enable --now libvirtd
+              # Allow error's to occur prior to quit the task, as we are capturing the command output, otherwise, we will have no chance to output that in stdout/stderr. 
+              set +e
+              ret=$(repoclient package add -r ${REPO_ID} $pkg)
+              [[ $? == 0 ]] || { echo "Error: repoclient package add failed: $ret" >&2; exit 1; }
+              echo -e "repoclient package add returns:\n$ret\n"
 
-              # Setup binfmt_misc to enable multi arch
-              docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+              location=$(jq -r '.Location' <<< $ret)
+              package_id=${location##*/}
+              [[ -n $package_id ]] || { echo "Error: empty package id got" >&2; exit 1; }
+              echo "package id: $package_id"
 
-              # Launch the base container of the correct architecture
-              cid=$(docker run --rm -dit --platform=linux/$ARCH ${REPO_DISTRO}:${REPO_RELEASE})
-
-              docker cp ${workdir}/scripts/package/linux/verify/${REPO_DISTRO}-${REPO_RELEASE}.sh ${cid}:/verify.sh
-              docker exec $cid /verify.sh $VERSION
-            displayName: "Verify"
+              ret=$(repoclient package check $package_id)
+              [[ $? == 0 ]] || { echo "Error: repoclient package check failed: $ret" >&2; exit 1; }
+              echo -e "repoclient package check returns:\n$ret\n"
+            displayName: "Publish via repoclient"
             env:
-              workdir: $(system.defaultWorkingDirectory)
               TYPE: $(TYPE)
-              ARCH: $(ARCH)
               REPO_ID: $(REPO_ID)
-              REPO_DISTRO: $(REPO_DISTRO)
-              REPO_RELEASE: $(REPO_RELEASE)
-              VERSION: ${{ parameters.version }}
+          # - script: |
+          #     set -e
+              
+          #     # Skip verifying rhel distros as they don't have a docker image available
+          #     [[ $REPO_DISTRO == rhel ]] && exit 0
+
+          #     # Install and run kvm service
+          #     sudo apt install qemu-kvm libvirt-clients libvirt-daemon-system bridge-utils virtinst libvirt-daemon
+          #     sudo systemctl enable --now libvirtd
+
+          #     # Setup binfmt_misc to enable multi arch
+          #     docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+          #     # Launch the base container of the correct architecture
+          #     cid=$(docker run --rm -dit --platform=linux/$ARCH ${REPO_DISTRO}:${REPO_RELEASE})
+
+          #     docker cp ${workdir}/scripts/package/linux/verify/${REPO_DISTRO}-${REPO_RELEASE}.sh ${cid}:/verify.sh
+          #     docker exec $cid /verify.sh $VERSION
+          #   displayName: "Verify"
+          #   env:
+          #     workdir: $(system.defaultWorkingDirectory)
+          #     TYPE: $(TYPE)
+          #     ARCH: $(ARCH)
+          #     REPO_ID: $(REPO_ID)
+          #     REPO_DISTRO: $(REPO_DISTRO)
+          #     REPO_RELEASE: $(REPO_RELEASE)
+          #     VERSION: ${{ parameters.version }}
 
   # - stage: publish_windows_setup
   #   displayName: "Publish Windows Setup"
