@@ -3,18 +3,12 @@
 # Add steps that test, save build artifacts, deploy, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/go
 
-stages:
-  - stage: test
-    displayName: "test download artifact"
-    jobs:
-      - job: build
-        displayName: "Build Binaries"
-        steps:
-          - task: DownloadPipelineArtifact@2
-            inputs:
-              artifact: linux-amd64-pkg
-              path: $(system.defaultWorkingDirectory)/dist/pkg
-              source: "specific"
-              project: "release"
-              pipeline: 22
-              buildId: 3678
+steps:
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      artifact: linux-amd64-pkg
+      path: $(system.defaultWorkingDirectory)/dist/pkg
+      source: "specific"
+      project: "release"
+      pipeline: 22
+      buildId: 3678
