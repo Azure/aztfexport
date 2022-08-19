@@ -428,7 +428,7 @@ stages:
               # Launch the base container of the correct architecture
               cid=$(docker run --rm -dit --platform=linux/$ARCH ${REPO_DISTRO}:${REPO_RELEASE})
 
-              docker cp ./${REPO_DISTRO}-${REPO_RELEASE}.sh ${cid}:/verify.sh
+              docker cp ${workdir}/scripts/package/linux/verify/${REPO_DISTRO}-${REPO_RELEASE}.sh ${cid}:/verify.sh
               docker exec $cid /verify.sh
             displayName: "Verify"
             env:
