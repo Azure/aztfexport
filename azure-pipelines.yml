@@ -429,7 +429,7 @@ stages:
               cid=$(docker run --rm -dit --platform=linux/$ARCH ${REPO_DISTRO}:${REPO_RELEASE})
 
               docker cp ${workdir}/scripts/package/linux/verify/${REPO_DISTRO}-${REPO_RELEASE}.sh ${cid}:/verify.sh
-              docker exec $cid /verify.sh
+              docker exec $cid /verify.sh $VERSION
             displayName: "Verify"
             env:
               workdir: $(system.defaultWorkingDirectory)
@@ -438,6 +438,7 @@ stages:
               REPO_ID: $(REPO_ID)
               REPO_DISTRO: $(REPO_DISTRO)
               REPO_RELEASE: $(REPO_RELEASE)
+              VERSION: ${{ parameters.version }}
 
   # - stage: publish_windows_setup
   #   displayName: "Publish Windows Setup"
