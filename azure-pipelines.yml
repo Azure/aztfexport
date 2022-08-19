@@ -231,30 +231,30 @@ stages:
               REPO_ID: 5d16326637164fbc1139c4e1
               REPO_DISTRO: ubuntu
               REPO_RELEASE: bionic
-            # ubuntu-focal-amd64:
-            #   TYPE: deb
-            #   ARCH: amd64
-            #   REPO_ID: 5e852952e45fffa1beda61fe
-            #   REPO_DISTRO: ubuntu
-            #   REPO_RELEASE: focal
-            # ubuntu-focal-arm64:
-            #   TYPE: deb
-            #   ARCH: arm64
-            #   REPO_ID: 5e852952e45fffa1beda61fe
-            #   REPO_DISTRO: ubuntu
-            #   REPO_RELEASE: focal
-            # ubuntu-jammy-amd64:
-            #   TYPE: deb
-            #   ARCH: amd64
-            #   REPO_ID: 61faea6cea3a770ab120ac8a
-            #   REPO_DISTRO: ubuntu
-            #   REPO_RELEASE: jammy
-            # ubuntu-jammy-arm64:
-            #   TYPE: deb
-            #   ARCH: arm64
-            #   REPO_ID: 61faea6cea3a770ab120ac8a
-            #   REPO_DISTRO: ubuntu
-            #   REPO_RELEASE: jammy
+            ubuntu-focal-amd64:
+              TYPE: deb
+              ARCH: amd64
+              REPO_ID: 5e852952e45fffa1beda61fe
+              REPO_DISTRO: ubuntu
+              REPO_RELEASE: focal
+            ubuntu-focal-arm64:
+              TYPE: deb
+              ARCH: arm64
+              REPO_ID: 5e852952e45fffa1beda61fe
+              REPO_DISTRO: ubuntu
+              REPO_RELEASE: focal
+            ubuntu-jammy-amd64:
+              TYPE: deb
+              ARCH: amd64
+              REPO_ID: 61faea6cea3a770ab120ac8a
+              REPO_DISTRO: ubuntu
+              REPO_RELEASE: jammy
+            ubuntu-jammy-arm64:
+              TYPE: deb
+              ARCH: arm64
+              REPO_ID: 61faea6cea3a770ab120ac8a
+              REPO_DISTRO: ubuntu
+              REPO_RELEASE: jammy
             # debian-buster-amd64:
             #   TYPE: deb
             #   ARCH: amd64
