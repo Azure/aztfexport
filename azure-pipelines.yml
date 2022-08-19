@@ -218,232 +218,298 @@ stages:
         displayName: "Publish Packages"
         strategy:
           matrix:
+            # deb platforms
             ubuntu-bionic-amd64:
               TYPE: deb
               ARCH: amd64
               REPO_ID: 5d16326637164fbc1139c4e1
+              REPO_DISTRO: ubuntu
+              REPO_RELEASE: bionic
             ubuntu-bionic-arm64:
               TYPE: deb
               ARCH: arm64
               REPO_ID: 5d16326637164fbc1139c4e1
-            ubuntu-focal-amd64:
-              TYPE: deb
-              ARCH: amd64
-              REPO_ID: 5e852952e45fffa1beda61fe
-            ubuntu-focal-arm64:
-              TYPE: deb
-              ARCH: arm64
-              REPO_ID: 5e852952e45fffa1beda61fe
-            ubuntu-jammy-amd64:
-              TYPE: deb
-              ARCH: amd64
-              REPO_ID: 61faea6cea3a770ab120ac8a
-            ubuntu-jammy-arm64:
-              TYPE: deb
-              ARCH: arm64
-              REPO_ID: 61faea6cea3a770ab120ac8a
-            debian-buster-amd64:
-              TYPE: deb
-              ARCH: amd64
-              REPO_ID: 5d23b16c9a6e3b375bbba42e
-            debian-buster-arm64:
-              TYPE: deb
-              ARCH: arm64
-              REPO_ID: 5d23b16c9a6e3b375bbba42e
-            debian-bullseye-amd64:
-              TYPE: deb
-              ARCH: amd64
-              REPO_ID: 611ab3a32acdcd0744c8c841
-            debian-bullseye-arm64:
-              TYPE: deb
-              ARCH: arm64
-              REPO_ID: 611ab3a32acdcd0744c8c841
+              REPO_DISTRO: ubuntu
+              REPO_RELEASE: bionic
+            # ubuntu-focal-amd64:
+            #   TYPE: deb
+            #   ARCH: amd64
+            #   REPO_ID: 5e852952e45fffa1beda61fe
+            #   REPO_DISTRO: ubuntu
+            #   REPO_RELEASE: focal
+            # ubuntu-focal-arm64:
+            #   TYPE: deb
+            #   ARCH: arm64
+            #   REPO_ID: 5e852952e45fffa1beda61fe
+            #   REPO_DISTRO: ubuntu
+            #   REPO_RELEASE: focal
+            # ubuntu-jammy-amd64:
+            #   TYPE: deb
+            #   ARCH: amd64
+            #   REPO_ID: 61faea6cea3a770ab120ac8a
+            #   REPO_DISTRO: ubuntu
+            #   REPO_RELEASE: jammy
+            # ubuntu-jammy-arm64:
+            #   TYPE: deb
+            #   ARCH: arm64
+            #   REPO_ID: 61faea6cea3a770ab120ac8a
+            #   REPO_DISTRO: ubuntu
+            #   REPO_RELEASE: jammy
+            # debian-buster-amd64:
+            #   TYPE: deb
+            #   ARCH: amd64
+            #   REPO_ID: 5d23b16c9a6e3b375bbba42e
+            #   REPO_DISTRO: debian
+            #   REPO_RELEASE: buster
+            # debian-buster-arm64:
+            #   TYPE: deb
+            #   ARCH: arm64
+            #   REPO_ID: 5d23b16c9a6e3b375bbba42e
+            #   REPO_DISTRO: debian
+            #   REPO_RELEASE: buster
+            # debian-bullseye-amd64:
+            #   TYPE: deb
+            #   ARCH: amd64
+            #   REPO_ID: 611ab3a32acdcd0744c8c841
+            #   REPO_DISTRO: debian
+            #   REPO_RELEASE: bullseye
+            # debian-bullseye-arm64:
+            #   TYPE: deb
+            #   ARCH: arm64
+            #   REPO_ID: 611ab3a32acdcd0744c8c841
+            #   REPO_DISTRO: debian
+            #   REPO_RELEASE: bullseye
+
+            # rpm platforms
             # centos-8-x86_64:
             #   TYPE: rpm
             #   ARCH: amd64
             #   REPO_ID: 5e5ed94a523a8019fe47607e
+            #   REPO_DISTRO: centos
+            #   REPO_RELEASE: 8
             # centos-8-aarch64:
             #   TYPE: rpm
             #   ARCH: arm64
             #   REPO_ID: 5e5ed94a523a8019fe47607e
+            #   REPO_DISTRO: centos
+            #   REPO_RELEASE: 8
             # rhel-8-x86_64:
             #   TYPE: rpm
             #   ARCH: amd64
             #   REPO_ID: 5d4470e1eebce7156eee5407
+            #   REPO_DISTRO: rhel
+            #   REPO_RELEASE: 8
             # rhel-8-aarch64:
             #   TYPE: rpm
             #   ARCH: arm64
             #   REPO_ID: 5d4470e1eebce7156eee5407
+            #   REPO_DISTRO: rhel
+            #   REPO_RELEASE: 8
             # rhel-9-x86_64:
             #   TYPE: rpm
             #   ARCH: amd64
             #   REPO_ID: 627067cc3ac6d7548f4d66cd
+            #   REPO_DISTRO: rhel
+            #   REPO_RELEASE: 9
             # rhel-9-aarch64:
             #   TYPE: rpm
             #   ARCH: arm64
             #   REPO_ID: 627067cc3ac6d7548f4d66cd
+            #   REPO_DISTRO: rhel
+            #   REPO_RELEASE: 9
             # fedora-34-x86_64:
             #   TYPE: rpm
             #   ARCH: amd64
             #   REPO_ID: 606e1da573e50659b0803a7b
+            #   REPO_DISTRO: fedora
+            #   REPO_RELEASE: 34
             # fedora-34-aarch64:
             #   TYPE: rpm
             #   ARCH: arm64
             #   REPO_ID: 606e1da573e50659b0803a7b
+            #   REPO_DISTRO: fedora
+            #   REPO_RELEASE: 34
             # fedora-35-x86_64:
             #   TYPE: rpm
             #   ARCH: amd64
             #   REPO_ID: 6196d483ea3a770f011f63fb
+            #   REPO_DISTRO: fedora
+            #   REPO_RELEASE: 35
             # fedora-35-aarch64:
             #   TYPE: rpm
             #   ARCH: arm64
             #   REPO_ID: 6196d483ea3a770f011f63fb
+            #   REPO_DISTRO: fedora
+            #   REPO_RELEASE: 35
             # fedora-36-x86_64:
             #   TYPE: rpm
             #   ARCH: amd64
             #   REPO_ID: 6271bc683ac6d73aa84d6737
+            #   REPO_DISTRO: fedora
+            #   REPO_RELEASE: 36
             # fedora-36-aarch64:
             #   TYPE: rpm
             #   ARCH: arm64
             #   REPO_ID: 6271bc683ac6d73aa84d6737
+            #   REPO_DISTRO: fedora
+            #   REPO_RELEASE: 36
+        steps:
+          # - task: DownloadPipelineArtifact@2
+          #   inputs:
+          #     artifact: linux-$(ARCH)-pkg
+          #     path: $(system.defaultWorkingDirectory)/dist/pkg
+
+          #     # Debug purpose only: Accelerate debugging on this stage
+          #     # source: "specific"
+          #     # project: "release"
+          #     # pipeline: 22
+          #     # runVersion: "specific"
+          #     # runId: 3760
+
+          # - task: UniversalPackages@0
+          #   displayName: "Download repoclient"
+          #   inputs:
+          #     command: download
+          #     vstsFeed: "release/aztfy"
+          #     vstsFeedPackage: "azure-repoapi-client"
+          #     vstsPackageVersion: "2.2.1"
+          #     downloadDirectory: $(system.defaultWorkingDirectory)/dist/tool
+          # - script: |
+          #     set -e
+          #     sudo apt install -y ./dist/tool/azure-repoapi-client_2.2.1_amd64.deb
+          #     mkdir ~/.repoclient
+          #     cat << EOF > ~/.repoclient/config.json
+          #     {
+          #       "server": "azure-apt-cat.cloudapp.net",
+          #       "port": "443",
+          #       "AADClientId": "$(LINUX_REPO_SP_CLIENT_ID)",
+          #       "AADClientSecret": "$(LINUX_REPO_SP_CLIENT_SECRET)",
+          #       "AADResource": "https://microsoft.onmicrosoft.com/945999e9-da09-4b5b-878f-b66c414602c0",
+          #       "AADTenant": "72f988bf-86f1-41af-91ab-2d7cd011db47",
+          #       "AADAuthorityUrl": "https://login.microsoftonline.com",
+          #       "repositoryId": "IGNORE"
+          #     }
+          #     EOF
+          #     pkg=(./dist/pkg/*.${TYPE})
+          #     [[ ${#pkg[@]} == 1 ]] || { echo "not exactly one target packages found: $(declare -p pkg)" > 2;  exit 1; }
+          #     pkg=${pkg[0]}
+
+          #     # Allow error's to occur prior to quit the task, as we are capturing the command output, otherwise, we will have no chance to output that in stdout/stderr. 
+          #     set +e
+          #     ret=$(repoclient package add -r ${REPO_ID} $pkg)
+          #     [[ $? == 0 ]] || { echo "Error: repoclient package add failed: $ret" >&2; exit 1; }
+          #     echo -e "repoclient package add returns:\n$ret\n"
+
+          #     location=$(jq -r '.Location' <<< $ret)
+          #     package_id=${location##*/}
+          #     [[ -n $package_id ]] || { echo "Error: empty package id got" >&2; exit 1; }
+          #     echo "package id: $package_id"
+
+          #     ret=$(repoclient package check $package_id)
+          #     [[ $? == 0 ]] || { echo "Error: repoclient package check failed: $ret" >&2; exit 1; }
+          #     echo -e "repoclient package check returns:\n$ret\n"
+          #   displayName: "Publish via repoclient"
+          #   env:
+          #     TYPE: $(TYPE)
+          #     REPO_ID: $(REPO_ID)
+          - script: |
+              set -e
+              
+              # Skip verifying rhel distros as they don't have a docker image available
+              [[ $REPO_DISTRO == rhel ]] && exit 0
+
+              # Install and run kvm service
+              sudo apt install qemu-kvm libvirt-clients libvirt-daemon-system bridge-utils virtinst libvirt-daemon
+              sudo systemctl enable --now libvirtd
+
+              # Setup binfmt_misc to enable multi arch
+              docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+              # Launch the base container of the correct architecture
+              cid=$(docker run --rm -dit --platform=linux/$ARCH ${REPO_DISTRO}:${REPO_RELEASE})
+
+              docker cp ./${REPO_DISTRO}-${REPO_RELEASE}.sh ${cid}:/verify.sh
+              docker exec $cid /verify.sh
+            displayName: "Verify"
+            env:
+              workdir: $(system.defaultWorkingDirectory)
+              TYPE: $(TYPE)
+              ARCH: $(ARCH)
+              REPO_ID: $(REPO_ID)
+              REPO_DISTRO: $(REPO_DISTRO)
+              REPO_RELEASE: $(REPO_RELEASE)
+
+  # - stage: publish_windows_setup
+  #   displayName: "Publish Windows Setup"
+
+  - stage: release
+    displayName: "Release"
+    jobs:
+      - job: release
+        displayName: "Release"
         steps:
           - task: DownloadPipelineArtifact@2
             inputs:
-              artifact: linux-$(ARCH)-pkg
-              path: $(system.defaultWorkingDirectory)/dist/pkg
-
-              # Debug purpose only: Accelerate debugging on this stage
-              # source: "specific"
-              # project: "release"
-              # pipeline: 22
-              # runVersion: "specific"
-              # runId: 3760
-
-          - task: UniversalPackages@0
-            displayName: "Download repoclient"
-            inputs:
-              command: download
-              vstsFeed: "release/aztfy"
-              vstsFeedPackage: "azure-repoapi-client"
-              vstsPackageVersion: "2.2.1"
-              downloadDirectory: $(system.defaultWorkingDirectory)/dist/tool
+              path: $(system.defaultWorkingDirectory)/dist
           - script: |
               set -e
-              sudo apt install -y ./dist/tool/azure-repoapi-client_2.2.1_amd64.deb
-              mkdir ~/.repoclient
-              cat << EOF > ~/.repoclient/config.json
-              {
-                "server": "azure-apt-cat.cloudapp.net",
-                "port": "443",
-                "AADClientId": "$(LINUX_REPO_SP_CLIENT_ID)",
-                "AADClientSecret": "$(LINUX_REPO_SP_CLIENT_SECRET)",
-                "AADResource": "https://microsoft.onmicrosoft.com/945999e9-da09-4b5b-878f-b66c414602c0",
-                "AADTenant": "72f988bf-86f1-41af-91ab-2d7cd011db47",
-                "AADAuthorityUrl": "https://login.microsoftonline.com",
-                "repositoryId": "IGNORE"
-              }
-              EOF
-              pkg=(./dist/pkg/*.${TYPE})
-              [[ ${#pkg[@]} == 1 ]] || { echo "not exactly one target packages found: $(declare -p pkg)" > 2;  exit 1; }
-              pkg=${pkg[0]}
-
-              # Allow error's to occur prior to quit the task, as we are capturing the command output, otherwise, we will have no chance to output that in stdout/stderr. 
-              set +e
-              ret=$(repoclient package add -r ${REPO_ID} $pkg)
-              [[ $? == 0 ]] || { echo "Error: repoclient package add failed: $ret" >&2; exit 1; }
-              echo -e "repoclient package add returns:\n$ret\n"
-
-              location=$(jq -r '.Location' <<< $ret)
-              package_id=${location##*/}
-              [[ -n $package_id ]] || { echo "Error: empty package id got" >&2; exit 1; }
-              echo "package id: $package_id"
-
-              ret=$(repoclient package check $package_id)
-              [[ $? == 0 ]] || { echo "Error: repoclient package check failed: $ret" >&2; exit 1; }
-              echo -e "repoclient package check returns:\n$ret\n"
-
-              # TODO: how to verify?
-              # msg=$(jq -r .message <<< $ret)
-              # [[ -z $msg ]] || {
-              #     echo "Error: non zero message indicates an error. removing the package" >&2
-              #     ret=$(repoclient package delete $package_id)
-              #     echo -e "repoclient package delete returns:\n$ret\n"
-              # }
-            displayName: "Publish via repoclient"
+              NAME="aztfy"
+              OS_ARCH=(
+                "windows:amd64"
+                "windows:386"
+                "linux:amd64"
+                "linux:386"
+                "linux:arm"
+                "linux:arm64"
+                "darwin:amd64"
+                "darwin:arm64"
+              )
+              mkdir release
+              for os_arch in "${OS_ARCH[@]}" ; do
+                OS=${os_arch%%:*}
+                ARCH=${os_arch#*:}
+                name=aztfy
+                if [[ $OS = windows ]]; then
+                    name=aztfy.exe
+                fi
+                chmod +x dist/${OS}-${ARCH}/${name}
+                zip -j release/${NAME}_${VERSION}_${OS}_${ARCH}.zip dist/${OS}-${ARCH}/${name}
+              done
+              cd release
+              shasum -a 256 *.zip > ${NAME}_SHA256SUMS
+              cp ${NAME}_SHA256SUMS ${NAME}_SHA256SUMS.sig
+            displayName: "Prepare Binary Archives & Digests"
             env:
-              TYPE: $(TYPE)
-              REPO_ID: $(REPO_ID)
-  # - stage: release_windows_setup
-  #   displayName: "Release Windows Setup"
-
-  # - stage: release
-  #   displayName: "Release"
-  #   jobs:
-  #     - job: release
-  #       displayName: "Release"
-  #       steps:
-  #         - task: DownloadPipelineArtifact@2
-  #           inputs:
-  #             path: $(system.defaultWorkingDirectory)/dist
-  #         - script: |
-  #             set -e
-  #             NAME="aztfy"
-  #             OS_ARCH=(
-  #               "windows:amd64"
-  #               "windows:386"
-  #               "linux:amd64"
-  #               "linux:386"
-  #               "linux:arm"
-  #               "linux:arm64"
-  #               "darwin:amd64"
-  #               "darwin:arm64"
-  #             )
-  #             mkdir release
-  #             for os_arch in "${OS_ARCH[@]}" ; do
-  #               OS=${os_arch%%:*}
-  #               ARCH=${os_arch#*:}
-  #               name=aztfy
-  #               if [[ $OS = windows ]]; then
-  #                   name=aztfy.exe
-  #               fi
-  #               chmod +x dist/${OS}-${ARCH}/${name}
-  #               zip -j release/${NAME}_${VERSION}_${OS}_${ARCH}.zip dist/${OS}-${ARCH}/${name}
-  #             done
-  #             cd release
-  #             shasum -a 256 *.zip > ${NAME}_SHA256SUMS
-  #             cp ${NAME}_SHA256SUMS ${NAME}_SHA256SUMS.sig
-  #           displayName: "Prepare Binary Archives & Digests"
-  #           env:
-  #             VERSION: ${{ parameters.version }}
-  #         - task: EsrpCodeSigning@1
-  #           displayName: "Sign Binary Archive Digests"
-  #           inputs:
-  #             ConnectedServiceName: 'ESRP Signing Service'
-  #             FolderPath: '$(system.defaultWorkingDirectory)/release'
-  #             Pattern: '*_SHA256SUMS.sig'
-  #             signConfigType: 'inlineSignParams'
-  #             inlineOperation: |
-  #               [
-  #                 {
-  #                     "KeyCode": "CP-450779-Pgp",
-  #                     "OperationCode": "LinuxSign",
-  #                     "Parameters": {},
-  #                     "ToolName": "sign",
-  #                     "ToolVersion": "1.0"
-  #                 }
-  #               ]
-  #             SessionTimeout: '60'
-  #             MaxConcurrency: '50'
-  #             MaxRetryAttempts: '5'
-  #         - task: GitHubRelease@1
-  #           displayName: "Draft Github Release"
-  #           inputs:
-  #             gitHubConnection: 'Github'
-  #             repositoryName: '$(Build.Repository.Name)'
-  #             action: 'create'
-  #             target: '$(Build.SourceVersion)'
-  #             tagSource: 'gitTag'
-  #             tagPattern: '^v\d+\.\d+\.\d+'
-  #             assets: '$(system.defaultWorkingDirectory)/release/*'
-  #             isDraft: true
-  #             addChangeLog: false
+              VERSION: ${{ parameters.version }}
+          - task: EsrpCodeSigning@1
+            displayName: "Sign Binary Archive Digests"
+            inputs:
+              ConnectedServiceName: 'ESRP Signing Service'
+              FolderPath: '$(system.defaultWorkingDirectory)/release'
+              Pattern: '*_SHA256SUMS.sig'
+              signConfigType: 'inlineSignParams'
+              inlineOperation: |
+                [
+                  {
+                      "KeyCode": "CP-450779-Pgp",
+                      "OperationCode": "LinuxSign",
+                      "Parameters": {},
+                      "ToolName": "sign",
+                      "ToolVersion": "1.0"
+                  }
+                ]
+              SessionTimeout: '60'
+              MaxConcurrency: '50'
+              MaxRetryAttempts: '5'
+          - task: GitHubRelease@1
+            displayName: "Draft Github Release"
+            inputs:
+              gitHubConnection: 'Github'
+              repositoryName: '$(Build.Repository.Name)'
+              action: 'create'
+              target: '$(Build.SourceVersion)'
+              tagSource: 'gitTag'
+              tagPattern: '^v\d+\.\d+\.\d+'
+              assets: '$(system.defaultWorkingDirectory)/release/*'
+              isDraft: true
+              addChangeLog: false
