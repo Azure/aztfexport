@@ -1,8 +1,3 @@
-# Go
-# Build your Go project.
-# Add steps that test, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/go
-
 parameters:
   - name: version
     displayName: Release Version (e.g. v0.1.0)
@@ -354,64 +349,67 @@ stages:
               REPO_DISTRO: fedora
               REPO_RELEASE: 36
         steps:
-          # - task: DownloadPipelineArtifact@2
-          #   inputs:
-          #     artifact: linux-$(ARCH)-pkg
-          #     path: $(system.defaultWorkingDirectory)/dist/pkg
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifact: linux-$(ARCH)-pkg
+              path: $(system.defaultWorkingDirectory)/dist/pkg
 
-          #     # Debug purpose only: Accelerate debugging on this stage
-          #     # source: "specific"
-          #     # project: "release"
-          #     # pipeline: 22
-          #     # runVersion: "specific"
-          #     # runId: 3760
+              # Debug purpose only: Accelerate debugging on this stage
+              # source: "specific"
+              # project: "release"
+              # pipeline: 22
+              # runVersion: "specific"
+              # runId: 3760
 
-          # - task: UniversalPackages@0
-          #   displayName: "Download repoclient"
-          #   inputs:
-          #     command: download
-          #     vstsFeed: "release/aztfy"
-          #     vstsFeedPackage: "azure-repoapi-client"
-          #     vstsPackageVersion: "2.2.1"
-          #     downloadDirectory: $(system.defaultWorkingDirectory)/dist/tool
-          # - script: |
-          #     set -e
-          #     sudo apt install -y ./dist/tool/azure-repoapi-client_2.2.1_amd64.deb
-          #     mkdir ~/.repoclient
-          #     cat << EOF > ~/.repoclient/config.json
-          #     {
-          #       "server": "azure-apt-cat.cloudapp.net",
-          #       "port": "443",
-          #       "AADClientId": "$(LINUX_REPO_SP_CLIENT_ID)",
-          #       "AADClientSecret": "$(LINUX_REPO_SP_CLIENT_SECRET)",
-          #       "AADResource": "https://microsoft.onmicrosoft.com/945999e9-da09-4b5b-878f-b66c414602c0",
-          #       "AADTenant": "72f988bf-86f1-41af-91ab-2d7cd011db47",
-          #       "AADAuthorityUrl": "https://login.microsoftonline.com",
-          #       "repositoryId": "IGNORE"
-          #     }
-          #     EOF
-          #     pkg=(./dist/pkg/*.${TYPE})
-          #     [[ ${#pkg[@]} == 1 ]] || { echo "not exactly one target packages found: $(declare -p pkg)" > 2;  exit 1; }
-          #     pkg=${pkg[0]}
+          - task: UniversalPackages@0
+            displayName: "Download repoclient"
+            inputs:
+              command: download
+              vstsFeed: "release/aztfy"
+              vstsFeedPackage: "azure-repoapi-client"
+              vstsPackageVersion: "2.2.1"
+              downloadDirectory: $(system.defaultWorkingDirectory)/dist/tool
+          - script: |
+              set -e
+              sudo apt install -y ./dist/tool/azure-repoapi-client_2.2.1_amd64.deb
+              mkdir ~/.repoclient
+              cat << EOF > ~/.repoclient/config.json
+              {
+                "server": "azure-apt-cat.cloudapp.net",
+                "port": "443",
+                "AADClientId": "$(LINUX_REPO_SP_CLIENT_ID)",
+                "AADClientSecret": "$(LINUX_REPO_SP_CLIENT_SECRET)",
+                "AADResource": "https://microsoft.onmicrosoft.com/945999e9-da09-4b5b-878f-b66c414602c0",
+                "AADTenant": "72f988bf-86f1-41af-91ab-2d7cd011db47",
+                "AADAuthorityUrl": "https://login.microsoftonline.com",
+                "repositoryId": "IGNORE"
+              }
+              EOF
+              pkg=(./dist/pkg/*.${TYPE})
+              [[ ${#pkg[@]} == 1 ]] || { echo "not exactly one target packages found: $(declare -p pkg)" > 2;  exit 1; }
+              pkg=${pkg[0]}
 
-          #     # Allow error's to occur prior to quit the task, as we are capturing the command output, otherwise, we will have no chance to output that in stdout/stderr. 
-          #     set +e
-          #     ret=$(repoclient package add -r ${REPO_ID} $pkg)
-          #     [[ $? == 0 ]] || { echo "Error: repoclient package add failed: $ret" >&2; exit 1; }
-          #     echo -e "repoclient package add returns:\n$ret\n"
+              # Allow error's to occur prior to quit the task, as we are capturing the command output, otherwise, we will have no chance to output that in stdout/stderr. 
+              set +e
+              ret=$(repoclient package add -r ${REPO_ID} $pkg)
+              [[ $? == 0 ]] || { echo "Error: repoclient package add failed: $ret" >&2; exit 1; }
+              echo -e "repoclient package add returns:\n$ret\n"
 
-          #     location=$(jq -r '.Location' <<< $ret)
-          #     package_id=${location##*/}
-          #     [[ -n $package_id ]] || { echo "Error: empty package id got" >&2; exit 1; }
-          #     echo "package id: $package_id"
+              location=$(jq -r '.Location' <<< $ret)
+              package_id=${location##*/}
+              [[ -n $package_id ]] || { echo "Error: empty package id got" >&2; exit 1; }
+              echo "package id: $package_id"
 
-          #     ret=$(repoclient package check $package_id)
-          #     [[ $? == 0 ]] || { echo "Error: repoclient package check failed: $ret" >&2; exit 1; }
-          #     echo -e "repoclient package check returns:\n$ret\n"
-          #   displayName: "Publish via repoclient"
-          #   env:
-          #     TYPE: $(TYPE)
-          #     REPO_ID: $(REPO_ID)
+              ret=$(repoclient package check $package_id)
+              [[ $? == 0 ]] || { echo "Error: repoclient package check failed: $ret" >&2; exit 1; }
+              echo -e "repoclient package check returns:\n$ret\n"
+            displayName: "Publish via repoclient"
+            env:
+              TYPE: $(TYPE)
+              REPO_ID: $(REPO_ID)
+          - script: |
+              #TODO
+            displayName: "Wait for package publish finish"
           - script: |
               set -e
               
