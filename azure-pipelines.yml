@@ -468,8 +468,8 @@ stages:
               set -e
 
               # Setup wix
-              curl -O /tmp/wix311.exe https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311.exe
-              msiexec.exe /i /tmp/wix311.exe /qn
+              curl -o wix311.exe "https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311.exe"
+              wix311.exe -install -quiet -norestart
               export PATH=$PATH:"/c/Program Files (x86)/WiX Toolset v3.11/bin"
 
               # Build
