@@ -464,12 +464,19 @@ stages:
               pipeline: 22
               runVersion: "specific"
               runId: 3760
+          - task: UniversalPackages@0
+            displayName: "Download wix toolset"
+            inputs:
+              command: download
+              vstsFeed: "release/aztfy"
+              vstsFeedPackage: "wixsetup"
+              vstsPackageVersion: "3.11.2"
+              downloadDirectory: $(system.defaultWorkingDirectory)/dist/tool
           - bash: |
               set -e
 
               # Setup wix
-              curl -o wix311.exe "https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311.exe"
-              wix311.exe -install -quiet -norestart
+              ./dist/tool/wix311.exe -install -quiet -norestart
               export PATH=$PATH:"/c/Program Files (x86)/WiX Toolset v3.11/bin"
 
               # Build
