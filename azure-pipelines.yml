@@ -457,12 +457,12 @@ stages:
               artifact: windows-$(ARCH)
               path: $(system.defaultWorkingDirectory)/dist/pkg
 
-              # Debug purpose only: Accelerate debugging on this stage
-              # source: "specific"
-              # project: "release"
-              # pipeline: 22
-              # runVersion: "specific"
-              # runId: 3760
+              Debug purpose only: Accelerate debugging on this stage
+              source: "specific"
+              project: "release"
+              pipeline: 22
+              runVersion: "specific"
+              runId: 3760
           - script: |
               set -e
 
