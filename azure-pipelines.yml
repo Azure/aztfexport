@@ -453,6 +453,7 @@ stages:
               ARCH: amd64
         steps:
           - task: DownloadPipelineArtifact@2
+            displayName: "Download aztfy binary"
             inputs:
               artifact: windows-$(ARCH)
               path: $(system.defaultWorkingDirectory)/dist/pkg
@@ -463,7 +464,7 @@ stages:
               pipeline: 22
               runVersion: "specific"
               runId: 3760
-          - script: |
+          - bash: |
               set -e
 
               # Setup wix
@@ -482,6 +483,7 @@ stages:
               workdir: $(system.defaultWorkingDirectory)
               VERSION: ${{ parameters.version }}
               ARCH: $(ARCH)
+            displayName: "Build"
           - task: PublishPipelineArtifact@1
             displayName: "Publish MSI"
             inputs:
