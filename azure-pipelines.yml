@@ -481,7 +481,7 @@ stages:
 
               # Build
               mkdir $workdir/dist/output
-              cd $WORKDIR/scripts/package/windows
+              cd $workdir/scripts/package/windows
               declare -A map=( [386]=x86 [amd64]=x64 )
               export VERSION=${VERSION:1}
               candle.exe -arch ${map[$ARCH]} -o setup.wxobj ./setup.wxs
