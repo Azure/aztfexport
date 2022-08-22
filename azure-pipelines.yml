@@ -456,7 +456,7 @@ stages:
             displayName: "Download aztfy binary"
             inputs:
               artifact: windows-$(ARCH)
-              path: $(system.defaultWorkingDirectory)/dist/pkg
+              path: $(system.defaultWorkingDirectory)/dist/bin
 
               Debug purpose only: Accelerate debugging on this stage
               source: "specific"
@@ -480,11 +480,12 @@ stages:
               export PATH=$PATH:"/c/Program Files (x86)/WiX Toolset v3.11/bin"
 
               # Build
-              mkdir $workdir/dist/output
               cd $workdir/scripts/package/windows
               declare -A map=( [386]=x86 [amd64]=x64 )
               export VERSION=${VERSION:1}
+              cp $workdir/dist/bin/aztfy.exe .
               candle.exe -arch ${map[$ARCH]} -o setup.wxobj ./setup.wxs
+              mkdir $workdir/dist/output
               light.exe -out $workdir/dist/output/aztfy.msi ./setup.wxobj
             env:
               workdir: $(system.defaultWorkingDirectory)
