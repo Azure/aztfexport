@@ -412,7 +412,7 @@ stages:
             displayName: "Wait for package publish finish"
           - script: |
               set -e
-              
+
               # Skip verifying rhel distros as they don't have a docker image available
               [[ $REPO_DISTRO == rhel ]] && exit 0
 
@@ -438,8 +438,55 @@ stages:
               REPO_RELEASE: $(REPO_RELEASE)
               VERSION: ${{ parameters.version }}
 
-  # - stage: publish_windows_setup
-  #   displayName: "Publish Windows Setup"
+  - stage: publish_windows_setup
+    displayName: "Publish Windows Setup"
+    jobs:
+      - job: build_msi
+        pool:
+          vmImage: "windows-2019"
+        displayName: "Build MSI"
+        strategy:
+          matrix:
+            386:
+              ARCH: 386
+            amd64:
+              ARCH: amd64
+        steps:
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifact: windows-$(ARCH)
+              path: $(system.defaultWorkingDirectory)/dist/pkg
+
+              # Debug purpose only: Accelerate debugging on this stage
+              # source: "specific"
+              # project: "release"
+              # pipeline: 22
+              # runVersion: "specific"
+              # runId: 3760
+          - script: |
+              set -e
+
+              # Setup wix
+              curl -O /tmp/wix311.exe https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311.exe
+              msiexec.exe /i /tmp/wix311.exe /qn
+              export PATH=$PATH:"/c/Program Files (x86)/WiX Toolset v3.11/bin"
+
+              # Build
+              mkdir $workdir/dist/output
+              cd $WORKDIR/scripts/package/windows
+              declare -A map=( [386]=x86 [amd64]=x64 )
+              export VERSION=${VERSION:1}
+              candle.exe -arch ${map[$ARCH]} -o setup.wxobj ./setup.wxs
+              light.exe -out $workdir/dist/output/aztfy.msi ./setup.wxobj
+            env:
+              workdir: $(system.defaultWorkingDirectory)
+              VERSION: ${{ parameters.version }}
+              ARCH: $(ARCH)
+          - task: PublishPipelineArtifact@1
+            displayName: "Publish MSI"
+            inputs:
+              targetPath: "$(system.defaultWorkingDirectory)/dist/output"
+              artifactName: windows-$(ARCH)-msi
 
   - stage: release
     displayName: "Release"
@@ -483,10 +530,10 @@ stages:
           - task: EsrpCodeSigning@1
             displayName: "Sign Binary Archive Digests"
             inputs:
-              ConnectedServiceName: 'ESRP Signing Service'
-              FolderPath: '$(system.defaultWorkingDirectory)/release'
-              Pattern: '*_SHA256SUMS.sig'
-              signConfigType: 'inlineSignParams'
+              ConnectedServiceName: "ESRP Signing Service"
+              FolderPath: "$(system.defaultWorkingDirectory)/release"
+              Pattern: "*_SHA256SUMS.sig"
+              signConfigType: "inlineSignParams"
               inlineOperation: |
                 [
                   {
@@ -497,18 +544,18 @@ stages:
                       "ToolVersion": "1.0"
                   }
                 ]
-              SessionTimeout: '60'
-              MaxConcurrency: '50'
-              MaxRetryAttempts: '5'
+              SessionTimeout: "60"
+              MaxConcurrency: "50"
+              MaxRetryAttempts: "5"
           - task: GitHubRelease@1
             displayName: "Draft Github Release"
             inputs:
-              gitHubConnection: 'Github'
-              repositoryName: '$(Build.Repository.Name)'
-              action: 'create'
-              target: '$(Build.SourceVersion)'
-              tagSource: 'gitTag'
+              gitHubConnection: "Github"
+              repositoryName: "$(Build.Repository.Name)"
+              action: "create"
+              target: "$(Build.SourceVersion)"
+              tagSource: "gitTag"
               tagPattern: '^v\d+\.\d+\.\d+'
-              assets: '$(system.defaultWorkingDirectory)/release/*'
+              assets: "$(system.defaultWorkingDirectory)/release/*"
               isDraft: true
               addChangeLog: false
