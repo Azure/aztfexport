@@ -9,7 +9,7 @@ curl -sSL https://packages.microsoft.com/keys/microsoft.asc > /etc/apt/trusted.g
 apt-add-repository https://packages.microsoft.com/ubuntu/20.04/prod
 apt-get update
 
-total=20
+total=60
 count=1
 while ((count <= total)); do
     apt-get install -y aztfy && break

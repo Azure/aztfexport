@@ -12,7 +12,7 @@ dnf install -y https://packages.microsoft.com/config/centos/8/packages-microsoft
 dnf check-update || [[ $? == 100 ]]  
 
 
-total=20
+total=60
 count=1
 while ((count <= total)); do
     dnf install -y aztfy && break

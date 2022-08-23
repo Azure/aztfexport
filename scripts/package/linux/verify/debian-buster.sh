@@ -9,7 +9,7 @@ curl -sSL https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
 apt-add-repository https://packages.microsoft.com/debian/10/prod
 apt-get update
 
-total=20
+total=60
 count=1
 while ((count <= total)); do
     apt-get install -y aztfy && break
