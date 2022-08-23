@@ -98,6 +98,8 @@ stages:
 
       - job: build_windows_setup
         displayName: "Build Windows Setup"
+        pool:
+          name: pool-windows-2019
         dependsOn: build
         strategy:
           matrix:
@@ -123,7 +125,6 @@ stages:
               set -e
 
               # Setup wix
-              chmod +x ./dist/tool/wix311.exe
               ./dist/tool/wix311.exe -install -quiet -norestart
               export PATH=$PATH:"/c/Program Files (x86)/WiX Toolset v3.11/bin"
 
