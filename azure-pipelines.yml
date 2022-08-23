@@ -408,9 +408,6 @@ stages:
               TYPE: $(TYPE)
               REPO_ID: $(REPO_ID)
           - script: |
-              sleep 10m
-            displayName: "Wait for package publish finish"
-          - script: |
               set -e
 
               # Skip verifying rhel distros as they don't have a docker image available
@@ -480,7 +477,7 @@ stages:
               export PATH=$PATH:"/c/Program Files (x86)/WiX Toolset v3.11/bin"
 
               # Build
-              cd $workdir/scripts/package/windows
+              cd $workdir/scripts/package/windows/build
               declare -A map=( [386]=x86 [amd64]=x64 )
               export VERSION=${VERSION:1}
               cp $workdir/dist/bin/aztfy.exe .
@@ -492,6 +489,39 @@ stages:
               VERSION: ${{ parameters.version }}
               ARCH: $(ARCH)
             displayName: "Build"
+          - task: EsrpCodeSigning@1
+            displayName: "Sign MSI"
+            inputs:
+              ConnectedServiceName: "ESRP Signing Service"
+              FolderPath: "$(system.defaultWorkingDirectory)/dist/output"
+              Pattern: "aztfy.msi"
+              signConfigType: "inlineSignParams"
+              inlineOperation: |
+                [
+                        {
+                            "KeyCode" : "CP-230012",
+                            "OperationCode" : "SigntoolSign",
+                            "Parameters" : {
+                                "OpusName" : "Microsoft",
+                                "OpusInfo" : "http://www.microsoft.com",
+                                "PageHash" : "/NPH",
+                                "TimeStamp" : "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256",
+                                "FileDigest": "/fd \"SHA256\""
+                            },
+                            "ToolName" : "sign",
+                            "ToolVersion" : "1.0"
+                        },
+                        {
+                            "KeyCode" : "CP-230012",
+                            "OperationCode" : "SigntoolVerify",
+                            "Parameters" : {},
+                            "ToolName" : "sign",
+                            "ToolVersion" : "1.0"
+                        }
+                ]
+              SessionTimeout: "60"
+              MaxConcurrency: "50"
+              MaxRetryAttempts: "5"
           - task: PublishPipelineArtifact@1
             displayName: "Publish MSI"
             inputs:

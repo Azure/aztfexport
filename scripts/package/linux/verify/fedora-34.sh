@@ -13,5 +13,14 @@ dnf install -y https://packages.microsoft.com/config/fedora/34/packages-microsof
 # See: https://access.redhat.com/solutions/2779441
 dnf check-update || [[ $? == 100 ]]  
 
-dnf install -y aztfy
+total=20
+count=1
+while ((count <= total)); do
+    dnf install -y aztfy && break
+    echo "Retry ($count/$total)"
+    sleep 1m
+    ((count++))
+done
+(( count <= total ))
+
 grep $version <(aztfy -v)
