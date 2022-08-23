@@ -15,7 +15,7 @@ count=1
 while ((count <= total)); do
     echo "Try ($count/$total)"
     # See: https://access.redhat.com/solutions/2779441
-    dnf check-update || [[ $? == 100 ]]  
+    dnf check-update --refresh || [[ $? == 100 ]]  
     dnf install -y aztfy && break
 
     sleep 1m
