@@ -10,14 +10,14 @@ rm -f /etc/yum.repos.d/*
 
 dnf install -y https://packages.microsoft.com/config/fedora/35/packages-microsoft-prod.rpm
 
-# See: https://access.redhat.com/solutions/2779441
-dnf check-update || [[ $? == 100 ]]  
-
 total=60
 count=1
 while ((count <= total)); do
+    echo "Try ($count/$total)"
+    # See: https://access.redhat.com/solutions/2779441
+    dnf check-update || [[ $? == 100 ]]  
     dnf install -y aztfy && break
-    echo "Retry ($count/$total)"
+
     sleep 1m
     ((count++))
 done

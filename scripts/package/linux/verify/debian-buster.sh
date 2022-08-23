@@ -7,13 +7,14 @@ apt-get update
 apt-get install -y curl software-properties-common gpg
 curl -sSL https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
 apt-add-repository https://packages.microsoft.com/debian/10/prod
-apt-get update
 
 total=60
 count=1
 while ((count <= total)); do
+    echo "Try ($count/$total)"
+    apt-get update
     apt-get install -y aztfy && break
-    echo "Retry ($count/$total)"
+
     sleep 1m
     ((count++))
 done
