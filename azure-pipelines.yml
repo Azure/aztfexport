@@ -5,6 +5,8 @@ parameters:
 
 stages:
   - stage: build
+    pool:
+      name: pool-ubuntu-2004
     displayName: "Build aztfy"
     jobs:
       - job: build
@@ -208,6 +210,8 @@ stages:
 
   - stage: publish_linux_packages
     displayName: "Publish Linux Packages"
+    pool:
+      name: pool-ubuntu-2004
     jobs:
       - job: publish
         displayName: "Publish Packages"
@@ -437,10 +441,12 @@ stages:
 
   - stage: publish_windows_setup
     displayName: "Publish Windows Setup"
+    pool:
+      name: pool-ubuntu-2004
     jobs:
       - job: build_msi
         pool:
-          vmImage: "windows-2019"
+          name: pool-windows-2019
         displayName: "Build MSI"
         strategy:
           matrix:
@@ -530,6 +536,8 @@ stages:
 
   - stage: release
     displayName: "Release"
+    pool:
+      name: pool-ubuntu-2004
     jobs:
       - job: release
         displayName: "Release"
