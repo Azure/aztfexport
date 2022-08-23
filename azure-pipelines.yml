@@ -19,24 +19,24 @@ stages:
             windows-amd64:
               OS: windows
               ARCH: amd64
-            linux-386:
-              OS: linux
-              ARCH: 386
-            linux-amd64:
-              OS: linux
-              ARCH: amd64
-            linux-arm:
-              OS: linux
-              ARCH: arm
-            linux-arm64:
-              OS: linux
-              ARCH: arm64
-            darwin-amd64:
-              OS: darwin
-              ARCH: amd64
-            darwin-arm64:
-              OS: darwin
-              ARCH: arm64
+            # linux-386:
+            #   OS: linux
+            #   ARCH: 386
+            # linux-amd64:
+            #   OS: linux
+            #   ARCH: amd64
+            # linux-arm:
+            #   OS: linux
+            #   ARCH: arm
+            # linux-arm64:
+            #   OS: linux
+            #   ARCH: arm64
+            # darwin-amd64:
+            #   OS: darwin
+            #   ARCH: amd64
+            # darwin-arm64:
+            #   OS: darwin
+            #   ARCH: arm64
         steps:
           - task: GoTool@0
             displayName: "Install Go"
@@ -123,6 +123,7 @@ stages:
               set -e
 
               # Setup wix
+              chmod +x ./dist/tool/wix311.exe
               ./dist/tool/wix311.exe -install -quiet -norestart
               export PATH=$PATH:"/c/Program Files (x86)/WiX Toolset v3.11/bin"
 
