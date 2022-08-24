@@ -296,18 +296,18 @@ stages:
         strategy:
           matrix:
             # deb platforms
-            ubuntu-bionic-amd64:
-              TYPE: deb
-              ARCH: amd64
-              REPO_ID: 5d16326637164fbc1139c4e1
-              REPO_DISTRO: ubuntu
-              REPO_RELEASE: bionic
-            ubuntu-bionic-arm64:
-              TYPE: deb
-              ARCH: arm64
-              REPO_ID: 5d16326637164fbc1139c4e1
-              REPO_DISTRO: ubuntu
-              REPO_RELEASE: bionic
+            # ubuntu-bionic-amd64:
+            #   TYPE: deb
+            #   ARCH: amd64
+            #   REPO_ID: 5d16326637164fbc1139c4e1
+            #   REPO_DISTRO: ubuntu
+            #   REPO_RELEASE: bionic
+            # ubuntu-bionic-arm64:
+            #   TYPE: deb
+            #   ARCH: arm64
+            #   REPO_ID: 5d16326637164fbc1139c4e1
+            #   REPO_DISTRO: ubuntu
+            #   REPO_RELEASE: bionic
             ubuntu-focal-amd64:
               TYPE: deb
               ARCH: amd64
@@ -332,44 +332,44 @@ stages:
               REPO_ID: 61faea6cea3a770ab120ac8a
               REPO_DISTRO: ubuntu
               REPO_RELEASE: jammy
-            debian-buster-amd64:
-              TYPE: deb
-              ARCH: amd64
-              REPO_ID: 5d23b16c9a6e3b375bbba42e
-              REPO_DISTRO: debian
-              REPO_RELEASE: buster
-            debian-buster-arm64:
-              TYPE: deb
-              ARCH: arm64
-              REPO_ID: 5d23b16c9a6e3b375bbba42e
-              REPO_DISTRO: debian
-              REPO_RELEASE: buster
-            debian-bullseye-amd64:
-              TYPE: deb
-              ARCH: amd64
-              REPO_ID: 611ab3a32acdcd0744c8c841
-              REPO_DISTRO: debian
-              REPO_RELEASE: bullseye
-            debian-bullseye-arm64:
-              TYPE: deb
-              ARCH: arm64
-              REPO_ID: 611ab3a32acdcd0744c8c841
-              REPO_DISTRO: debian
-              REPO_RELEASE: bullseye
+            # debian-buster-amd64:
+            #   TYPE: deb
+            #   ARCH: amd64
+            #   REPO_ID: 5d23b16c9a6e3b375bbba42e
+            #   REPO_DISTRO: debian
+            #   REPO_RELEASE: buster
+            # debian-buster-arm64:
+            #   TYPE: deb
+            #   ARCH: arm64
+            #   REPO_ID: 5d23b16c9a6e3b375bbba42e
+            #   REPO_DISTRO: debian
+            #   REPO_RELEASE: buster
+            # debian-bullseye-amd64:
+            #   TYPE: deb
+            #   ARCH: amd64
+            #   REPO_ID: 611ab3a32acdcd0744c8c841
+            #   REPO_DISTRO: debian
+            #   REPO_RELEASE: bullseye
+            # debian-bullseye-arm64:
+            #   TYPE: deb
+            #   ARCH: arm64
+            #   REPO_ID: 611ab3a32acdcd0744c8c841
+            #   REPO_DISTRO: debian
+            #   REPO_RELEASE: bullseye
 
             # rpm platforms
-            centos-8-x86_64:
-              TYPE: rpm
-              ARCH: amd64
-              REPO_ID: 5e5ed94a523a8019fe47607e
-              REPO_DISTRO: centos
-              REPO_RELEASE: 8
-            centos-8-aarch64:
-              TYPE: rpm
-              ARCH: arm64
-              REPO_ID: 5e5ed94a523a8019fe47607e
-              REPO_DISTRO: centos
-              REPO_RELEASE: 8
+            # centos-8-x86_64:
+            #   TYPE: rpm
+            #   ARCH: amd64
+            #   REPO_ID: 5e5ed94a523a8019fe47607e
+            #   REPO_DISTRO: centos
+            #   REPO_RELEASE: 8
+            # centos-8-aarch64:
+            #   TYPE: rpm
+            #   ARCH: arm64
+            #   REPO_ID: 5e5ed94a523a8019fe47607e
+            #   REPO_DISTRO: centos
+            #   REPO_RELEASE: 8
             rhel-8-x86_64:
               TYPE: rpm
               ARCH: amd64
@@ -394,42 +394,42 @@ stages:
               REPO_ID: 627067cc3ac6d7548f4d66cd
               REPO_DISTRO: rhel
               REPO_RELEASE: 9
-            fedora-34-x86_64:
-              TYPE: rpm
-              ARCH: amd64
-              REPO_ID: 606e1da573e50659b0803a7b
-              REPO_DISTRO: fedora
-              REPO_RELEASE: 34
-            fedora-34-aarch64:
-              TYPE: rpm
-              ARCH: arm64
-              REPO_ID: 606e1da573e50659b0803a7b
-              REPO_DISTRO: fedora
-              REPO_RELEASE: 34
-            fedora-35-x86_64:
-              TYPE: rpm
-              ARCH: amd64
-              REPO_ID: 6196d483ea3a770f011f63fb
-              REPO_DISTRO: fedora
-              REPO_RELEASE: 35
-            fedora-35-aarch64:
-              TYPE: rpm
-              ARCH: arm64
-              REPO_ID: 6196d483ea3a770f011f63fb
-              REPO_DISTRO: fedora
-              REPO_RELEASE: 35
-            fedora-36-x86_64:
-              TYPE: rpm
-              ARCH: amd64
-              REPO_ID: 6271bc683ac6d73aa84d6737
-              REPO_DISTRO: fedora
-              REPO_RELEASE: 36
-            fedora-36-aarch64:
-              TYPE: rpm
-              ARCH: arm64
-              REPO_ID: 6271bc683ac6d73aa84d6737
-              REPO_DISTRO: fedora
-              REPO_RELEASE: 36
+            # fedora-34-x86_64:
+            #   TYPE: rpm
+            #   ARCH: amd64
+            #   REPO_ID: 606e1da573e50659b0803a7b
+            #   REPO_DISTRO: fedora
+            #   REPO_RELEASE: 34
+            # fedora-34-aarch64:
+            #   TYPE: rpm
+            #   ARCH: arm64
+            #   REPO_ID: 606e1da573e50659b0803a7b
+            #   REPO_DISTRO: fedora
+            #   REPO_RELEASE: 34
+            # fedora-35-x86_64:
+            #   TYPE: rpm
+            #   ARCH: amd64
+            #   REPO_ID: 6196d483ea3a770f011f63fb
+            #   REPO_DISTRO: fedora
+            #   REPO_RELEASE: 35
+            # fedora-35-aarch64:
+            #   TYPE: rpm
+            #   ARCH: arm64
+            #   REPO_ID: 6196d483ea3a770f011f63fb
+            #   REPO_DISTRO: fedora
+            #   REPO_RELEASE: 35
+            # fedora-36-x86_64:
+            #   TYPE: rpm
+            #   ARCH: amd64
+            #   REPO_ID: 6271bc683ac6d73aa84d6737
+            #   REPO_DISTRO: fedora
+            #   REPO_RELEASE: 36
+            # fedora-36-aarch64:
+            #   TYPE: rpm
+            #   ARCH: arm64
+            #   REPO_ID: 6271bc683ac6d73aa84d6737
+            #   REPO_DISTRO: fedora
+            #   REPO_RELEASE: 36
         steps:
           - task: DownloadPipelineArtifact@2
             inputs:
