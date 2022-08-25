@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+<Wix xmlns="http://schemas.microsoft.com/wix/2007/wi">
 
     <?if $(sys.BUILDARCH) = x64 ?>
     <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
@@ -30,6 +29,14 @@
 		<ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
 			<Component Id="ProductComponent">
 				<File Id="FILE_aztfyEXE" Source="aztfy.exe" KeyPath="yes" />
+				<Environment
+					Id = "EnvPath"
+					Action = "set"
+					Name = "PATH"
+					Value = "[INSTALLFOLDER]"
+					Part = "last"
+					Permanent = "no"
+					System = "no" />
 			</Component>
 		</ComponentGroup>
 	</Fragment>
