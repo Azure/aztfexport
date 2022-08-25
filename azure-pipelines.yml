@@ -5,7 +5,7 @@ parameters:
   - name: artifactBuildId
     displayName: "Artifact source build id (defaults uses this build)"
     type: number
-    deafult: 0
+    default: 0
 
 variables:
   - name: pipelineId
