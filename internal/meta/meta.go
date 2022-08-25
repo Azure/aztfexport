@@ -90,8 +90,8 @@ func NewMeta(cfg config.CommonConfig) (*Meta, error) {
 				fmt.Printf(`
 The output directory is not empty. Please choose one of actions below:
 
-* To overwrite everything inside the output directory, press "O"
-* To append (state and config) into the output directory, press "A"
+* Press "Y" to overwrite the existing directory with new files
+* Press "N" to append new files and add to the existing state instead
 * Press other keys to quit
 
 > `)
