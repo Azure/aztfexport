@@ -2,6 +2,14 @@ parameters:
   - name: version
     displayName: Release Version (e.g. v0.1.0)
     type: string
+  - name: artifactBuildId
+    displayName: "Artifact source build id (defaults uses this build)"
+    type: number
+    deafult: 0
+
+variables:
+  - name: pipelineId
+    value: 22
 
 stages:
   - stage: build
@@ -286,6 +294,95 @@ stages:
               targetPath: "$(system.defaultWorkingDirectory)/dist/output"
               artifactName: $(OS)-$(ARCH)-pkg
 
+  - stage: github_release
+    displayName: "Github Draft Release"
+    pool:
+      name: pool-ubuntu-2004
+    jobs:
+      - job: release
+        displayName: "Github Release"
+        steps:
+          - ${{ if eq(parameters.artifactBuildId, 0) }}:
+            - task: DownloadPipelineArtifact@2
+              inputs:
+                path: $(system.defaultWorkingDirectory)/dist
+          - ${{ else }}:
+            - task: DownloadPipelineArtifact@2
+              inputs:
+                path: $(system.defaultWorkingDirectory)/dist
+                source: "specific"
+                project: "release"
+                pipeline: $(pipelineId)
+                runVersion: "specific"
+                runId: ${{ parameters.artifactBuildId }}
+          - script: |
+              set -e
+              NAME="aztfy"
+              OS_ARCH=(
+                "windows:amd64"
+                "windows:386"
+                "linux:amd64"
+                "linux:386"
+                "linux:arm"
+                "linux:arm64"
+                "darwin:amd64"
+                "darwin:arm64"
+              )
+              mkdir release
+              for os_arch in "${OS_ARCH[@]}" ; do
+                OS=${os_arch%%:*}
+                ARCH=${os_arch#*:}
+                name=aztfy
+                if [[ $OS = windows ]]; then
+                    name=aztfy.exe
+                fi
+                chmod +x dist/${OS}-${ARCH}/${name}
+                zip -j release/${NAME}_${VERSION}_${OS}_${ARCH}.zip dist/${OS}-${ARCH}/${name}
+              done
+
+              # Copy MSI
+              cp dist/windows-386-msi/aztfy.msi release/${NAME}_${VERSION}_x86.msi
+              cp dist/windows-amd64-msi/aztfy.msi release/${NAME}_${VERSION}_x64.msi
+
+              cd release
+              shasum -a 256 *.zip *.msi > ${NAME}_SHA256SUMS
+              cp ${NAME}_SHA256SUMS ${NAME}_SHA256SUMS.sig
+            displayName: "Prepare Binary Archives & Digests"
+            env:
+              VERSION: ${{ parameters.version }}
+          - task: EsrpCodeSigning@1
+            displayName: "Sign Binary Archive Digests"
+            inputs:
+              ConnectedServiceName: "ESRP Signing Service"
+              FolderPath: "$(system.defaultWorkingDirectory)/release"
+              Pattern: "*_SHA256SUMS.sig"
+              signConfigType: "inlineSignParams"
+              inlineOperation: |
+                [
+                  {
+                      "KeyCode": "CP-450779-Pgp",
+                      "OperationCode": "LinuxSign",
+                      "Parameters": {},
+                      "ToolName": "sign",
+                      "ToolVersion": "1.0"
+                  }
+                ]
+              SessionTimeout: "60"
+              MaxConcurrency: "50"
+              MaxRetryAttempts: "5"
+          - task: GitHubRelease@1
+            displayName: "Draft Github Release"
+            inputs:
+              gitHubConnection: "Github"
+              repositoryName: "$(Build.Repository.Name)"
+              action: "create"
+              target: "$(Build.SourceVersion)"
+              tagSource: "gitTag"
+              tagPattern: '^v\d+\.\d+\.\d+'
+              assets: "$(system.defaultWorkingDirectory)/release/*"
+              isDraft: true
+              addChangeLog: false
+
   - stage: publish_linux_packages
     displayName: "Publish Linux Packages"
     pool:
@@ -431,19 +528,21 @@ stages:
             #   REPO_DISTRO: fedora
             #   REPO_RELEASE: 36
         steps:
-          - task: DownloadPipelineArtifact@2
-            inputs:
-              artifact: linux-$(ARCH)-pkg
-              path: $(system.defaultWorkingDirectory)/dist/pkg
-
-              # Debug purpose only: Accelerate debugging on this stage
-
-              # source: "specific"
-              # project: "release"
-              # pipeline: 22
-              # runVersion: "specific"
-              # runId: 3913
-
+          - ${{ if eq(parameters.artifactBuildId, 0) }}:
+            - task: DownloadPipelineArtifact@2
+              inputs:
+                artifact: linux-$(ARCH)-pkg
+                path: $(system.defaultWorkingDirectory)/dist/pkg
+          - ${{ else }}:
+            - task: DownloadPipelineArtifact@2
+              inputs:
+                artifact: linux-$(ARCH)-pkg
+                path: $(system.defaultWorkingDirectory)/dist/pkg
+                source: "specific"
+                project: "release"
+                pipeline: $(pipelineId)
+                runVersion: "specific"
+                runId: ${{ parameters.artifactBuildId }}
           - task: UniversalPackages@0
             displayName: "Download repoclient"
             inputs:
@@ -520,77 +619,3 @@ stages:
 
   # - stage: publish_windows_setup
   #   displayName: "Publish Windows Setup"
-
-  - stage: release
-    displayName: "Release"
-    pool:
-      name: pool-ubuntu-2004
-    jobs:
-      - job: release
-        displayName: "Release"
-        steps:
-          - task: DownloadPipelineArtifact@2
-            inputs:
-              path: $(system.defaultWorkingDirectory)/dist
-          - script: |
-              set -e
-              NAME="aztfy"
-              OS_ARCH=(
-                "windows:amd64"
-                "windows:386"
-                "linux:amd64"
-                "linux:386"
-                "linux:arm"
-                "linux:arm64"
-                "darwin:amd64"
-                "darwin:arm64"
-              )
-              mkdir release
-              for os_arch in "${OS_ARCH[@]}" ; do
-                OS=${os_arch%%:*}
-                ARCH=${os_arch#*:}
-                name=aztfy
-                if [[ $OS = windows ]]; then
-                    name=aztfy.exe
-                fi
-                chmod +x dist/${OS}-${ARCH}/${name}
-                zip -j release/${NAME}_${VERSION}_${OS}_${ARCH}.zip dist/${OS}-${ARCH}/${name}
-              done
-              cd release
-              shasum -a 256 *.zip > ${NAME}_SHA256SUMS
-              cp ${NAME}_SHA256SUMS ${NAME}_SHA256SUMS.sig
-            displayName: "Prepare Binary Archives & Digests"
-            env:
-              VERSION: ${{ parameters.version }}
-          - task: EsrpCodeSigning@1
-            displayName: "Sign Binary Archive Digests"
-            inputs:
-              ConnectedServiceName: "ESRP Signing Service"
-              FolderPath: "$(system.defaultWorkingDirectory)/release"
-              Pattern: "*_SHA256SUMS.sig"
-              signConfigType: "inlineSignParams"
-              inlineOperation: |
-                [
-                  {
-                      "KeyCode": "CP-450779-Pgp",
-                      "OperationCode": "LinuxSign",
-                      "Parameters": {},
-                      "ToolName": "sign",
-                      "ToolVersion": "1.0"
-                  }
-                ]
-              SessionTimeout: "60"
-              MaxConcurrency: "50"
-              MaxRetryAttempts: "5"
-          - task: GitHubRelease@1
-            displayName: "Draft Github Release"
-            inputs:
-              gitHubConnection: "Github"
-              repositoryName: "$(Build.Repository.Name)"
-              action: "create"
-              target: "$(Build.SourceVersion)"
-              tagSource: "gitTag"
-              tagPattern: '^v\d+\.\d+\.\d+'
-              assets: "$(system.defaultWorkingDirectory)/release/*"
-              isDraft: true
-              addChangeLog: false
