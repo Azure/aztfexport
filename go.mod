@@ -15,10 +15,10 @@ require (
 	github.com/hashicorp/hcl/v2 v2.11.1
 	github.com/hashicorp/terraform-exec v0.17.2
 	github.com/magodo/armid v0.0.0-20220707115142-d2d9f6fb551b
-	github.com/magodo/aztft v0.1.1-0.20220808030539-194fd1d2477a
+	github.com/magodo/aztft v0.1.1-0.20220826064949-c0825a9d1bb0
 	github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
-	github.com/magodo/tfadd v0.10.1-0.20220805074855-072d1d99aa78
+	github.com/magodo/tfadd v0.10.1-0.20220826072702-fafd744cf661
 	github.com/mitchellh/go-wordwrap v1.0.0
 	github.com/muesli/reflow v0.3.0
 	github.com/stretchr/testify v1.7.5
@@ -42,6 +42,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/devtestlabs/armdevtestlabs v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/digitaltwins/armdigitaltwins v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/domainservices/armdomainservices v1.0.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/frontdoor/armfrontdoor v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/hdinsight/armhdinsight v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/kusto/armkusto v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/machinelearning/armmachinelearning v1.0.0 // indirect
