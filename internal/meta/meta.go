@@ -41,10 +41,12 @@ type Meta struct {
 	devProvider    bool
 	backendType    string
 	backendConfig  []string
+	fullConfig     bool
 	// Use a safer name which is less likely to conflicts with users' existing files.
 	// This is mainly used for the --append option.
 	useSafeFilename bool
-	empty           bool
+
+	empty bool
 }
 
 func NewMeta(cfg config.CommonConfig) (*Meta, error) {
@@ -133,6 +135,7 @@ The output directory is not empty. Please choose one of actions below:
 		devProvider:     cfg.DevProvider,
 		backendType:     cfg.BackendType,
 		backendConfig:   cfg.BackendConfig,
+		fullConfig:      cfg.FullConfig,
 		useSafeFilename: cfg.Append,
 		empty:           empty,
 	}
@@ -304,7 +307,7 @@ func (meta *Meta) initProvider(ctx context.Context) error {
 func (meta Meta) stateToConfig(ctx context.Context, list ImportList) (ConfigInfos, error) {
 	out := ConfigInfos{}
 	for _, item := range list.Imported() {
-		b, err := tfadd.State(ctx, meta.tf, tfadd.Target(item.TFAddr.String()))
+		b, err := tfadd.State(ctx, meta.tf, tfadd.Target(item.TFAddr.String()), tfadd.Full(meta.fullConfig))
 		if err != nil {
 			return nil, fmt.Errorf("converting terraform state to config for resource %s: %w", item.TFAddr, err)
 		}

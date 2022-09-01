@@ -17,6 +17,7 @@ type CommonConfig struct {
 	BatchMode      bool
 	BackendType    string
 	BackendConfig  []string
+	FullConfig     bool
 }
 
 type RgConfig struct {
