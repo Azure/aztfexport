@@ -98,12 +98,12 @@ The output directory is not empty. Please choose one of actions below:
 				var ans string
 				fmt.Scanf("%s", &ans)
 				switch strings.ToLower(ans) {
-				case "o":
+				case "y":
 					if err := removeEverythingUnder(outdir); err != nil {
 						return nil, err
 					}
 					empty = true
-				case "a":
+				case "n":
 					cfg.Append = true
 				default:
 					return nil, fmt.Errorf("the output directory %q is not empty", outdir)
