@@ -32,7 +32,7 @@ func main() {
 		flagDevProvider    bool
 		flagBackendType    string
 		flagBackendConfig  cli.StringSlice
-		flagFullConfig     bool
+		flagFull           bool
 
 		// common flags (hidden)
 		hflagLogPath string
@@ -116,11 +116,11 @@ func main() {
 			Destination: &flagBackendConfig,
 		},
 		&cli.BoolFlag{
-			Name:        "full-config",
-			EnvVars:     []string{"AZTFY_FULL_CONFIG"},
-			Usage:       "Generating the full Terraform configuration, which might need manual modifications to make it valid",
+			Name:        "full",
+			EnvVars:     []string{"AZTFY_FULL"},
+			Usage:       "Whether to output all non-computed properties in the generated Terraform configuration? This probably needs manual modifications to make it valid",
 			Value:       false,
-			Destination: &flagFullConfig,
+			Destination: &flagFull,
 		},
 
 		// Hidden flags
@@ -230,7 +230,7 @@ func main() {
 							DevProvider:    flagDevProvider,
 							BackendType:    flagBackendType,
 							BackendConfig:  flagBackendConfig.Value(),
-							FullConfig:     flagFullConfig,
+							FullConfig:     flagFull,
 						},
 					}
 
@@ -334,7 +334,7 @@ func main() {
 							BatchMode:      true,
 							BackendType:    flagBackendType,
 							BackendConfig:  flagBackendConfig.Value(),
-							FullConfig:     flagFullConfig,
+							FullConfig:     flagFull,
 						},
 						ResourceId:   resId,
 						ResourceName: flagName,
