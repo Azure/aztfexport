@@ -1,4 +1,4 @@
-<Wix xmlns="http://schemas.microsoft.com/wix/2007/wi">
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
 
     <?if $(sys.BUILDARCH) = x64 ?>
     <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
