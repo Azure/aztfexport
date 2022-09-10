@@ -373,7 +373,7 @@ stages:
           - task: GitHubRelease@1
             displayName: "Draft Github Release"
             inputs:
-              gitHubConnection: "Azure"
+              gitHubConnection: "OAuth_Temp_ServiceConnection"
               repositoryName: "$(Build.Repository.Name)"
               action: "create"
               target: "$(Build.SourceVersion)"
