@@ -34,7 +34,7 @@ type MetaRgImpl struct {
 	resourceNameSuffix string
 }
 
-func newRgMetaRg(cfg config.RgConfig) (RgMeta, error) {
+func newRgMetaRg(cfg config.GroupConfig) (RgMeta, error) {
 	baseMeta, err := NewMeta(cfg.CommonConfig)
 	if err != nil {
 		return nil, err

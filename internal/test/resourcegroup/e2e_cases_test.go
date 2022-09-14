@@ -2,14 +2,15 @@ package resourcegroup
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"testing"
+
 	"github.com/Azure/aztfy/internal"
 	"github.com/Azure/aztfy/internal/config"
 	"github.com/Azure/aztfy/internal/test"
 	"github.com/Azure/aztfy/internal/test/cases"
 	"github.com/hashicorp/terraform-exec/tfexec"
-	"os"
-	"path/filepath"
-	"testing"
 )
 
 func runCase(t *testing.T, d test.Data, c cases.Case) {
@@ -41,7 +42,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 	if err != nil {
 		t.Fatalf("failed to get resource mapping: %v", err)
 	}
-	cfg := config.RgConfig{
+	cfg := config.GroupConfig{
 		CommonConfig: config.CommonConfig{
 			SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
 			OutputDir:      aztfyDir,

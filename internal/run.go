@@ -70,7 +70,7 @@ Resource Id  : %s`, item.TFAddr.Type, item.ResourceID))
 	})
 }
 
-func BatchImport(cfg config.RgConfig, continueOnError bool) error {
+func BatchImport(cfg config.GroupConfig, continueOnError bool) error {
 	c, err := meta.NewRgMeta(cfg)
 	if err != nil {
 		return err

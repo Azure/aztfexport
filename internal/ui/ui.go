@@ -21,7 +21,7 @@ import (
 
 const indentLevel = 2
 
-func NewProgram(cfg config.RgConfig) (*tea.Program, error) {
+func NewProgram(cfg config.GroupConfig) (*tea.Program, error) {
 	m, err := newModel(cfg)
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ type model struct {
 	importerrormsg aztfyclient.ShowImportErrorMsg
 }
 
-func newModel(cfg config.RgConfig) (*model, error) {
+func newModel(cfg config.GroupConfig) (*model, error) {
 	s := spinner.NewModel()
 	s.Spinner = common.Spinner
 

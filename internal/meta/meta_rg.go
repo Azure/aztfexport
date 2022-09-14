@@ -13,7 +13,7 @@ type RgMeta interface {
 	ExportResourceMapping(l ImportList) error
 }
 
-func NewRgMeta(cfg config.RgConfig) (RgMeta, error) {
+func NewRgMeta(cfg config.GroupConfig) (RgMeta, error) {
 	if cfg.MockClient {
 		return newRgMetaDummy(cfg.ResourceGroupName)
 	}

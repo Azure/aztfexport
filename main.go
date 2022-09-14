@@ -133,6 +133,47 @@ func main() {
 		},
 	}
 
+	groupFlags := []cli.Flag{
+		&cli.BoolFlag{
+			Name:        "batch",
+			EnvVars:     []string{"AZTFY_BATCH"},
+			Aliases:     []string{"b"},
+			Usage:       "Batch mode (i.e. Non-interactive mode)",
+			Destination: &flagBatchMode,
+		},
+		&cli.StringFlag{
+			Name:        "resource-mapping",
+			EnvVars:     []string{"AZTFY_RESOURCE_MAPPING"},
+			Aliases:     []string{"m"},
+			Usage:       "The resource mapping file",
+			Destination: &flagMappingFile,
+		},
+		&cli.BoolFlag{
+			Name:        "continue",
+			EnvVars:     []string{"AZTFY_CONTINUE"},
+			Aliases:     []string{"k"},
+			Usage:       "Whether continue on import error (batch mode only)",
+			Destination: &flagContinue,
+		},
+		&cli.StringFlag{
+			Name:        "name-pattern",
+			EnvVars:     []string{"AZTFY_NAME_PATTERN"},
+			Aliases:     []string{"p"},
+			Usage:       `The pattern of the resource name. The semantic of a pattern is the same as Go's os.CreateTemp()`,
+			Value:       "res-",
+			Destination: &flagPattern,
+		},
+
+		// Hidden flags
+		&cli.BoolFlag{
+			Name:        "mock-client",
+			EnvVars:     []string{"AZTFY_MOCK_CLIENT"},
+			Usage:       "Whether to mock the client. This is for testing UI",
+			Hidden:      true,
+			Destination: &hflagMockClient,
+		},
+	}
+
 	app := &cli.App{
 		Name:      "aztfy",
 		Version:   getVersion(),
@@ -140,50 +181,98 @@ func main() {
 		UsageText: "aztfy [command] [option]",
 		Commands: []*cli.Command{
 			{
+				Name:      "query",
+				Usage:     "Terrafying a customized scope of resources determined by an Azure Resource Graph query",
+				UsageText: "aztfy query [option] <ARG query>",
+				Flags:     append(groupFlags, commonFlags...),
+				Action: func(c *cli.Context) error {
+					if err := commonFlagsCheck(); err != nil {
+						return err
+					}
+					if c.NArg() == 0 {
+						return fmt.Errorf("No query specified")
+					}
+					if c.NArg() > 1 {
+						return fmt.Errorf("More than one queries specified")
+					}
+					if flagContinue && !flagBatchMode {
+						return fmt.Errorf("`--continue` must be used together with `--batch`")
+					}
+
+					query := c.Args().First()
+
+					// Initialize log
+					if err := initLog(hflagLogPath); err != nil {
+						return err
+					}
+
+					// Identify the subscription id, which comes from one of following (starts from the highest priority):
+					// - Command line option
+					// - Env variable: AZTFY_SUBSCRIPTION_ID
+					// - Env variable: ARM_SUBSCRIPTION_ID
+					// - Output of azure cli, the current active subscription
+					subscriptionId := flagSubscriptionId
+					if subscriptionId == "" {
+						var err error
+						subscriptionId, err = subscriptionIdFromCLI()
+						if err != nil {
+							return fmt.Errorf("retrieving subscription id from CLI: %v", err)
+						}
+					}
+
+					// Initialize the config
+					cfg := config.GroupConfig{
+						MockClient: hflagMockClient,
+						CommonConfig: config.CommonConfig{
+							SubscriptionId: subscriptionId,
+							OutputDir:      flagOutputDir,
+							Overwrite:      flagOverwrite,
+							Append:         flagAppend,
+							DevProvider:    flagDevProvider,
+							BackendType:    flagBackendType,
+							BackendConfig:  flagBackendConfig.Value(),
+							FullConfig:     flagFullConfig,
+						},
+					}
+
+					if flagMappingFile != "" {
+						b, err := os.ReadFile(flagMappingFile)
+						if err != nil {
+							return fmt.Errorf("reading mapping file %s: %v", flagMappingFile, err)
+						}
+						if err := json.Unmarshal(b, &cfg.ResourceMapping); err != nil {
+							return fmt.Errorf("unmarshalling the mapping file: %v", err)
+						}
+					}
+					cfg.ARGQuery = query
+					cfg.ResourceNamePattern = flagPattern
+					cfg.BatchMode = flagBatchMode
+
+					// Run in batch mode
+					if cfg.BatchMode {
+						if err := internal.BatchImport(cfg, flagContinue); err != nil {
+							return err
+						}
+						return nil
+					}
+
+					// Run in interactive mode
+					prog, err := ui.NewProgram(cfg)
+					if err != nil {
+						return err
+					}
+					if err := prog.Start(); err != nil {
+						return err
+					}
+					return nil
+				},
+			},
+			{
 				Name:      "resource-group",
 				Aliases:   []string{"rg"},
 				Usage:     "Terrafying a resource group and the nested resources resides within it",
 				UsageText: "aztfy resource-group [option] <resource group name>",
-				Flags: append([]cli.Flag{
-					&cli.BoolFlag{
-						Name:        "batch",
-						EnvVars:     []string{"AZTFY_BATCH"},
-						Aliases:     []string{"b"},
-						Usage:       "Batch mode (i.e. Non-interactive mode)",
-						Destination: &flagBatchMode,
-					},
-					&cli.StringFlag{
-						Name:        "resource-mapping",
-						EnvVars:     []string{"AZTFY_RESOURCE_MAPPING"},
-						Aliases:     []string{"m"},
-						Usage:       "The resource mapping file",
-						Destination: &flagMappingFile,
-					},
-					&cli.BoolFlag{
-						Name:        "continue",
-						EnvVars:     []string{"AZTFY_CONTINUE"},
-						Aliases:     []string{"k"},
-						Usage:       "Whether continue on import error (batch mode only)",
-						Destination: &flagContinue,
-					},
-					&cli.StringFlag{
-						Name:        "name-pattern",
-						EnvVars:     []string{"AZTFY_NAME_PATTERN"},
-						Aliases:     []string{"p"},
-						Usage:       `The pattern of the resource name. The semantic of a pattern is the same as Go's os.CreateTemp()`,
-						Value:       "res-",
-						Destination: &flagPattern,
-					},
-
-					// Hidden flags
-					&cli.BoolFlag{
-						Name:        "mock-client",
-						EnvVars:     []string{"AZTFY_MOCK_CLIENT"},
-						Usage:       "Whether to mock the client. This is for testing UI",
-						Hidden:      true,
-						Destination: &hflagMockClient,
-					},
-				}, commonFlags...),
+				Flags:     append(groupFlags, commonFlags...),
 				Action: func(c *cli.Context) error {
 					if err := commonFlagsCheck(); err != nil {
 						return err
@@ -220,7 +309,7 @@ func main() {
 					}
 
 					// Initialize the config
-					cfg := config.RgConfig{
+					cfg := config.GroupConfig{
 						MockClient: hflagMockClient,
 						CommonConfig: config.CommonConfig{
 							SubscriptionId: subscriptionId,

@@ -20,16 +20,19 @@ type CommonConfig struct {
 	FullConfig     bool
 }
 
-type RgConfig struct {
+type GroupConfig struct {
 	CommonConfig
 
-	ResourceGroupName   string
+	// Exactly one of below is non empty
+	ResourceGroupName string
+	ARGQuery          string
+
 	ResourceMapping     resmap.ResourceMapping
 	ResourceNamePattern string
 	MockClient          bool
 }
 
-func (RgConfig) isConfig() {}
+func (GroupConfig) isConfig() {}
 
 type ResConfig struct {
 	CommonConfig
