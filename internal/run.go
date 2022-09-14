@@ -71,7 +71,7 @@ Resource Id  : %s`, item.TFAddr.Type, item.ResourceID))
 }
 
 func BatchImport(cfg config.GroupConfig, continueOnError bool) error {
-	c, err := meta.NewRgMeta(cfg)
+	c, err := meta.NewGroupMeta(cfg)
 	if err != nil {
 		return err
 	}

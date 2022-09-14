@@ -4,30 +4,30 @@ import (
 	"time"
 )
 
-var _ RgMeta = &MetaRgDummy{}
+var _ GroupMeta = &MetaGroupDummy{}
 
-type MetaRgDummy struct {
+type MetaGroupDummy struct {
 	rg string
 }
 
-func newRgMetaDummy(rg string) (RgMeta, error) {
-	return MetaRgDummy{rg: rg}, nil
+func newGroupMetaDummy(rg string) (GroupMeta, error) {
+	return MetaGroupDummy{rg: rg}, nil
 }
 
-func (m MetaRgDummy) Init() error {
+func (m MetaGroupDummy) Init() error {
 	time.Sleep(500 * time.Millisecond)
 	return nil
 }
 
-func (m MetaRgDummy) ResourceGroupName() string {
+func (m MetaGroupDummy) ScopeName() string {
 	return m.rg
 }
 
-func (m MetaRgDummy) Workspace() string {
+func (m MetaGroupDummy) Workspace() string {
 	return "example-workspace"
 }
 
-func (m MetaRgDummy) ListResource() (ImportList, error) {
+func (m MetaGroupDummy) ListResource() (ImportList, error) {
 	time.Sleep(500 * time.Millisecond)
 	return ImportList{
 		ImportItem{
@@ -48,21 +48,21 @@ func (m MetaRgDummy) ListResource() (ImportList, error) {
 	}, nil
 }
 
-func (m MetaRgDummy) CleanTFState(_ string) {
+func (m MetaGroupDummy) CleanTFState(_ string) {
 	return
 }
 
-func (m MetaRgDummy) Import(item *ImportItem) {
+func (m MetaGroupDummy) Import(item *ImportItem) {
 	time.Sleep(time.Second)
 	return
 }
 
-func (m MetaRgDummy) GenerateCfg(l ImportList) error {
+func (m MetaGroupDummy) GenerateCfg(l ImportList) error {
 	time.Sleep(500 * time.Millisecond)
 	return nil
 }
 
-func (m MetaRgDummy) ExportResourceMapping(l ImportList) error {
+func (m MetaGroupDummy) ExportResourceMapping(l ImportList) error {
 	time.Sleep(500 * time.Millisecond)
 	return nil
 }

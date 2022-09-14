@@ -59,7 +59,7 @@ func (s status) String() string {
 }
 
 type model struct {
-	meta   meta.RgMeta
+	meta   meta.GroupMeta
 	status status
 	err    error
 
@@ -80,7 +80,7 @@ func newModel(cfg config.GroupConfig) (*model, error) {
 		status:  statusInit,
 		spinner: s,
 	}
-	meta, err := meta.NewRgMeta(cfg)
+	meta, err := meta.NewGroupMeta(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +204,7 @@ func (m model) View() string {
 	case statusInit:
 		s += m.spinner.View() + " Initializing..."
 	case statusListingResource:
-		s += m.spinner.View() + " Listing Azure Resources reside in " + `"` + m.meta.ResourceGroupName() + `"...`
+		s += m.spinner.View() + " Listing Azure Resources..."
 	case statusBuildingImportList:
 		s += m.importlist.View()
 	case statusImportErrorMsg:

@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.0.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.1.0
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/keyvault/armkeyvault v1.0.0
-	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources v1.0.0
+	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resourcegraph/armresourcegraph v0.6.0
 	github.com/charmbracelet/bubbles v0.10.4-0.20220412141214-292a1dd7ba97
 	github.com/charmbracelet/bubbletea v0.20.1-0.20220516164627-a5f28a3a04bb
 	github.com/charmbracelet/lipgloss v0.5.0

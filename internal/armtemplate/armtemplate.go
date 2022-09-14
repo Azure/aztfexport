@@ -3,31 +3,29 @@ package armtemplate
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"github.com/magodo/armid"
 	"regexp"
 	"strings"
-
-	"github.com/magodo/aztft/aztft"
 )
 
 type Template struct {
-	Resources []Resource `json:"resources"`
+	Resources []ARMResource `json:"resources"`
 }
 
-type Resource struct {
-	ResourceId
-	Properties interface{} `json:"properties,omitempty"`
-	DependsOn  ResourceIds `json:"dependsOn,omitempty"`
+type ARMResource struct {
+	ARMResourceId
+	Properties interface{}    `json:"properties,omitempty"`
+	DependsOn  ARMResourceIds `json:"dependsOn,omitempty"`
 }
 
-type ResourceId struct {
+type ARMResourceId struct {
 	Type string `json:"type"`
 	Name string `json:"name"`
 }
 
-var ResourceGroupId = ResourceId{}
+var ResourceGroupId = ARMResourceId{}
 
-func ParseResourceId(id string) (*ResourceId, error) {
+func ParseResourceId(id string) (*ARMResourceId, error) {
 	id = strings.TrimPrefix(id, "/")
 	id = strings.TrimSuffix(id, "/")
 	segs := strings.Split(id, "/")
@@ -66,13 +64,13 @@ func ParseResourceId(id string) (*ResourceId, error) {
 		n = append(n, segs[i+1])
 	}
 
-	return &ResourceId{
+	return &ARMResourceId{
 		Type: strings.Join(t, "/"),
 		Name: strings.Join(n, "/"),
 	}, nil
 }
 
-func ParseResourceIdFromCallExpr(expr string) (*ResourceId, error) {
+func ParseResourceIdFromCallExpr(expr string) (*ARMResourceId, error) {
 	matches := regexp.MustCompile(`^\[resourceId\(([^,]+), (.+)\)]$`).FindAllStringSubmatch(expr, 1)
 	if len(matches) == 0 {
 		return nil, fmt.Errorf("the resourceId call expression %q is not valid (no match)", expr)
@@ -92,7 +90,7 @@ func ParseResourceIdFromCallExpr(expr string) (*ResourceId, error) {
 	}
 	n := strings.Join(names, "/")
 
-	return &ResourceId{
+	return &ARMResourceId{
 		Type: t,
 		Name: n,
 	}, nil
@@ -100,7 +98,7 @@ func ParseResourceIdFromCallExpr(expr string) (*ResourceId, error) {
 
 // ID converts the ARM ResourceId to its ARM resource ID literal, based on the specified subscription id and resource
 // group name.
-func (res ResourceId) ID(sub, rg string) string {
+func (res ARMResourceId) ID(sub, rg string) string {
 	typeSegs := strings.Split(res.Type, "/")
 	nameSegs := strings.Split(res.Name, "/")
 
@@ -118,15 +116,15 @@ func (res ResourceId) ID(sub, rg string) string {
 	return strings.Join(segs, "/")
 }
 
-type ResourceIds []ResourceId
+type ARMResourceIds []ARMResourceId
 
-func (resids *ResourceIds) UnmarshalJSON(b []byte) error {
+func (resids *ARMResourceIds) UnmarshalJSON(b []byte) error {
 	var residExprs []string
 	if err := json.Unmarshal(b, &residExprs); err != nil {
 		return err
 	}
 
-	var ids ResourceIds
+	var ids ARMResourceIds
 	for _, residExpr := range residExprs {
 		id, err := ParseResourceIdFromCallExpr(residExpr)
 		if err != nil {
@@ -138,64 +136,21 @@ func (resids *ResourceIds) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// Key is the TF Resource Id
-type TFResources map[string]TFResource
-
-type TFResource struct {
-	AzureId    string
-	TFId       string
-	TFType     string
-	Properties interface{}
-	DependsOn  []string
-}
-
-func (tpl Template) ToTFResources(subId, rg string) TFResources {
-	// A temporary mapping to map from the azure ID to TF ID. This mapping assumes that azure and TF resource has 1:1 mapping.
-	azToTf := map[string]string{}
-	tfresources := TFResources{}
+func (tpl Template) ToAzureResourceSet(subId, rg string) (*AzureResourceSet, error) {
+	rl := []AzureResource{}
 	for _, res := range tpl.Resources {
-		azureId := res.ResourceId.ID(subId, rg)
-
-		var (
-			// Use the azure ID as the TF ID as a fallback
-			tfId   = azureId
-			tfType string
-		)
-		tftypes, tfids, err := aztft.QueryTypeAndId(azureId, true)
-		if err == nil {
-			if len(tfids) == 1 && len(tftypes) == 1 {
-				tfId = tfids[0]
-				tfType = tftypes[0]
-			} else {
-				log.Printf("Expect one query result for resource type and TF id for %s, got %d type and %d id.\n", azureId, len(tftypes), len(tfids))
-			}
-		} else {
-			log.Printf("Failed to query resource type for %s: %v\n", azureId, err)
+		id, err := armid.ParseResourceId(res.ARMResourceId.ID(subId, rg))
+		if err != nil {
+			return nil, err
 		}
-
-		var dependsOn []string
-		for _, d := range res.DependsOn {
-			dependsOn = append(dependsOn, d.ID(subId, rg))
-		}
-		azToTf[azureId] = tfId
-		tfresources[tfId] = TFResource{
-			AzureId:    azureId,
-			TFId:       tfId,
-			TFType:     tfType,
-			Properties: res.Properties,
-			DependsOn:  dependsOn,
-		}
+		rl = append(rl, AzureResource{Id: id, Properties: res.Properties})
 	}
 
-	// Converting the DependsOn of each TFResource from Azure IDs to TF IDs.
-	for k, res := range tfresources {
-		dependsOn := []string{}
-		for _, azureId := range res.DependsOn {
-			// Every entry in the tfresoruces msut be recorded in the azToTf mapping, so no need to check existance here.
-			dependsOn = append(dependsOn, azToTf[azureId])
-		}
-		tfresources[k] = res
-	}
+	// Adding the resource group
+	rl = append(rl, AzureResource{Id: &armid.ResourceGroup{
+		SubscriptionId: subId,
+		Name:           rg,
+	}})
 
-	return tfresources
+	return &AzureResourceSet{Resources: rl}, nil
 }

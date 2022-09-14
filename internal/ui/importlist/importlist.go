@@ -20,13 +20,13 @@ import (
 )
 
 type Model struct {
-	c        meta.RgMeta
+	c        meta.GroupMeta
 	listkeys listKeyMap
 
 	list list.Model
 }
 
-func NewModel(c meta.RgMeta, l meta.ImportList, idx int) Model {
+func NewModel(c meta.GroupMeta, l meta.ImportList, idx int) Model {
 	// Build candidate words for the textinput
 	candidates := make([]string, 0, len(azurerm.ProviderSchemaInfo.ResourceSchemas))
 	for rt := range azurerm.ProviderSchemaInfo.ResourceSchemas {
@@ -51,7 +51,7 @@ func NewModel(c meta.RgMeta, l meta.ImportList, idx int) Model {
 	}
 
 	lst := list.NewModel(items, NewImportItemDelegate(), 0, 0)
-	lst.Title = " " + c.ResourceGroupName() + " "
+	lst.Title = " " + c.ScopeName() + " "
 	lst.Styles.Title = common.SubtitleStyle
 	lst.StatusMessageLifetime = 3 * time.Second
 	lst.Select(idx)
