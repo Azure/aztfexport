@@ -11,8 +11,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Azure/aztfy/internal/armtemplate"
 	"github.com/Azure/aztfy/internal/resmap"
+	"github.com/Azure/aztfy/internal/resourceset"
 	"github.com/Azure/aztfy/internal/tfaddr"
 
 	"github.com/Azure/aztfy/internal/config"
@@ -27,7 +27,7 @@ type MetaGroupImpl struct {
 	resourceGroup string
 
 	argQuery  string
-	resources armtemplate.TFResources
+	resources resourceset.TFResourceSet
 
 	// Key is azure resource id; Value is terraform resource addr.
 	// For azure resources not in this mapping, they are all initialized as to skip.
@@ -85,7 +85,7 @@ func (meta *MetaGroupImpl) ListResource() (ImportList, error) {
 
 	var l ImportList
 
-	rl := []armtemplate.TFResource{}
+	rl := []resourceset.TFResource{}
 	for _, res := range meta.resources {
 		rl = append(rl, res)
 	}
@@ -141,7 +141,7 @@ func (meta MetaGroupImpl) ExportResourceMapping(l ImportList) error {
 	return nil
 }
 
-func (meta MetaGroupImpl) queryResourceSet(ctx context.Context) (*armtemplate.AzureResourceSet, error) {
+func (meta MetaGroupImpl) queryResourceSet(ctx context.Context) (*resourceset.AzureResourceSet, error) {
 	client, err := meta.Meta.clientBuilder.NewResourceGraphClient()
 	if err != nil {
 		return nil, fmt.Errorf("building resource graph client: %v", err)
@@ -162,14 +162,14 @@ func (meta MetaGroupImpl) queryResourceSet(ctx context.Context) (*armtemplate.Az
 		return nil, fmt.Errorf("running ARG query %q: %v", meta.argQuery, err)
 	}
 
-	var rl []armtemplate.AzureResource
+	var rl []resourceset.AzureResource
 	for _, resource := range resp.QueryResponse.Data.([]interface{}) {
 		id := resource.(map[string]interface{})["id"].(string)
 		azureId, err := armid.ParseResourceId(id)
 		if err != nil {
 			return nil, fmt.Errorf("parsing resource id %s: %v", id, err)
 		}
-		rl = append(rl, armtemplate.AzureResource{
+		rl = append(rl, resourceset.AzureResource{
 			Id:         azureId,
 			Properties: resource,
 		})
@@ -177,13 +177,13 @@ func (meta MetaGroupImpl) queryResourceSet(ctx context.Context) (*armtemplate.Az
 
 	// Especially, if this is for resource group, adding the resoruce group itself to the resource set
 	if meta.resourceGroup != "" {
-		rl = append(rl, armtemplate.AzureResource{Id: &armid.ResourceGroup{
+		rl = append(rl, resourceset.AzureResource{Id: &armid.ResourceGroup{
 			SubscriptionId: meta.subscriptionId,
 			Name:           meta.resourceGroup,
 		}})
 	}
 
-	return &armtemplate.AzureResourceSet{Resources: rl}, nil
+	return &resourceset.AzureResourceSet{Resources: rl}, nil
 }
 
 func (meta MetaGroupImpl) addDependency(configs ConfigInfos) (ConfigInfos, error) {

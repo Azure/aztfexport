@@ -1,4 +1,4 @@
-package armtemplate
+package resourceset
 
 import (
 	"encoding/json"

@@ -1,7 +1,7 @@
-package armtemplate
+package resourceset
 
 // Key is the TF Resource Id
-type TFResources map[string]TFResource
+type TFResourceSet map[string]TFResource
 
 type TFResource struct {
 	AzureId    string

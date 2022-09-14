@@ -1,4 +1,4 @@
-package armtemplate
+package resourceset
 
 import (
 	"github.com/magodo/armid"
@@ -15,10 +15,10 @@ type AzureResource struct {
 	Properties interface{}
 }
 
-func (rset AzureResourceSet) ToTFResources() TFResources {
+func (rset AzureResourceSet) ToTFResources() TFResourceSet {
 	// A temporary mapping to map from the azure ID to TF ID. This mapping assumes that azure and TF resource has 1:1 mapping.
 	azToTf := map[string]string{}
-	tfresources := TFResources{}
+	tfresources := TFResourceSet{}
 	for _, res := range rset.Resources {
 		azureId := res.Id.String()
 
