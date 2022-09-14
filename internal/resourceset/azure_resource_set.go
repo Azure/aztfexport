@@ -1,9 +1,10 @@
 package resourceset
 
 import (
+	"log"
+
 	"github.com/magodo/armid"
 	"github.com/magodo/aztft/aztft"
-	"log"
 )
 
 type AzureResourceSet struct {
@@ -16,12 +17,9 @@ type AzureResource struct {
 }
 
 func (rset AzureResourceSet) ToTFResources() TFResourceSet {
-	// A temporary mapping to map from the azure ID to TF ID. This mapping assumes that azure and TF resource has 1:1 mapping.
-	azToTf := map[string]string{}
 	tfresources := TFResourceSet{}
 	for _, res := range rset.Resources {
 		azureId := res.Id.String()
-
 		var (
 			// Use the azure ID as the TF ID as a fallback
 			tfId   = azureId
@@ -39,16 +37,34 @@ func (rset AzureResourceSet) ToTFResources() TFResourceSet {
 			log.Printf("WARNING: Failed to query resource type for %s: %v\n", azureId, err)
 		}
 
-		azToTf[azureId] = tfId
 		tfresources[tfId] = TFResource{
-			AzureId:    azureId,
+			AzureId:    res.Id,
 			TFId:       tfId,
 			TFType:     tfType,
 			Properties: res.Properties,
 		}
 	}
 
-	// TODO: Resolve dependencies for TF resources, based on their Azure Id
+Loop:
+	for tfId, tfRes := range tfresources {
+		parentId := tfRes.AzureId.Parent()
+
+		if parentId == nil {
+			// Ignore root scope
+			continue
+		}
+		// Adding the direct parent resource as its dependency
+		for oTfId, oTfRes := range tfresources {
+			if tfRes.TFId == oTfRes.TFId {
+				continue
+			}
+			if parentId.Equal(oTfRes.AzureId) {
+				tfRes.DependsOn = []string{oTfId}
+				tfresources[tfId] = tfRes
+				continue Loop
+			}
+		}
+	}
 
 	return tfresources
 }

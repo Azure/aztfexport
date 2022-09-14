@@ -90,7 +90,7 @@ func (meta *MetaGroupImpl) ListResource() (ImportList, error) {
 		rl = append(rl, res)
 	}
 	sort.Slice(rl, func(i, j int) bool {
-		return rl[i].AzureId < rl[j].AzureId
+		return rl[i].AzureId.String() < rl[j].AzureId.String()
 	})
 
 	for i, res := range rl {
