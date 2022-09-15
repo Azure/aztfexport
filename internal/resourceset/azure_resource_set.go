@@ -13,7 +13,7 @@ type AzureResourceSet struct {
 
 type AzureResource struct {
 	Id         armid.ResourceId
-	Properties interface{}
+	Properties map[string]interface{}
 }
 
 func (rset AzureResourceSet) ToTFResources() TFResourceSet {

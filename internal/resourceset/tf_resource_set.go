@@ -9,6 +9,6 @@ type TFResource struct {
 	AzureId    armid.ResourceId
 	TFId       string
 	TFType     string
-	Properties interface{}
+	Properties map[string]interface{}
 	DependsOn  []string // TF resource IDs
 }

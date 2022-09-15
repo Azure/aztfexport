@@ -173,7 +173,8 @@ func (meta MetaGroupImpl) queryResourceSet(ctx context.Context) (*resourceset.Az
 
 	collectResource := func(resp armresourcegraph.QueryResponse) error {
 		for _, resource := range resp.Data.([]interface{}) {
-			id := resource.(map[string]interface{})["id"].(string)
+			resource := resource.(map[string]interface{})
+			id := resource["id"].(string)
 			azureId, err := armid.ParseResourceId(id)
 			if err != nil {
 				return fmt.Errorf("parsing resource id %s: %v", id, err)
@@ -207,6 +208,7 @@ func (meta MetaGroupImpl) queryResourceSet(ctx context.Context) (*resourceset.Az
 		skipToken = *resp.SkipToken
 	}
 
+	// Should we check for the existance of skipToken instead? But can't find any document states that the last response won't return the skipToken.
 	for count < total {
 		query.Options.Skip = &skip
 		query.Options.SkipToken = &skipToken
