@@ -49,10 +49,16 @@ Loop:
 	for tfId, tfRes := range tfresources {
 		parentId := tfRes.AzureId.Parent()
 
+		// This resource is either a root scope or a root scoped resource
 		if parentId == nil {
-			// Ignore root scope
-			continue
+			// Root scope: ignore as it has no parent
+			if tfRes.AzureId.ParentScope() == nil {
+				continue
+			}
+			// Root scoped resource: use its parent scope as its parent
+			parentId = tfRes.AzureId.ParentScope()
 		}
+
 		// Adding the direct parent resource as its dependency
 		for oTfId, oTfRes := range tfresources {
 			if tfRes.TFId == oTfRes.TFId {

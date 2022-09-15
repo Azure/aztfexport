@@ -14,7 +14,7 @@ require (
 	github.com/hashicorp/hc-install v0.4.0
 	github.com/hashicorp/hcl/v2 v2.13.0
 	github.com/hashicorp/terraform-exec v0.17.2
-	github.com/magodo/armid v0.0.0-20220914114054-3b8155425b08
+	github.com/magodo/armid v0.0.0-20220915030809-9ed860f93894
 	github.com/magodo/aztft v0.1.1-0.20220913023342-ad367d8a5986
 	github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
