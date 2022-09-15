@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resourcegraph/armresourcegraph"
-	"github.com/magodo/armid"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resourcegraph/armresourcegraph"
+	"github.com/magodo/armid"
 
 	"github.com/Azure/aztfy/internal/resmap"
 	"github.com/Azure/aztfy/internal/resourceset"
@@ -141,38 +142,94 @@ func (meta MetaGroupImpl) ExportResourceMapping(l ImportList) error {
 	return nil
 }
 
+func ptr[T any](v T) *T {
+	return &v
+}
+
 func (meta MetaGroupImpl) queryResourceSet(ctx context.Context) (*resourceset.AzureResourceSet, error) {
 	client, err := meta.Meta.clientBuilder.NewResourceGraphClient()
 	if err != nil {
 		return nil, fmt.Errorf("building resource graph client: %v", err)
 	}
 
-	scopeFilter := armresourcegraph.AuthorizationScopeFilterAtScopeAndBelow
-	resultFormat := armresourcegraph.ResultFormatObjectArray
+	const top int32 = 1000
+
 	query := armresourcegraph.QueryRequest{
 		Query: &meta.argQuery,
 		Options: &armresourcegraph.QueryRequestOptions{
-			AuthorizationScopeFilter: &scopeFilter,
-			ResultFormat:             &resultFormat,
+			AuthorizationScopeFilter: ptr(armresourcegraph.AuthorizationScopeFilterAtScopeAndBelow),
+			ResultFormat:             ptr(armresourcegraph.ResultFormatObjectArray),
+			Top:                      ptr(top),
 		},
 		Subscriptions: []*string{&meta.subscriptionId},
 	}
+
 	resp, err := client.Resources(ctx, query, nil)
 	if err != nil {
 		return nil, fmt.Errorf("running ARG query %q: %v", meta.argQuery, err)
 	}
 
 	var rl []resourceset.AzureResource
-	for _, resource := range resp.QueryResponse.Data.([]interface{}) {
-		id := resource.(map[string]interface{})["id"].(string)
-		azureId, err := armid.ParseResourceId(id)
-		if err != nil {
-			return nil, fmt.Errorf("parsing resource id %s: %v", id, err)
+
+	collectResource := func(resp armresourcegraph.QueryResponse) error {
+		for _, resource := range resp.Data.([]interface{}) {
+			id := resource.(map[string]interface{})["id"].(string)
+			azureId, err := armid.ParseResourceId(id)
+			if err != nil {
+				return fmt.Errorf("parsing resource id %s: %v", id, err)
+			}
+			rl = append(rl, resourceset.AzureResource{
+				Id:         azureId,
+				Properties: resource,
+			})
 		}
-		rl = append(rl, resourceset.AzureResource{
-			Id:         azureId,
-			Properties: resource,
-		})
+		return nil
+	}
+
+	if err := collectResource(resp.QueryResponse); err != nil {
+		return nil, err
+	}
+
+	var total int64
+	if resp.TotalRecords != nil {
+		total = *resp.TotalRecords
+	}
+
+	var count int64
+	if resp.Count != nil {
+		count = *resp.Count
+	}
+
+	var skip int32 = top
+
+	var skipToken string
+	if resp.SkipToken != nil {
+		skipToken = *resp.SkipToken
+	}
+
+	for count < total {
+		query.Options.Skip = &skip
+		query.Options.SkipToken = &skipToken
+
+		resp, err := client.Resources(ctx, query, nil)
+		if err != nil {
+			return nil, fmt.Errorf("running ARG query %q with skipToken %q: %v", meta.argQuery, skipToken, err)
+		}
+
+		if err := collectResource(resp.QueryResponse); err != nil {
+			return nil, err
+		}
+
+		// Update count
+		if resp.Count != nil {
+			count += *resp.Count
+		}
+
+		// Update query controls
+		skip += top
+		if resp.SkipToken != nil {
+			skipToken = *resp.SkipToken
+		}
 	}
 
 	// Especially, if this is for resource group, adding the resoruce group itself to the resource set
