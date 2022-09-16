@@ -18,7 +18,7 @@ require (
 	github.com/magodo/aztft v0.1.1-0.20220913023342-ad367d8a5986
 	github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
-	github.com/magodo/tfadd v0.10.1-0.20220913021311-77970c3c03ba
+	github.com/magodo/tfadd v0.10.1-0.20220916023425-bc555e8e7bc9
 	github.com/mitchellh/go-wordwrap v1.0.0
 	github.com/muesli/reflow v0.3.0
 	github.com/stretchr/testify v1.7.5
