@@ -53,7 +53,7 @@ Supported versions:
 3. Install:
 
     ```
-    dnf install azure-cli
+    dnf install aztfy
     ```
 
 #### apt (Linux)
