@@ -40,7 +40,7 @@ func ResourceImport(cfg config.ResConfig) error {
 			if err != nil {
 				return err
 			}
-			item.ResourceID = tfid
+			item.TFResourceId = tfid
 			item.TFAddr.Type = rt
 		} else {
 			msg.SetStatus("Querying Terraform resource id...")
@@ -48,17 +48,17 @@ func ResourceImport(cfg config.ResConfig) error {
 			if err != nil {
 				return err
 			}
-			item.ResourceID = tfid
+			item.TFResourceId = tfid
 			item.TFAddr.Type = c.ResourceType
 		}
 
 		msg.SetDetail(fmt.Sprintf(`Resource Type: %s
-Resource Id  : %s`, item.TFAddr.Type, item.ResourceID))
+Resource Id  : %s`, item.TFAddr.Type, item.TFResourceId))
 
 		msg.SetStatus("Importing...")
 		c.Import(&item)
 		if err := item.ImportError; err != nil {
-			return fmt.Errorf("failed to import %s as %s: %v", item.ResourceID, item.TFAddr, err)
+			return fmt.Errorf("failed to import %s as %s: %v", item.TFResourceId, item.TFAddr, err)
 		}
 
 		msg.SetStatus("Generating Terraform configurations...")
@@ -95,14 +95,14 @@ func BatchImport(cfg config.GroupConfig, continueOnError bool) error {
 		msg.SetStatus("Importing resources...")
 		for i := range list {
 			if list[i].Skip() {
-				warnings = append(warnings, fmt.Sprintf("No mapping information for resource: %s, skip it", list[i].ResourceID))
+				warnings = append(warnings, fmt.Sprintf("No mapping information for resource: %s, skip it", list[i].TFResourceId))
 				msg.SetDetail(strings.Join(warnings, "\n"))
 				continue
 			}
-			msg.SetStatus(fmt.Sprintf("(%d/%d) Importing %s as %s", i+1, len(list), list[i].ResourceID, list[i].TFAddr))
+			msg.SetStatus(fmt.Sprintf("(%d/%d) Importing %s as %s", i+1, len(list), list[i].TFResourceId, list[i].TFAddr))
 			c.Import(&list[i])
 			if err := list[i].ImportError; err != nil {
-				msg := fmt.Sprintf("Failed to import %s as %s: %v", list[i].ResourceID, list[i].TFAddr, err)
+				msg := fmt.Sprintf("Failed to import %s as %s: %v", list[i].TFResourceId, list[i].TFAddr, err)
 				if !continueOnError {
 					return fmt.Errorf(msg)
 				}

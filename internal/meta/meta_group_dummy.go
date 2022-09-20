@@ -31,19 +31,19 @@ func (m MetaGroupDummy) ListResource() (ImportList, error) {
 	time.Sleep(500 * time.Millisecond)
 	return ImportList{
 		ImportItem{
-			ResourceID: "/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg/providers/Microsoft.Network/virtualNetworks/example-network",
+			TFResourceId: "/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg/providers/Microsoft.Network/virtualNetworks/example-network",
 		},
 		ImportItem{
-			ResourceID: "/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg/providers/Microsoft.Compute/virtualMachines/example-machine",
+			TFResourceId: "/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg/providers/Microsoft.Compute/virtualMachines/example-machine",
 		},
 		ImportItem{
-			ResourceID: "/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg/providers/Microsoft.Network/networkInterfaces/example-nic",
+			TFResourceId: "/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg/providers/Microsoft.Network/networkInterfaces/example-nic",
 		},
 		ImportItem{
-			ResourceID: "/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg/providers/Microsoft.Network/virtualNetworks/example-network/subnets/internal",
+			TFResourceId: "/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg/providers/Microsoft.Network/virtualNetworks/example-network/subnets/internal",
 		},
 		ImportItem{
-			ResourceID: "/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg",
+			TFResourceId: "/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg",
 		},
 	}, nil
 }

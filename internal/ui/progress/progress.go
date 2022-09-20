@@ -93,26 +93,26 @@ func (m Model) View() string {
 	if len(m.l) > m.idx {
 		item := m.l[m.idx]
 		if item.Skip() {
-			msg = fmt.Sprintf(" Skipping %s...", item.ResourceID)
+			msg = fmt.Sprintf(" Skipping %s...", item.TFResourceId)
 		} else {
-			msg = fmt.Sprintf(" Importing %s...", item.ResourceID)
+			msg = fmt.Sprintf(" Importing %s...", item.TFResourceId)
 		}
 	}
 
 	s := fmt.Sprintf(" %s\n\n", msg)
 	for _, res := range m.results {
 		// This indicates the state before the item is inserted as the to results.
-		if res.item.ResourceID == "" {
+		if res.item.TFResourceId == "" {
 			s += "...\n"
 		} else {
 			switch {
 			case res.item.Skip():
-				s += fmt.Sprintf("%s %s skipped\n", res.emoji, res.item.ResourceID)
+				s += fmt.Sprintf("%s %s skipped\n", res.emoji, res.item.TFResourceId)
 			default:
 				if res.item.ImportError == nil {
-					s += fmt.Sprintf("%s %s import successfully\n", res.emoji, res.item.ResourceID)
+					s += fmt.Sprintf("%s %s import successfully\n", res.emoji, res.item.TFResourceId)
 				} else {
-					s += fmt.Sprintf("%s %s import failed\n", res.emoji, res.item.ResourceID)
+					s += fmt.Sprintf("%s %s import failed\n", res.emoji, res.item.TFResourceId)
 				}
 			}
 		}

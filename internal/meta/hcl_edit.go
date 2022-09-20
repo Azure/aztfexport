@@ -8,9 +8,9 @@ import (
 	"github.com/hashicorp/hcl/v2/hclwrite"
 )
 
-func hclBlockAppendDependency(body *hclwrite.Body, ids []string, cfgset map[string]ConfigInfo) error {
+func hclBlockAppendDependency(body *hclwrite.Body, azids []string, cfgset map[string]ConfigInfo) error {
 	dependencies := []string{}
-	for _, id := range ids {
+	for _, id := range azids {
 		cfg, ok := cfgset[id]
 		if !ok {
 			dependencies = append(dependencies, fmt.Sprintf("# Depending on %q, which is not imported by Terraform.", id))

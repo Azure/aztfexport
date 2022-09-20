@@ -10,7 +10,8 @@ type ConfigInfos []ConfigInfo
 
 type ConfigInfo struct {
 	ImportItem
-	hcl *hclwrite.File
+	DependsOn []string
+	hcl       *hclwrite.File
 }
 
 func (cfg ConfigInfo) DumpHCL(w io.Writer) (int, error) {

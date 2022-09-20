@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"github.com/magodo/armid"
@@ -27,8 +26,7 @@ type MetaGroupImpl struct {
 	// Only non empty when in resource group mode
 	resourceGroup string
 
-	argQuery  string
-	resources resourceset.TFResourceSet
+	argQuery string
 
 	// Key is azure resource id; Value is terraform resource addr.
 	// For azure resources not in this mapping, they are all initialized as to skip.
@@ -82,17 +80,6 @@ func (meta *MetaGroupImpl) ListResource() (ImportList, error) {
 	if err := rset.TweakResources(); err != nil {
 		return nil, fmt.Errorf("populating managed resources in the azure resource set: %v", err)
 	}
-	meta.resources = rset.ToTFResources()
-
-	var l ImportList
-
-	rl := []resourceset.TFResource{}
-	for _, res := range meta.resources {
-		rl = append(rl, res)
-	}
-	sort.Slice(rl, func(i, j int) bool {
-		return rl[i].AzureId.String() < rl[j].AzureId.String()
-	})
 
 	// The ARG has a bug (though not found the exact issue anywhere) that it returns the first resource id with its resource group name uppercased, in object mode.
 	// We shall check the existance of the resource id case insensitively.
@@ -108,9 +95,12 @@ func (meta *MetaGroupImpl) ListResource() (ImportList, error) {
 		}
 	}
 
+	var l ImportList
+	rl := rset.ToTFResources()
 	for i, res := range rl {
 		item := ImportItem{
-			ResourceID: res.TFId,
+			AzureResourceID: res.AzureId,
+			TFResourceId:    res.TFId,
 			TFAddr: tfaddr.TFAddr{
 				Type: "",
 				Name: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, i, meta.resourceNameSuffix),
@@ -121,8 +111,10 @@ func (meta *MetaGroupImpl) ListResource() (ImportList, error) {
 		}
 
 		if len(caseInsensitiveMapping) != 0 {
+			// TODO: There is a potential issue here that the more than one Azure resources might have the same TF resource id (e.g. a parent resource and its singleton child resource).
+			// 		 Ideally, we should refactor the resource mapping file to make the Azure resource id as key, and record the TF id and TF address (type + name) as its value.
 			if info, ok := caseInsensitiveMapping[strings.ToUpper(res.TFId)]; ok {
-				item.ResourceID = info.id
+				item.TFResourceId = info.id
 				item.TFAddr = info.addr
 			}
 		} else {
@@ -144,7 +136,7 @@ func (meta MetaGroupImpl) GenerateCfg(l ImportList) error {
 func (meta MetaGroupImpl) ExportResourceMapping(l ImportList) error {
 	m := resmap.ResourceMapping{}
 	for _, item := range l {
-		m[item.ResourceID] = item.TFAddr
+		m[item.TFResourceId] = item.TFAddr
 	}
 	output := filepath.Join(meta.Workspace(), ResourceMappingFileName)
 	b, err := json.MarshalIndent(m, "", "\t")
@@ -188,21 +180,44 @@ func (meta MetaGroupImpl) queryResourceSet(ctx context.Context) (*resourceset.Az
 }
 
 func (meta MetaGroupImpl) addDependency(configs ConfigInfos) (ConfigInfos, error) {
-	configSet := map[string]ConfigInfo{}
-	for _, cfg := range configs {
-		configSet[cfg.ResourceID] = cfg
+	// Resolve parent-child dependencies based on the Azure resource id.
+Loop:
+	for i, cfg := range configs {
+		parentId := cfg.AzureResourceID.Parent()
+		// This resource is either a root scope or a root scoped resource
+		if parentId == nil {
+			// Root scope: ignore as it has no parent
+			if cfg.AzureResourceID.ParentScope() == nil {
+				continue
+			}
+			// Root scoped resource: use its parent scope as its parent
+			parentId = cfg.AzureResourceID.ParentScope()
+		}
+
+		// Adding the direct parent resource as its dependency
+		for _, ocfg := range configs {
+			if cfg.AzureResourceID.Equal(ocfg.AzureResourceID) {
+				continue
+			}
+			if parentId.Equal(ocfg.AzureResourceID) {
+				cfg.DependsOn = []string{ocfg.AzureResourceID.String()}
+				configs[i] = cfg
+				continue Loop
+			}
+		}
 	}
 
 	// Iterate each config to add dependency by querying the dependency info from azure resource set.
 	var out ConfigInfos
-	for tfid, cfg := range configSet {
-		tfres, ok := meta.resources[tfid]
-		if !ok {
-			return nil, fmt.Errorf("can't find resource %q in the arm template's resources", tfid)
-		}
 
-		if len(tfres.DependsOn) != 0 {
-			if err := hclBlockAppendDependency(cfg.hcl.Body().Blocks()[0].Body(), tfres.DependsOn, configSet); err != nil {
+	configSet := map[string]ConfigInfo{}
+	for _, cfg := range configs {
+		configSet[cfg.AzureResourceID.String()] = cfg
+	}
+
+	for _, cfg := range configs {
+		if len(cfg.DependsOn) != 0 {
+			if err := hclBlockAppendDependency(cfg.hcl.Body().Blocks()[0].Body(), cfg.DependsOn, configSet); err != nil {
 				return nil, err
 			}
 		}

@@ -2,6 +2,7 @@ package resourceset
 
 import (
 	"log"
+	"sort"
 
 	"github.com/magodo/armid"
 	"github.com/magodo/aztft/aztft"
@@ -16,8 +17,8 @@ type AzureResource struct {
 	Properties map[string]interface{}
 }
 
-func (rset AzureResourceSet) ToTFResources() TFResourceSet {
-	tfresources := TFResourceSet{}
+func (rset AzureResourceSet) ToTFResources() []TFResource {
+	tfresources := []TFResource{}
 	for _, res := range rset.Resources {
 		azureId := res.Id.String()
 		var (
@@ -37,40 +38,17 @@ func (rset AzureResourceSet) ToTFResources() TFResourceSet {
 			log.Printf("WARNING: Failed to query resource type for %s: %v\n", azureId, err)
 		}
 
-		tfresources[tfId] = TFResource{
+		tfresources = append(tfresources, TFResource{
 			AzureId:    res.Id,
 			TFId:       tfId,
 			TFType:     tfType,
 			Properties: res.Properties,
-		}
+		})
 	}
 
-Loop:
-	for tfId, tfRes := range tfresources {
-		parentId := tfRes.AzureId.Parent()
-
-		// This resource is either a root scope or a root scoped resource
-		if parentId == nil {
-			// Root scope: ignore as it has no parent
-			if tfRes.AzureId.ParentScope() == nil {
-				continue
-			}
-			// Root scoped resource: use its parent scope as its parent
-			parentId = tfRes.AzureId.ParentScope()
-		}
-
-		// Adding the direct parent resource as its dependency
-		for oTfId, oTfRes := range tfresources {
-			if tfRes.TFId == oTfRes.TFId {
-				continue
-			}
-			if parentId.Equal(oTfRes.AzureId) {
-				tfRes.DependsOn = []string{oTfId}
-				tfresources[tfId] = tfRes
-				continue Loop
-			}
-		}
-	}
+	sort.Slice(tfresources, func(i, j int) bool {
+		return tfresources[i].AzureId.String() < tfresources[j].AzureId.String()
+	})
 
 	return tfresources
 }

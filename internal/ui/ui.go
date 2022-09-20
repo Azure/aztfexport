@@ -229,7 +229,7 @@ func (m model) logoView() string {
 }
 
 func importErrorView(m model) string {
-	return m.importerrormsg.Item.ResourceID + "\n\n" + common.ErrorMsgStyle.Render(wordwrap.WrapString(m.importerrormsg.Item.ImportError.Error(), uint(m.winsize.Width-indentLevel)))
+	return m.importerrormsg.Item.TFResourceId + "\n\n" + common.ErrorMsgStyle.Render(wordwrap.WrapString(m.importerrormsg.Item.ImportError.Error(), uint(m.winsize.Width-indentLevel)))
 }
 
 func summaryView(m model) string {

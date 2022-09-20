@@ -200,7 +200,7 @@ func (meta Meta) Import(item *ImportItem) {
 	defer os.Remove(cfgFile)
 
 	// Import resources
-	err := meta.tf.Import(ctx, item.TFAddr.String(), item.ResourceID)
+	err := meta.tf.Import(ctx, item.TFAddr.String(), item.TFResourceId)
 	item.ImportError = err
 	item.Imported = err == nil
 }
