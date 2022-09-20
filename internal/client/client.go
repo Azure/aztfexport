@@ -11,7 +11,6 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/keyvault/armkeyvault"
-	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resourcegraph/armresourcegraph"
 )
 
 type ClientBuilder struct {
@@ -76,13 +75,6 @@ func NewClientBuilder() (*ClientBuilder, error) {
 			},
 		},
 	}, nil
-}
-
-func (b *ClientBuilder) NewResourceGraphClient() (*armresourcegraph.Client, error) {
-	return armresourcegraph.NewClient(
-		b.credential,
-		b.opt,
-	)
 }
 
 func (b *ClientBuilder) NewKeyvaultKeysClient(subscriptionId string) (*armkeyvault.KeysClient, error) {

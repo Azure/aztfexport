@@ -42,6 +42,8 @@ type Meta struct {
 	backendType    string
 	backendConfig  []string
 	fullConfig     bool
+	parallelism    int
+
 	// Use a safer name which is less likely to conflicts with users' existing files.
 	// This is mainly used for the --append option.
 	useSafeFilename bool
@@ -136,6 +138,7 @@ The output directory is not empty. Please choose one of actions below:
 		backendType:     cfg.BackendType,
 		backendConfig:   cfg.BackendConfig,
 		fullConfig:      cfg.FullConfig,
+		parallelism:     cfg.Parallelism,
 		useSafeFilename: cfg.Append,
 		empty:           empty,
 	}

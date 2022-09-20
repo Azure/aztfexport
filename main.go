@@ -33,6 +33,7 @@ func main() {
 		flagBackendType    string
 		flagBackendConfig  cli.StringSlice
 		flagFullConfig     bool
+		flagParallelism    int
 
 		// common flags (hidden)
 		hflagLogPath string
@@ -121,6 +122,13 @@ func main() {
 			Usage:       "Whether to output all non-computed properties in the generated Terraform configuration? This probably needs manual modifications to make it valid",
 			Value:       false,
 			Destination: &flagFullConfig,
+		},
+		&cli.IntFlag{
+			Name:        "parallelism",
+			EnvVars:     []string{"AZTFY_PARALLELISM"},
+			Usage:       "Limit the number of parallel operations (including resource discovery, import, etc).",
+			Value:       10,
+			Destination: &flagParallelism,
 		},
 
 		// Hidden flags
@@ -232,6 +240,7 @@ func main() {
 							BackendType:    flagBackendType,
 							BackendConfig:  flagBackendConfig.Value(),
 							FullConfig:     flagFullConfig,
+							Parallelism:    flagParallelism,
 						},
 					}
 
@@ -320,6 +329,7 @@ func main() {
 							BackendType:    flagBackendType,
 							BackendConfig:  flagBackendConfig.Value(),
 							FullConfig:     flagFullConfig,
+							Parallelism:    flagParallelism,
 						},
 					}
 
@@ -424,6 +434,7 @@ func main() {
 							BackendType:    flagBackendType,
 							BackendConfig:  flagBackendConfig.Value(),
 							FullConfig:     flagFullConfig,
+							Parallelism:    flagParallelism,
 						},
 						ResourceId:   resId,
 						ResourceName: flagName,

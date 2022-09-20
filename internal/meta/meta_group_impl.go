@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resourcegraph/armresourcegraph"
 	"github.com/magodo/armid"
+	"github.com/magodo/azlist/azlist"
 
 	"github.com/Azure/aztfy/internal/resmap"
 	"github.com/Azure/aztfy/internal/resourceset"
@@ -147,91 +147,18 @@ func ptr[T any](v T) *T {
 }
 
 func (meta MetaGroupImpl) queryResourceSet(ctx context.Context) (*resourceset.AzureResourceSet, error) {
-	client, err := meta.Meta.clientBuilder.NewResourceGraphClient()
+	result, err := azlist.List(ctx, meta.subscriptionId, meta.argQuery, &azlist.Option{Parallelism: meta.parallelism})
 	if err != nil {
-		return nil, fmt.Errorf("building resource graph client: %v", err)
-	}
-
-	const top int32 = 1000
-
-	query := armresourcegraph.QueryRequest{
-		Query: &meta.argQuery,
-		Options: &armresourcegraph.QueryRequestOptions{
-			AuthorizationScopeFilter: ptr(armresourcegraph.AuthorizationScopeFilterAtScopeAndBelow),
-			ResultFormat:             ptr(armresourcegraph.ResultFormatObjectArray),
-			Top:                      ptr(top),
-		},
-		Subscriptions: []*string{&meta.subscriptionId},
-	}
-
-	resp, err := client.Resources(ctx, query, nil)
-	if err != nil {
-		return nil, fmt.Errorf("running ARG query %q: %v", meta.argQuery, err)
+		return nil, fmt.Errorf("listing resource set: %v", err)
 	}
 
 	var rl []resourceset.AzureResource
-
-	collectResource := func(resp armresourcegraph.QueryResponse) error {
-		for _, resource := range resp.Data.([]interface{}) {
-			resource := resource.(map[string]interface{})
-			id := resource["id"].(string)
-			azureId, err := armid.ParseResourceId(id)
-			if err != nil {
-				return fmt.Errorf("parsing resource id %s: %v", id, err)
-			}
-			rl = append(rl, resourceset.AzureResource{
-				Id:         azureId,
-				Properties: resource,
-			})
+	for _, res := range result.Resources {
+		res := resourceset.AzureResource{
+			Id:         res.Id,
+			Properties: res.Properties,
 		}
-		return nil
-	}
-
-	if err := collectResource(resp.QueryResponse); err != nil {
-		return nil, err
-	}
-
-	var total int64
-	if resp.TotalRecords != nil {
-		total = *resp.TotalRecords
-	}
-
-	var count int64
-	if resp.Count != nil {
-		count = *resp.Count
-	}
-
-	var skip int32 = top
-
-	var skipToken string
-	if resp.SkipToken != nil {
-		skipToken = *resp.SkipToken
-	}
-
-	// Should we check for the existance of skipToken instead? But can't find any document states that the last response won't return the skipToken.
-	for count < total {
-		query.Options.Skip = &skip
-		query.Options.SkipToken = &skipToken
-
-		resp, err := client.Resources(ctx, query, nil)
-		if err != nil {
-			return nil, fmt.Errorf("running ARG query %q with skipToken %q: %v", meta.argQuery, skipToken, err)
-		}
-
-		if err := collectResource(resp.QueryResponse); err != nil {
-			return nil, err
-		}
-
-		// Update count
-		if resp.Count != nil {
-			count += *resp.Count
-		}
-
-		// Update query controls
-		skip += top
-		if resp.SkipToken != nil {
-			skipToken = *resp.SkipToken
-		}
+		rl = append(rl, res)
 	}
 
 	// Especially, if this is for resource group, adding the resoruce group itself to the resource set
