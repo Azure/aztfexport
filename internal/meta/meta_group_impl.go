@@ -94,6 +94,20 @@ func (meta *MetaGroupImpl) ListResource() (ImportList, error) {
 		return rl[i].AzureId.String() < rl[j].AzureId.String()
 	})
 
+	// The ARG has a bug (though not found the exact issue anywhere) that it returns the first resource id with its resource group name uppercased, in object mode.
+	// We shall check the existance of the resource id case insensitively.
+	type MapInfo struct {
+		id   string
+		addr tfaddr.TFAddr
+	}
+	caseInsensitiveMapping := map[string]MapInfo{}
+	for k, v := range meta.resourceMapping {
+		caseInsensitiveMapping[strings.ToUpper(k)] = MapInfo{
+			id:   k,
+			addr: v,
+		}
+	}
+
 	for i, res := range rl {
 		item := ImportItem{
 			ResourceID: res.TFId,
@@ -106,9 +120,10 @@ func (meta *MetaGroupImpl) ListResource() (ImportList, error) {
 			item.Recommendations = []string{res.TFType}
 		}
 
-		if len(meta.resourceMapping) != 0 {
-			if addr, ok := meta.resourceMapping[res.TFId]; ok {
-				item.TFAddr = addr
+		if len(caseInsensitiveMapping) != 0 {
+			if info, ok := caseInsensitiveMapping[strings.ToUpper(res.TFId)]; ok {
+				item.ResourceID = info.id
+				item.TFAddr = info.addr
 			}
 		} else {
 			// Only auto deduce the TF resource type from recommendations when there is no resource mapping file specified.
