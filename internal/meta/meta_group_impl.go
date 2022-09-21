@@ -180,34 +180,10 @@ func (meta MetaGroupImpl) queryResourceSet(ctx context.Context) (*resourceset.Az
 }
 
 func (meta MetaGroupImpl) addDependency(configs ConfigInfos) (ConfigInfos, error) {
-	// Resolve parent-child dependencies based on the Azure resource id.
-Loop:
-	for i, cfg := range configs {
-		parentId := cfg.AzureResourceID.Parent()
-		// This resource is either a root scope or a root scoped resource
-		if parentId == nil {
-			// Root scope: ignore as it has no parent
-			if cfg.AzureResourceID.ParentScope() == nil {
-				continue
-			}
-			// Root scoped resource: use its parent scope as its parent
-			parentId = cfg.AzureResourceID.ParentScope()
-		}
-
-		// Adding the direct parent resource as its dependency
-		for _, ocfg := range configs {
-			if cfg.AzureResourceID.Equal(ocfg.AzureResourceID) {
-				continue
-			}
-			if parentId.Equal(ocfg.AzureResourceID) {
-				cfg.DependsOn = []string{ocfg.AzureResourceID.String()}
-				configs[i] = cfg
-				continue Loop
-			}
-		}
+	if err := configs.AddDependency(); err != nil {
+		return nil, err
 	}
 
-	// Iterate each config to add dependency by querying the dependency info from azure resource set.
 	var out ConfigInfos
 
 	configSet := map[string]ConfigInfo{}
