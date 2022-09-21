@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/magodo/armid"
+	"github.com/magodo/aztft/aztft"
 
 	"github.com/tidwall/gjson"
 )
@@ -18,8 +19,8 @@ func (rset *AzureResourceSet) TweakResources() error {
 		return err
 	}
 
-	// Populate exclusively managed resources that are missing from Azure exported resource set.
-	if err := rset.populateManagedResources(); err != nil {
+	// Populate managed data disk for VMs that are missing from Azure exported resource set.
+	if err := rset.populateVMDataDisks(); err != nil {
 		return err
 	}
 
@@ -54,19 +55,38 @@ func (rset *AzureResourceSet) tweakForKeyVaultCertificate() error {
 	return nil
 }
 
-func (rset *AzureResourceSet) populateManagedResources() error {
-	knownManagedResourceTypes := map[string][]string{
-		"/MICROSOFT.COMPUTE/VIRTUALMACHINES": {
-			"properties.storageProfile.dataDisks.#.managedDisk.id",
-		},
-	}
+func (rset *AzureResourceSet) populateVMDataDisks() error {
 	for _, res := range rset.Resources[:] {
-		if paths, ok := knownManagedResourceTypes[strings.ToUpper(res.Id.RouteScopeString())]; ok {
-			resources, err := populateManagedResourcesByPath(res, paths...)
+		if strings.ToUpper(res.Id.RouteScopeString()) != "/MICROSOFT.COMPUTE/VIRTUALMACHINES" {
+			continue
+		}
+		disks, err := populateManagedResourcesByPath(res, "properties.storageProfile.dataDisks.#.managedDisk.id")
+		if err != nil {
+			return fmt.Errorf(`populating managed disks for %q: %v`, res.Id, err)
+		}
+		rset.Resources = append(rset.Resources, disks...)
+
+		// Add the association resource
+		for _, disk := range disks {
+			diskName := disk.Id.Names()[0]
+
+			// It doesn't matter using linux/windows below, as their resource ids are the same.
+			vmTFId, err := aztft.QueryId(res.Id.String(), "azurerm_linux_virtual_machine", false)
 			if err != nil {
-				return fmt.Errorf(`populating managed resources for %q: %v`, res.Id, err)
+				return fmt.Errorf("querying resource id for %s: %v", res.Id, err)
 			}
-			rset.Resources = append(rset.Resources, resources...)
+
+			azureId := res.Id.Clone().(*armid.ScopedResourceId)
+			azureId.AttrTypes = append(azureId.AttrTypes, "dataDisks")
+			azureId.AttrNames = append(azureId.AttrNames, diskName)
+
+			rset.Resources = append(rset.Resources, AzureResource{
+				Id: azureId,
+				PesudoResourceInfo: &PesudoResourceInfo{
+					TFType: "azurerm_virtual_machine_data_disk_attachment",
+					TFId:   vmTFId + "/dataDisks/" + diskName,
+				},
+			})
 		}
 	}
 	return nil

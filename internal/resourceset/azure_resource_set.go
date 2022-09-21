@@ -15,11 +15,29 @@ type AzureResourceSet struct {
 type AzureResource struct {
 	Id         armid.ResourceId
 	Properties map[string]interface{}
+
+	// PesudoResourceInfo is only non-nil for the specially populated resources
+	PesudoResourceInfo *PesudoResourceInfo
+}
+
+type PesudoResourceInfo struct {
+	TFType string
+	TFId   string
 }
 
 func (rset AzureResourceSet) ToTFResources() []TFResource {
 	tfresources := []TFResource{}
 	for _, res := range rset.Resources {
+		// This is a TF pesudo resource, whose TF info are already available.
+		if res.PesudoResourceInfo != nil {
+			tfresources = append(tfresources, TFResource{
+				AzureId: res.Id,
+				TFId:    res.PesudoResourceInfo.TFId,
+				TFType:  res.PesudoResourceInfo.TFType,
+			})
+			continue
+		}
+
 		azureId := res.Id.String()
 		var (
 			// Use the azure ID as the TF ID as a fallback
@@ -39,10 +57,9 @@ func (rset AzureResourceSet) ToTFResources() []TFResource {
 		}
 
 		tfresources = append(tfresources, TFResource{
-			AzureId:    res.Id,
-			TFId:       tfId,
-			TFType:     tfType,
-			Properties: res.Properties,
+			AzureId: res.Id,
+			TFId:    tfId,
+			TFType:  tfType,
 		})
 	}
 

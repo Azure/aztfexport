@@ -81,7 +81,7 @@ func (meta *MetaGroupImpl) ListResource() (ImportList, error) {
 		return nil, fmt.Errorf("populating managed resources in the azure resource set: %v", err)
 	}
 
-	// The ARG has a bug (though not found the exact issue anywhere) that it returns the first resource id with its resource group name uppercased, in object mode.
+	// Some RP will flip the casing on fields like resource group name. This is then returned in the ARG response.
 	// We shall check the existance of the resource id case insensitively.
 	type MapInfo struct {
 		id   string
