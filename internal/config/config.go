@@ -27,11 +27,12 @@ type GroupConfig struct {
 
 	// Exactly one of below is non empty
 	ResourceGroupName string
-	ARGQuery          string
+	ARGPredicate      string
 
 	ResourceMapping     resmap.ResourceMapping
 	ResourceNamePattern string
 	MockClient          bool
+	RecursiveQuery      bool
 }
 
 func (GroupConfig) isConfig() {}

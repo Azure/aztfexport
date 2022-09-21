@@ -39,14 +39,17 @@ func main() {
 		hflagLogPath string
 		hflagPlainUI bool
 
-		// rg-only flags
+		// rg & query flags
 		flagBatchMode   bool
 		flagContinue    bool
 		flagMappingFile string
 		flagPattern     string
 
-		// rg-only flags (hidden)
+		// rg & query flags (hidden)
 		hflagMockClient bool
+
+		// query only flags
+		flagRecursive bool
 
 		// res-only flags
 		flagName    string
@@ -150,7 +153,7 @@ func main() {
 		},
 	}
 
-	groupFlags := []cli.Flag{
+	resourceGroupFlags := []cli.Flag{
 		&cli.BoolFlag{
 			Name:        "batch",
 			EnvVars:     []string{"AZTFY_BATCH"},
@@ -191,6 +194,15 @@ func main() {
 		},
 	}
 
+	queryFlags := []cli.Flag{
+		&cli.BoolFlag{
+			Name:        "recursive",
+			EnvVars:     []string{"AZTFY_RECURSIVE"},
+			Usage:       "Whether to recursively list child resources of the query result",
+			Destination: &flagRecursive,
+		},
+	}
+
 	app := &cli.App{
 		Name:      "aztfy",
 		Version:   getVersion(),
@@ -199,9 +211,14 @@ func main() {
 		Commands: []*cli.Command{
 			{
 				Name:      "query",
-				Usage:     "Terrafying a customized scope of resources determined by an Azure Resource Graph query",
-				UsageText: "aztfy query [option] <ARG query>",
-				Flags:     append(groupFlags, commonFlags...),
+				Usage:     "Terrafying a customized scope of resources determined by an Azure Resource Graph where predicate",
+				UsageText: "aztfy query [option] <ARG where predicate>",
+				Flags: append(
+					queryFlags,
+					append(
+						commonFlags,
+						resourceGroupFlags...,
+					)...),
 				Action: func(c *cli.Context) error {
 					if err := commonFlagsCheck(); err != nil {
 						return err
@@ -216,7 +233,7 @@ func main() {
 						return fmt.Errorf("`--continue` must be used together with `--batch`")
 					}
 
-					query := c.Args().First()
+					predicate := c.Args().First()
 
 					// Initialize log
 					if err := initLog(hflagLogPath); err != nil {
@@ -263,9 +280,10 @@ func main() {
 							return fmt.Errorf("unmarshalling the mapping file: %v", err)
 						}
 					}
-					cfg.ARGQuery = query
+					cfg.ARGPredicate = predicate
 					cfg.ResourceNamePattern = flagPattern
 					cfg.BatchMode = flagBatchMode
+					cfg.RecursiveQuery = flagRecursive
 
 					// Run in batch mode
 					if cfg.BatchMode {
@@ -291,7 +309,7 @@ func main() {
 				Aliases:   []string{"rg"},
 				Usage:     "Terrafying a resource group and the nested resources resides within it",
 				UsageText: "aztfy resource-group [option] <resource group name>",
-				Flags:     append(groupFlags, commonFlags...),
+				Flags:     append(resourceGroupFlags, commonFlags...),
 				Action: func(c *cli.Context) error {
 					if err := commonFlagsCheck(); err != nil {
 						return err
@@ -356,6 +374,7 @@ func main() {
 					cfg.ResourceGroupName = rg
 					cfg.ResourceNamePattern = flagPattern
 					cfg.BatchMode = flagBatchMode
+					cfg.RecursiveQuery = true
 
 					// Run in batch mode
 					if cfg.BatchMode {

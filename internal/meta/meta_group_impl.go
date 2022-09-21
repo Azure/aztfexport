@@ -26,7 +26,8 @@ type MetaGroupImpl struct {
 	// Only non empty when in resource group mode
 	resourceGroup string
 
-	argQuery string
+	argPredicate   string
+	recursiveQuery bool
 
 	// Key is azure resource id; Value is terraform resource addr.
 	// For azure resources not in this mapping, they are all initialized as to skip.
@@ -42,15 +43,16 @@ func newGroupMetaImpl(cfg config.GroupConfig) (GroupMeta, error) {
 		return nil, err
 	}
 
-	argQuery := cfg.ARGQuery
-	if argQuery == "" {
-		argQuery = fmt.Sprintf("Resources | where resourceGroup =~ %q", cfg.ResourceGroupName)
+	argPredicate := cfg.ARGPredicate
+	if argPredicate == "" {
+		argPredicate = fmt.Sprintf("resourceGroup =~ %q", cfg.ResourceGroupName)
 	}
 
 	meta := &MetaGroupImpl{
 		Meta:            *baseMeta,
 		resourceGroup:   cfg.ResourceGroupName,
-		argQuery:        argQuery,
+		argPredicate:    argPredicate,
+		recursiveQuery:  cfg.RecursiveQuery,
 		resourceMapping: cfg.ResourceMapping,
 	}
 
@@ -67,7 +69,11 @@ func (meta MetaGroupImpl) ScopeName() string {
 	if meta.resourceGroup != "" {
 		return meta.resourceGroup
 	}
-	return meta.argQuery
+	msg := meta.argPredicate
+	if meta.recursiveQuery {
+		msg += " (recursive)"
+	}
+	return msg
 }
 
 func (meta *MetaGroupImpl) ListResource() (ImportList, error) {
@@ -154,7 +160,7 @@ func ptr[T any](v T) *T {
 }
 
 func (meta MetaGroupImpl) queryResourceSet(ctx context.Context) (*resourceset.AzureResourceSet, error) {
-	result, err := azlist.List(ctx, meta.subscriptionId, meta.argQuery, &azlist.Option{Parallelism: meta.parallelism})
+	result, err := azlist.List(ctx, meta.subscriptionId, meta.argPredicate, &azlist.Option{Parallelism: meta.parallelism, Recursive: meta.recursiveQuery})
 	if err != nil {
 		return nil, fmt.Errorf("listing resource set: %v", err)
 	}

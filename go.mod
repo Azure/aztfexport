@@ -14,7 +14,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.13.0
 	github.com/hashicorp/terraform-exec v0.17.2
 	github.com/magodo/armid v0.0.0-20220915030809-9ed860f93894
-	github.com/magodo/azlist v0.0.0-20220920021217-455ec732fb25
+	github.com/magodo/azlist v0.0.0-20220921105044-e68b8f3820df
 	github.com/magodo/aztft v0.1.1-0.20220921021151-00974eaacf3b
 	github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
@@ -24,6 +24,7 @@ require (
 	github.com/stretchr/testify v1.7.5
 	github.com/tidwall/gjson v1.14.1
 	github.com/urfave/cli/v2 v2.16.3
+	github.com/zclconf/go-cty v1.11.0
 )
 
 require (
@@ -92,7 +93,6 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	github.com/zclconf/go-cty v1.11.0 // indirect
 	golang.org/x/crypto v0.0.0-20220517005047-85d78b3ac167 // indirect
 	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4 // indirect
 	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
