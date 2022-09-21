@@ -19,10 +19,7 @@ func ResourceImport(cfg config.ResConfig) error {
 		return err
 	}
 
-	s := bspinner.NewModel()
-	s.Spinner = common.Spinner
-
-	return spinner.Run(s, func(msg spinner.Messager) error {
+	f := func(msg Messager) error {
 		msg.SetStatus("Initializing...")
 		if err := c.Init(); err != nil {
 			return err
@@ -67,7 +64,18 @@ Resource Id  : %s`, item.TFAddr.Type, item.TFResourceId))
 		}
 
 		return nil
-	})
+	}
+
+	if cfg.PlainUI {
+		return f(&StdoutMessager{})
+	}
+
+	s := bspinner.NewModel()
+	s.Spinner = common.Spinner
+	sf := func(msg spinner.Messager) error {
+		return f(&msg)
+	}
+	return spinner.Run(s, sf)
 }
 
 func BatchImport(cfg config.GroupConfig, continueOnError bool) error {
@@ -76,11 +84,9 @@ func BatchImport(cfg config.GroupConfig, continueOnError bool) error {
 		return err
 	}
 
-	s := bspinner.NewModel()
-	s.Spinner = common.Spinner
-
 	var warnings []string
-	err = spinner.Run(s, func(msg spinner.Messager) error {
+
+	f := func(msg Messager) error {
 		msg.SetStatus("Initializing...")
 		if err := c.Init(); err != nil {
 			return err
@@ -115,7 +121,18 @@ func BatchImport(cfg config.GroupConfig, continueOnError bool) error {
 			return fmt.Errorf("generating Terraform configuration: %v", err)
 		}
 		return nil
-	})
+	}
+
+	if cfg.PlainUI {
+		err = f(&StdoutMessager{})
+	} else {
+		s := bspinner.NewModel()
+		s.Spinner = common.Spinner
+		sf := func(msg spinner.Messager) error {
+			return f(&msg)
+		}
+		err = spinner.Run(s, sf)
+	}
 
 	// Print out the warnings, if any
 	if len(warnings) != 0 {

@@ -19,6 +19,7 @@ type CommonConfig struct {
 	BackendConfig  []string
 	FullConfig     bool
 	Parallelism    int
+	PlainUI        bool
 }
 
 type GroupConfig struct {

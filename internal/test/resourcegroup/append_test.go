@@ -23,7 +23,11 @@ func TestAppendMode(t *testing.T) {
 	os.Chdir(provisionDir)
 	if err := os.WriteFile("main.tf", []byte(fmt.Sprintf(`
 provider "azurerm" {
-  features {}
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
 }
 resource "azurerm_resource_group" "test1" {
   name     = "%[1]s1"
@@ -45,13 +49,16 @@ resource "azurerm_resource_group" "test3" {
 		t.Fatalf("failed to new terraform: %v", err)
 	}
 	ctx := context.Background()
+	t.Log("Running: terraform init")
 	if err := tf.Init(ctx); err != nil {
 		t.Fatalf("terraform init failed: %v", err)
 	}
+	t.Log("Running: terraform apply")
 	if err := tf.Apply(ctx); err != nil {
 		t.Fatalf("terraform apply failed: %v", err)
 	}
 	defer func() {
+		t.Log("Running: terraform destroy")
 		if err := tf.Destroy(ctx); err != nil {
 			t.Logf("terraform destroy failed: %v", err)
 		}
@@ -64,11 +71,14 @@ resource "azurerm_resource_group" "test3" {
 			SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
 			OutputDir:      aztfyDir,
 			BackendType:    "local",
+			DevProvider:    true,
+			PlainUI:        true,
 		},
 		ResourceNamePattern: "t1",
 	}
 	cfg.ResourceGroupName = d.RandomRgName() + "1"
 	cfg.ResourceNamePattern = "round1_"
+	t.Log("Batch importing the 1st rg")
 	if err := internal.BatchImport(cfg, false); err != nil {
 		t.Fatalf("failed to run first batch import: %v", err)
 	}
@@ -76,6 +86,7 @@ resource "azurerm_resource_group" "test3" {
 	cfg.Append = true
 	cfg.ResourceGroupName = d.RandomRgName() + "2"
 	cfg.ResourceNamePattern = "round2_"
+	t.Log("Batch importing the 2nd rg")
 	if err := internal.BatchImport(cfg, false); err != nil {
 		t.Fatalf("failed to run second batch import: %v", err)
 	}
@@ -83,6 +94,7 @@ resource "azurerm_resource_group" "test3" {
 	cfg.Append = true
 	cfg.ResourceGroupName = d.RandomRgName() + "3"
 	cfg.ResourceNamePattern = "round3_"
+	t.Log("Batch importing the 3rd rg")
 	if err := internal.BatchImport(cfg, false); err != nil {
 		t.Fatalf("failed to run second batch import: %v", err)
 	}
@@ -92,6 +104,7 @@ resource "azurerm_resource_group" "test3" {
 	if err != nil {
 		t.Fatalf("failed to new terraform: %v", err)
 	}
+	t.Log("Running: terraform plan")
 	diff, err := tf2.Plan(ctx)
 	if err != nil {
 		t.Fatalf("terraform plan in the generated workspace failed: %v", err)
@@ -99,6 +112,7 @@ resource "azurerm_resource_group" "test3" {
 	if diff {
 		t.Fatalf("terraform plan shows diff")
 	}
+	t.Log("Running: terraform show")
 	state, err := tf2.ShowStateFile(ctx, filepath.Join(aztfyDir, "terraform.tfstate"))
 	if err != nil {
 		t.Fatalf("terraform state show in the generated workspace failed: %v", err)

@@ -16,7 +16,11 @@ type CaseSignalRService struct{}
 func (CaseSignalRService) Tpl(d test.Data) string {
 	return fmt.Sprintf(`
 provider "azurerm" {
-  features {}
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
 }
 resource "azurerm_resource_group" "test" {
   name     = "%[1]s"

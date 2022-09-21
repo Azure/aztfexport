@@ -37,6 +37,7 @@ func main() {
 
 		// common flags (hidden)
 		hflagLogPath string
+		hflagPlainUI bool
 
 		// rg-only flags
 		flagBatchMode   bool
@@ -138,6 +139,14 @@ func main() {
 			Usage:       "The path to store the log",
 			Hidden:      true,
 			Destination: &hflagLogPath,
+		},
+
+		&cli.BoolFlag{
+			Name:        "plain-ui",
+			EnvVars:     []string{"AZTFY_PLAIN_UI"},
+			Usage:       "In batch mode, print the progress information line by line, rather than the spinner UI",
+			Hidden:      true,
+			Destination: &hflagPlainUI,
 		},
 	}
 
@@ -241,6 +250,7 @@ func main() {
 							BackendConfig:  flagBackendConfig.Value(),
 							FullConfig:     flagFullConfig,
 							Parallelism:    flagParallelism,
+							PlainUI:        hflagPlainUI,
 						},
 					}
 
@@ -330,6 +340,7 @@ func main() {
 							BackendConfig:  flagBackendConfig.Value(),
 							FullConfig:     flagFullConfig,
 							Parallelism:    flagParallelism,
+							PlainUI:        hflagPlainUI,
 						},
 					}
 
@@ -435,6 +446,7 @@ func main() {
 							BackendConfig:  flagBackendConfig.Value(),
 							FullConfig:     flagFullConfig,
 							Parallelism:    flagParallelism,
+							PlainUI:        hflagPlainUI,
 						},
 						ResourceId:   resId,
 						ResourceName: flagName,
