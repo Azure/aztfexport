@@ -198,6 +198,7 @@ func main() {
 		&cli.BoolFlag{
 			Name:        "recursive",
 			EnvVars:     []string{"AZTFY_RECURSIVE"},
+			Aliases:     []string{"r"},
 			Usage:       "Whether to recursively list child resources of the query result",
 			Destination: &flagRecursive,
 		},
