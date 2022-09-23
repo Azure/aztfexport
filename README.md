@@ -148,12 +148,20 @@ As the last step, `aztfy` will leverage the ARM template to inject dependencies 
 
 #### Batch Mode
 
-In batch mode, instead of interactively specifying the mapping from Azurem resource id to the Terraform resource address, users are expected to provide that mapping via the resource mapping file, with the following format:
+In batch mode, instead of interactively specifying the mapping from Azurem resource id to the Terraform resource info, users are expected to provide that mapping via the resource mapping file, with the following format:
 
 ```json
 {
-    "<azure resource id1>": "<terraform resource type1>.<terraform resource name>",
-    "<azure resource id2>": "<terraform resource type2>.<terraform resource name>",
+    "<AZURE RESOURCE ID1 IN UPPERCASE>": {
+        "resource_type" : "<terraform resource type>",
+        "resource_name" : "<terraform resource name>",
+        "resource_id"   : "<terraform resource id>"
+    },
+    "<AZURE RESOURCE ID2 IN UPPERCASE>": {
+        "resource_type" : "<terraform resource type>",
+        "resource_name" : "<terraform resource name>",
+        "resource_id"   : "<terraform resource id>"
+    },
     ...
 }
 ```
@@ -162,19 +170,30 @@ Example:
 
 ```json
 {
-  "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Network/virtualNetworks/example-network": "azurerm_virtual_network.res-0",
-  "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Compute/virtualMachines/example-machine": "azurerm_linux_virtual_machine.res-1",
-  "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Network/networkInterfaces/example-nic": "azurerm_network_interface.res-2",
-  "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Network/networkInterfaces/example-nic1": "azurerm_network_interface.res-3",
-  "/subscriptions/0-0-0-0/resourceGroups/tfy-vm/providers/Microsoft.Network/virtualNetworks/example-network/subnets/internal": "azurerm_subnet.res-4"
+	"/SUBSCRIPTIONS/0000/RESOURCEGROUPS/AZTFY-VMDISK": {
+		"resource_id": "/subscriptions/0000/resourceGroups/aztfy-vmdisk",
+		"resource_type": "azurerm_resource_group",
+		"resource_name": "res-1"
+	},
+	"/SUBSCRIPTIONS/0000/RESOURCEGROUPS/AZTFY-VMDISK/PROVIDERS/MICROSOFT.COMPUTE/DISKS/AZTFY-TEST-TEST": {
+		"resource_id": "/subscriptions/0000/resourceGroups/aztfy-vmdisk/providers/Microsoft.Compute/disks/aztfy-test-test",
+		"resource_type": "azurerm_managed_disk",
+		"resource_name": "res-2"
+	},
+	"/SUBSCRIPTIONS/0000/RESOURCEGROUPS/AZTFY-VMDISK/PROVIDERS/MICROSOFT.COMPUTE/VIRTUALMACHINES/AZTFY-TEST-TEST": {
+		"resource_id": "/subscriptions/0000/resourceGroups/aztfy-vmdisk/providers/Microsoft.Compute/virtualMachines/aztfy-test-test",
+		"resource_type": "azurerm_linux_virtual_machine",
+		"resource_name": "res-3"
+	},
+    ...
 }
 ```
 
 Then the tool will import each specified resource in the mapping file (if exists) and skip the others.
 
-Especially if the no resource mapping file is specified, `aztfy` will only import the "recognized" resources for you, based on its limited knowledge on the ARM and Terraform resource mappings.
+Especially if the no resource mapping file is specified, `aztfy` will only import the "recognized" resources for you, based on its knowledge on the ARM and Terraform resource mappings.
 
-In the batch import mode, users can further specify the `--continue`/`-k` option to make the tool continue even on hitting import error(s) on any resource.
+In the batch import mode, users can further specify the `--continue`/`-k` option to make the tool continue even on hitting import error of any resource.
 
 ### Remote Backend
 

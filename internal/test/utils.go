@@ -1,11 +1,17 @@
 package test
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
+	"text/template"
 
+	"github.com/Azure/aztfy/internal/resmap"
 	"github.com/hashicorp/go-version"
 	install "github.com/hashicorp/hc-install"
 	"github.com/hashicorp/hc-install/fs"
@@ -63,11 +69,23 @@ func Verify(t *testing.T, ctx context.Context, aztfyDir, tfexecPath string, expe
 		t.Fatalf("terraform plan in the generated workspace failed: %v", err)
 	}
 	if diff {
-		b, err := os.ReadFile(planFile)
+		plan, err := tf.ShowPlanFile(ctx, planFile)
 		if err != nil {
-			t.Log(err)
+			t.Logf("failed to show plan file %s: %v", planFile, err)
+		} else {
+			for _, change := range plan.ResourceChanges {
+				if change == nil {
+					continue
+				}
+				b, err := json.MarshalIndent(change.Change, "", "  ")
+				if err != nil {
+					t.Logf("failed to marshal plan for %s: %v", change.Address, err)
+				} else {
+					t.Logf("%s\n%s\n", change.Address, string(b))
+				}
+			}
 		}
-		t.Fatalf("terraform plan shows diff:\n%s\n", string(b))
+		t.Fatalf("terraform plan has diff")
 	}
 	t.Log("Running: terraform show")
 	state, err := tf.ShowStateFile(ctx, filepath.Join(aztfyDir, "terraform.tfstate"))
@@ -77,4 +95,28 @@ func Verify(t *testing.T, ctx context.Context, aztfyDir, tfexecPath string, expe
 	if n := len(state.Values.RootModule.Resources); n != expectResCnt {
 		t.Fatalf("expected terrafied resource: %d, got=%d", expectResCnt, n)
 	}
+}
+
+func ResourceMapping(tpl string) (resmap.ResourceMapping, error) {
+	funcMap := template.FuncMap{
+		"ToUpper": strings.ToUpper,
+		"Quote":   strconv.Quote,
+	}
+
+	gotpl, err := template.New("myTemplate").Funcs(funcMap).Parse(tpl)
+	if err != nil {
+		return nil, err
+	}
+
+	var result bytes.Buffer
+	if err := gotpl.Execute(&result, nil); err != nil {
+		return nil, err
+	}
+
+	m := resmap.ResourceMapping{}
+	if err := json.Unmarshal(result.Bytes(), &m); err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }

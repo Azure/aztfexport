@@ -1,7 +1,6 @@
 package cases
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/Azure/aztfy/internal/test"
@@ -61,20 +60,41 @@ resource "azurerm_windows_function_app_slot" "test" {
 }
 
 func (CaseFunctionAppSlot) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
-	rm := fmt.Sprintf(`{
-"/subscriptions/%[1]s/resourceGroups/%[2]s": "azurerm_resource_group.test",
-"/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Storage/storageAccounts/aztfytest%[3]s": "azurerm_storage_account.test",
-"/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Web/serverfarms/aztfy-test-%[3]s": "azurerm_service_plan.test",
-"/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Web/sites/aztfy-test-%[3]s": "azurerm_windows_function_app.test",
-"/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Web/sites/aztfy-test-%[3]s/slots/aztfy-test-%[3]s": "azurerm_windows_function_app_slot.test"
+	return test.ResourceMapping(fmt.Sprintf(`{
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | ToUpper | Quote }}: {
+  "resource_type": "azurerm_resource_group",
+  "resource_name": "test",
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s"
+},
+
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.storage/storageaccounts/aztfytest%[3]s" | ToUpper | Quote }}: {
+  "resource_type": "azurerm_storage_account",
+  "resource_name": "test",
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Storage/storageAccounts/aztfytest%[3]s"
+},
+
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.web/serverfarms/aztfy-test-%[3]s" | ToUpper | Quote }}: {
+  "resource_type": "azurerm_service_plan",
+  "resource_name": "test",
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Web/serverfarms/aztfy-test-%[3]s"
+},
+
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.web/sites/aztfy-test-%[3]s" | ToUpper | Quote }}: {
+  "resource_type": "azurerm_windows_function_app",
+  "resource_name": "test",
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Web/sites/aztfy-test-%[3]s"
+},
+
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.web/sites/aztfy-test-%[3]s/slots/aztfy-test-%[3]s" | ToUpper | Quote }}: {
+  "resource_type": "azurerm_windows_function_app_slot",
+  "resource_name": "test",
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Web/sites/aztfy-test-%[3]s/slots/aztfy-test-%[3]s"
 }
-`, d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8))
-	m := resmap.ResourceMapping{}
-	if err := json.Unmarshal([]byte(rm), &m); err != nil {
-		return nil, err
-	}
-	return m, nil
+
 }
+`, d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)))
+}
+
 func (CaseFunctionAppSlot) SingleResourceContext(d test.Data) ([]SingleResourceContext, error) {
 	return []SingleResourceContext{
 		{

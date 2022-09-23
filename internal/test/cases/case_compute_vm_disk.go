@@ -1,7 +1,6 @@
 package cases
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/Azure/aztfy/internal/test"
@@ -90,21 +89,51 @@ resource "azurerm_virtual_machine_data_disk_attachment" "test" {
 }
 
 func (CaseComputeVMDisk) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
-	rm := fmt.Sprintf(`{
-"/subscriptions/%[1]s/resourceGroups/%[2]s": "azurerm_resource_group.test",
-"/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/disks/aztfy-test-%[3]s": "azurerm_managed_disk.test",
-"/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/virtualMachines/aztfy-test-%[3]s/dataDisks/aztfy-test-%[3]s": "azurerm_virtual_machine_data_disk_attachment.test",
-"/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/virtualMachines/aztfy-test-%[3]s": "azurerm_linux_virtual_machine.test",
-"/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/networkInterfaces/aztfy-test-%[3]s": "azurerm_network_interface.test",
-"/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfy-test-%[3]s": "azurerm_virtual_network.test",
-"/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfy-test-%[3]s/subnets/internal": "azurerm_subnet.test"
+	return test.ResourceMapping(fmt.Sprintf(`{
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | ToUpper | Quote }}: {
+  "resource_type": "azurerm_resource_group",
+  "resource_name": "test",
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s"
+},
+
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.compute/disks/aztfy-test-%[3]s" | ToUpper | Quote }}: {
+  "resource_type": "azurerm_managed_disk",
+  "resource_name": "test",
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/disks/aztfy-test-%[3]s"
+},
+
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.compute/virtualmachines/aztfy-test-%[3]s/datadisks/aztfy-test-%[3]s" | ToUpper | Quote }}: {
+  "resource_type": "azurerm_virtual_machine_data_disk_attachment",
+  "resource_name": "test",
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/virtualMachines/aztfy-test-%[3]s/dataDisks/aztfy-test-%[3]s"
+},
+
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.compute/virtualmachines/aztfy-test-%[3]s" | ToUpper | Quote }}: {
+  "resource_type": "azurerm_linux_virtual_machine",
+  "resource_name": "test",
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/virtualMachines/aztfy-test-%[3]s"
+},
+
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.network/networkinterfaces/aztfy-test-%[3]s" | ToUpper | Quote }}: {
+  "resource_type": "azurerm_network_interface",
+  "resource_name": "test",
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/networkInterfaces/aztfy-test-%[3]s"
+},
+
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.network/virtualnetworks/aztfy-test-%[3]s" | ToUpper | Quote }}: {
+  "resource_type": "azurerm_virtual_network",
+  "resource_name": "test",
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfy-test-%[3]s"
+},
+
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.network/virtualnetworks/aztfy-test-%[3]s/subnets/internal" | ToUpper | Quote }}: {
+  "resource_type": "azurerm_subnet",
+  "resource_name": "test",
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfy-test-%[3]s/subnets/internal"
 }
-`, d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8))
-	m := resmap.ResourceMapping{}
-	if err := json.Unmarshal([]byte(rm), &m); err != nil {
-		return nil, err
-	}
-	return m, nil
+
+}
+`, d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)))
 }
 
 func (CaseComputeVMDisk) SingleResourceContext(d test.Data) ([]SingleResourceContext, error) {

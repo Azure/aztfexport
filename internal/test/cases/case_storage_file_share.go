@@ -1,7 +1,6 @@
 package cases
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/Azure/aztfy/internal/test"
@@ -43,17 +42,27 @@ resource "azurerm_storage_share" "test" {
 }
 
 func (CaseStorageFileShare) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
-	rm := fmt.Sprintf(`{
-"/subscriptions/%[1]s/resourceGroups/%[2]s": "azurerm_resource_group.test",
-"/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Storage/storageAccounts/aztfy%[3]s": "azurerm_storage_account.test",
-"https://aztfy%[3]s.file.core.windows.net/aztfy%[3]s": "azurerm_storage_share.test"
+	return test.ResourceMapping(fmt.Sprintf(`{
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | ToUpper | Quote }}: {
+  "resource_type": "azurerm_resource_group",
+  "resource_name": "test",
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s"
+},
+
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.storage/storageaccounts/aztfy%[3]s" | ToUpper | Quote }}: {
+  "resource_type": "azurerm_storage_account",
+  "resource_name": "test",
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Storage/storageAccounts/aztfy%[3]s"
+},
+
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.storage/storageaccounts/aztfy%[3]s/fileservices/default/shares/aztfy%[3]s" | ToUpper | Quote }}: {
+  "resource_type": "azurerm_storage_share",
+  "resource_name": "test",
+  "resource_id": "https://aztfy%[3]s.file.core.windows.net/aztfy%[3]s"
 }
-`, d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8))
-	m := resmap.ResourceMapping{}
-	if err := json.Unmarshal([]byte(rm), &m); err != nil {
-		return nil, err
-	}
-	return m, nil
+
+}
+`, d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)))
 }
 
 func (CaseStorageFileShare) SingleResourceContext(d test.Data) ([]SingleResourceContext, error) {

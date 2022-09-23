@@ -2,7 +2,6 @@ package cases
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -181,19 +180,39 @@ func (c CaseKeyVaultNestedItems) ResourceMapping(d test.Data) (resmap.ResourceMa
 	if err != nil {
 		return nil, err
 	}
-	rm := fmt.Sprintf(`{
-"/subscriptions/%[1]s/resourceGroups/%[2]s": "azurerm_resource_group.test",
-"/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s": "azurerm_key_vault.test",
-%[4]q: "azurerm_key_vault_key.test",
-%[5]q: "azurerm_key_vault_secret.test",
-%[6]q: "azurerm_key_vault_certificate.test"
+	return test.ResourceMapping(fmt.Sprintf(`{
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | ToUpper | Quote }}: {
+  "resource_type": "azurerm_resource_group",
+  "resource_name": "test",
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s"
+},
+
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.keyvault/vaults/aztfy-test-%[3]s" | ToUpper | Quote }}: {
+  "resource_type": "azurerm_key_vault",
+  "resource_name": "test",
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s"
+},
+
+{{  "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.keyvault/vaults/aztfy-test-%[3]s/keys/key-%[3]s" | ToUpper | Quote }} : {
+  "resource_type": "azurerm_key_vault_key",
+  "resource_name": "test",
+  "resource_id": %[4]q
+},
+
+{{  "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.keyvault/vaults/aztfy-test-%[3]s/secrets/secret-%[3]s" | ToUpper | Quote }} : {
+  "resource_type": "azurerm_key_vault_secret",
+  "resource_name": "test",
+  "resource_id": %[5]q
+},
+
+{{  "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.keyvault/vaults/aztfy-test-%[3]s/certificates/cert-%[3]s" | ToUpper | Quote }} : {
+  "resource_type": "azurerm_key_vault_certificate",
+  "resource_name": "test",
+  "resource_id": %[6]q
 }
-`, d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), keyId, secretId, certId)
-	m := resmap.ResourceMapping{}
-	if err := json.Unmarshal([]byte(rm), &m); err != nil {
-		return nil, err
-	}
-	return m, nil
+
+}
+`, d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), keyId, secretId, certId))
 }
 
 func (c CaseKeyVaultNestedItems) SingleResourceContext(d test.Data) ([]SingleResourceContext, error) {
