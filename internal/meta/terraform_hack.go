@@ -2,10 +2,6 @@ package meta
 
 import (
 	"fmt"
-	"strings"
-
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclwrite"
 )
 
 // lifecycleAddon adds lifecycle meta arguments for some identified resources, which are mandatory to make them usable.
@@ -23,25 +19,26 @@ func (meta Meta) lifecycleAddon(configs ConfigInfos) (ConfigInfos, error) {
 	return out, nil
 }
 
-func (meta Meta) hclBlockAppendDependency(body *hclwrite.Body, ids []string, cfgset map[string]ConfigInfo) error {
-	dependencies := []string{}
-	for _, id := range ids {
-		cfg, ok := cfgset[id]
-		if !ok {
-			dependencies = append(dependencies, fmt.Sprintf("# Depending on %q, which is not imported by Terraform.", id))
-			continue
-		}
-		dependencies = append(dependencies, cfg.TFAddr.String()+",")
-	}
-	if len(dependencies) > 0 {
-		src := []byte("depends_on = [\n" + strings.Join(dependencies, "\n") + "\n]")
-		expr, diags := hclwrite.ParseConfig(src, "generate_depends_on", hcl.InitialPos)
-		if diags.HasErrors() {
-			return fmt.Errorf(`building "depends_on" attribute: %s`, diags.Error())
-		}
-
-		body.SetAttributeRaw("depends_on", expr.Body().GetAttribute("depends_on").Expr().BuildTokens(nil))
+func (meta Meta) addDependency(configs ConfigInfos) (ConfigInfos, error) {
+	if err := configs.AddDependency(); err != nil {
+		return nil, err
 	}
 
-	return nil
+	var out ConfigInfos
+
+	configSet := map[string]ConfigInfo{}
+	for _, cfg := range configs {
+		configSet[cfg.AzureResourceID.String()] = cfg
+	}
+
+	for _, cfg := range configs {
+		if len(cfg.DependsOn) != 0 {
+			if err := hclBlockAppendDependency(cfg.hcl.Body().Blocks()[0].Body(), cfg.DependsOn, configSet); err != nil {
+				return nil, err
+			}
+		}
+		out = append(out, cfg)
+	}
+
+	return out, nil
 }

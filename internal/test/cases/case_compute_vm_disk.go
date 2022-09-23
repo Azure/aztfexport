@@ -16,7 +16,11 @@ type CaseComputeVMDisk struct{}
 func (CaseComputeVMDisk) Tpl(d test.Data) string {
 	return fmt.Sprintf(`
 provider "azurerm" {
-  features {}
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
 }
 resource "azurerm_resource_group" "test" {
   name     = "%[1]s"
@@ -89,6 +93,7 @@ func (CaseComputeVMDisk) ResourceMapping(d test.Data) (resmap.ResourceMapping, e
 	rm := fmt.Sprintf(`{
 "/subscriptions/%[1]s/resourceGroups/%[2]s": "azurerm_resource_group.test",
 "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/disks/aztfy-test-%[3]s": "azurerm_managed_disk.test",
+"/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/virtualMachines/aztfy-test-%[3]s/dataDisks/aztfy-test-%[3]s": "azurerm_virtual_machine_data_disk_attachment.test",
 "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/virtualMachines/aztfy-test-%[3]s": "azurerm_linux_virtual_machine.test",
 "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/networkInterfaces/aztfy-test-%[3]s": "azurerm_network_interface.test",
 "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfy-test-%[3]s": "azurerm_virtual_network.test",
@@ -102,13 +107,27 @@ func (CaseComputeVMDisk) ResourceMapping(d test.Data) (resmap.ResourceMapping, e
 	return m, nil
 }
 
-func (CaseComputeVMDisk) AzureResourceIds(d test.Data) ([]string, error) {
-	return []string{
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/disks/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/virtualMachines/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/networkInterfaces/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfy-test-%[3]s/subnets/internal", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+func (CaseComputeVMDisk) SingleResourceContext(d test.Data) ([]SingleResourceContext, error) {
+	return []SingleResourceContext{
+		{
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
+			ExpectResourceCount: 1,
+		},
+		{
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/virtualMachines/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+			ExpectResourceCount: 3,
+		},
+		{
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/networkInterfaces/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+			ExpectResourceCount: 1,
+		},
+		{
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+			ExpectResourceCount: 1,
+		},
+		{
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfy-test-%[3]s/subnets/internal", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+			ExpectResourceCount: 1,
+		},
 	}, nil
 }

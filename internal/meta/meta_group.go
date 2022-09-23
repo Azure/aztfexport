@@ -6,16 +6,16 @@ import (
 
 const ResourceMappingFileName = ".aztfyResourceMapping.json"
 
-type RgMeta interface {
+type GroupMeta interface {
 	meta
-	ResourceGroupName() string
+	ScopeName() string
 	ListResource() (ImportList, error)
 	ExportResourceMapping(l ImportList) error
 }
 
-func NewRgMeta(cfg config.RgConfig) (RgMeta, error) {
+func NewGroupMeta(cfg config.GroupConfig) (GroupMeta, error) {
 	if cfg.MockClient {
-		return newRgMetaDummy(cfg.ResourceGroupName)
+		return newGroupMetaDummy(cfg.ResourceGroupName)
 	}
-	return newRgMetaRg(cfg)
+	return newGroupMetaImpl(cfg)
 }

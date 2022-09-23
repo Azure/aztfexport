@@ -4,7 +4,7 @@ A tool to bring your existing Azure resources under the management of Terraform.
 
 ## Goal
 
-Azure Terrafy imports the resources that are supported by the [Terraform AzureRM provider](https://github.com/hashicorp/terraform-provider-azurerm) within a resource group, into the Terraform state, and generates the corresponding Terraform configuration. Both the Terraform state and configuration are expected to be consistent with the resources' remote state, i.e., `terraform plan` shows no diff. The user then is able to use Terraform to manage these resources.
+Azure Terrafy imports the resources that are supported by the [Terraform AzureRM provider](https://github.com/hashicorp/terraform-provider-azurerm) into the Terraform state, and generates the corresponding Terraform configuration. Both the Terraform state and configuration are expected to be consistent with the resources' remote state, i.e., `terraform plan` shows no diff. The user then is able to use Terraform to manage these resources.
 
 ## Non Goal
 
@@ -104,7 +104,7 @@ Although `aztfy` depends on `terraform`, it is not required to have `terraform` 
 
 Follow the [authentication guide](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs#authenticating-to-azure) from the Terraform AzureRM provider to authenticate to Azure.
 
-Then you can go ahead and run `aztfy resource [option] <resource id>` or `aztfy resource-group [option] <resource group name>` to import either a single resource, or a resource group and its including resources.
+Then you can go ahead and run `aztfy resource <resource id>`, `aztfy resource-group <resource group name>` or `aztfy query <arg where predicate>` to import a single resource, a resource group including child resources, or a customized set of resources by an Azure Resource Graph query.
 
 ### Terrafy a Single Resource
 
@@ -124,9 +124,19 @@ The command will automatically identify the Terraform resource type (e.g. correc
 
 `aztfy resource-group [option] <resource group name>` terrafies a resource group and its including resources by its name. Depending on whether `--batch` is used, it can work in either interactive mode or batch mode.
 
+### Terrafy a Customized Set of Resoruces
+
+`aztfy query [option] <arg where predicate>` terrafies a set of resources (and its including resources with `--recursive`) by an Azure Resource Graph [`where` predicate](https://learn.microsoft.com/en-us/azure/data-explorer/kusto/query/whereoperator). Depending on whether `--batch` is used, it can work in either interactive mode or batch mode.
+
+> 💡 Resource group mode is the same as running `aztfy query --recursive "resourceGroup =~ 'my-rg'"`, except it also add on the resource group itself.
+
+`aztfy` depends on `azlist`, which uses ARG behind the scenes. `azlist` will first make an ARG call with the given where predicate, then if `--recursive` is specified, it will recursively call the "LIST" on the known child resource types. Since ARG only returns ARM tracked resources at this moment, but not for the RP proxy resources (e.g. subnet, network security rules, storage containers, etc). If you uses predicate like `type =~ "microsoft.network/virtualnetworks/subnets"`, it returns you nothing since subnet is not an ARM tracked resource.
+
+To workaround above, you can query with a bigger scope (e.g. `type =~ "microsoft.network/virtualnetworks"`) in interactive mode, then manually remove the resources other than subnets.
+
 #### Interactive Mode
 
-In interactive mode, `aztfy` list all the resources resides in the specified resource group. For each resource, user is expected to input the Terraform resource address in form of `<resource type>.<resource name>` (e.g. `azurerm_linux_virtual_machine.test`). Users can press `r` to see the possible resource type(s) for the selected import item. In case there is exactly one resource type match for the import item, that resource type will be automatically filled in the text input for the users, with a 💡 line prefix as an indication.
+In interactive mode, `aztfy` list all the resources resides in the specified resource group or customized set. For each resource, user is expected to input the Terraform resource address in form of `<resource type>.<resource name>` (e.g. `azurerm_linux_virtual_machine.test`). Users can press `r` to see the possible resource type(s) for the selected import item. In case there is exactly one resource type match for the import item, that resource type will be automatically filled in the text input for the users, with a 💡 line prefix as an indication.
 
 In some cases, there are Azure resources that have no corresponding Terraform resources (e.g. due to lacks of Terraform support), or some resources might be created as a side effect of provisioning another resource (e.g. the OS Disk resource is created automatically when provisioning a VM). In these cases, you can skip these resources without typing anything.
 

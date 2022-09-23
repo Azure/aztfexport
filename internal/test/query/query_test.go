@@ -1,20 +1,20 @@
-package resourcegroup
+package main
 
 import (
 	"context"
 	"fmt"
 	"os"
 	"testing"
-
-	"github.com/Azure/aztfy/internal/test"
-	"github.com/Azure/aztfy/internal/utils"
+	"time"
 
 	"github.com/Azure/aztfy/internal"
 	"github.com/Azure/aztfy/internal/config"
+	"github.com/Azure/aztfy/internal/test"
+	"github.com/Azure/aztfy/internal/utils"
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
-func TestAppendMode(t *testing.T) {
+func TestQueryMode(t *testing.T) {
 	t.Parallel()
 	test.Precheck(t)
 	d := test.NewData()
@@ -35,17 +35,21 @@ provider "azurerm" {
     }
   }
 }
-resource "azurerm_resource_group" "test1" {
-  name     = "%[1]s1"
+resource "azurerm_resource_group" "test" {
+  name     = "%[1]s"
   location = "WestEurope"
 }
-resource "azurerm_resource_group" "test2" {
-  name     = "%[1]s2"
-  location = "WestEurope"
+resource "azurerm_virtual_network" "test" {
+  address_space       = ["10.0.0.0/16"]
+  location            = "westeurope"
+  name     			  = "%[1]s"
+  resource_group_name = azurerm_resource_group.test.name
 }
-resource "azurerm_resource_group" "test3" {
-  name     = "%[1]s3"
-  location = "WestEurope"
+resource "azurerm_subnet" "test" {
+  address_prefixes     = ["10.0.2.0/24"]
+  name                 = "internal"
+  resource_group_name  = azurerm_virtual_network.test.resource_group_name
+  virtual_network_name = azurerm_virtual_network.test.name
 }
 `, d.RandomRgName())), 0644); err != nil {
 		t.Fatalf("failed to create the TF config file: %v", err)
@@ -73,7 +77,11 @@ resource "azurerm_resource_group" "test3" {
 		}()
 	}
 
-	// Import the first resource group
+	const delay = time.Minute
+	t.Logf("Sleep for %v to wait for the just created resources be recorded in ARG\n", delay)
+	time.Sleep(delay)
+
+	// Import in non-recursive mode
 	aztfyDir := t.TempDir()
 	cfg := config.GroupConfig{
 		CommonConfig: config.CommonConfig{
@@ -82,32 +90,24 @@ resource "azurerm_resource_group" "test3" {
 			BackendType:    "local",
 			DevProvider:    true,
 			PlainUI:        true,
+			Overwrite:      true,
 		},
-		ResourceNamePattern: "t1",
+		ResourceNamePattern: "res-",
+		ARGPredicate:        fmt.Sprintf(`resourceGroup =~ "%s" and type =~ "microsoft.network/virtualnetworks"`, d.RandomRgName()),
 	}
-	cfg.ResourceGroupName = d.RandomRgName() + "1"
-	cfg.ResourceNamePattern = "round1_"
-	t.Log("Batch importing the 1st rg")
+	t.Log("Importing in non-recursive mode")
 	if err := internal.BatchImport(cfg, false); err != nil {
-		t.Fatalf("failed to run first batch import: %v", err)
+		t.Fatalf("failed to run batch import non-recursively: %v", err)
 	}
-	// Import the second resource group mutably
-	cfg.Append = true
-	cfg.ResourceGroupName = d.RandomRgName() + "2"
-	cfg.ResourceNamePattern = "round2_"
-	t.Log("Batch importing the 2nd rg")
-	if err := internal.BatchImport(cfg, false); err != nil {
-		t.Fatalf("failed to run second batch import: %v", err)
-	}
-	// Import the third resource group mutably
-	cfg.Append = true
-	cfg.ResourceGroupName = d.RandomRgName() + "3"
-	cfg.ResourceNamePattern = "round3_"
-	t.Log("Batch importing the 3rd rg")
-	if err := internal.BatchImport(cfg, false); err != nil {
-		t.Fatalf("failed to run second batch import: %v", err)
-	}
+	test.Verify(t, ctx, aztfyDir, tfexecPath, 1)
 
-	// Verify
-	test.Verify(t, ctx, aztfyDir, tfexecPath, 3)
+	// Import in recursive mode
+	t.Log("Importing in recursive mode")
+	// aztfyDir = t.TempDir()
+	// cfg.CommonConfig.OutputDir = aztfyDir
+	cfg.RecursiveQuery = true
+	if err := internal.BatchImport(cfg, false); err != nil {
+		t.Fatalf("failed to run batch import recursively: %v", err)
+	}
+	test.Verify(t, ctx, aztfyDir, tfexecPath, 2)
 }

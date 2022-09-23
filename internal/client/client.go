@@ -78,14 +78,6 @@ func NewClientBuilder() (*ClientBuilder, error) {
 	}, nil
 }
 
-func (b *ClientBuilder) NewResourceGroupClient(subscriptionId string) (*armresources.ResourceGroupsClient, error) {
-	return armresources.NewResourceGroupsClient(
-		subscriptionId,
-		b.credential,
-		b.opt,
-	)
-}
-
 func (b *ClientBuilder) NewKeyvaultKeysClient(subscriptionId string) (*armkeyvault.KeysClient, error) {
 	return armkeyvault.NewKeysClient(
 		subscriptionId,
@@ -96,6 +88,14 @@ func (b *ClientBuilder) NewKeyvaultKeysClient(subscriptionId string) (*armkeyvau
 
 func (b *ClientBuilder) NewKeyvaultSecretsClient(subscriptionId string) (*armkeyvault.SecretsClient, error) {
 	return armkeyvault.NewSecretsClient(
+		subscriptionId,
+		b.credential,
+		b.opt,
+	)
+}
+
+func (b *ClientBuilder) NewResourcesClient(subscriptionId string) (*armresources.Client, error) {
+	return armresources.NewClient(
 		subscriptionId,
 		b.credential,
 		b.opt,

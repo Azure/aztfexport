@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/hashicorp/go-version"
@@ -10,9 +11,14 @@ import (
 	"github.com/hashicorp/hc-install/fs"
 	"github.com/hashicorp/hc-install/product"
 	"github.com/hashicorp/hc-install/src"
+	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
 const TestToggleEnvVar = "AZTFY_E2E"
+
+func Keep() bool {
+	return os.Getenv("AZTFY_KEEP") != ""
+}
 
 func Precheck(t *testing.T) {
 	variables := []string{
@@ -42,4 +48,33 @@ func EnsureTF(t *testing.T) string {
 		t.Fatalf("failed to find a Terraform executable: %v", err)
 	}
 	return execPath
+}
+
+func Verify(t *testing.T, ctx context.Context, aztfyDir, tfexecPath string, expectResCnt int) {
+	tf, err := tfexec.NewTerraform(aztfyDir, tfexecPath)
+	if err != nil {
+		t.Fatalf("failed to new terraform: %v", err)
+	}
+	t.Log("Running: terraform plan")
+
+	planFile := filepath.Join(t.TempDir(), "plan")
+	diff, err := tf.Plan(ctx, tfexec.Out(planFile))
+	if err != nil {
+		t.Fatalf("terraform plan in the generated workspace failed: %v", err)
+	}
+	if diff {
+		b, err := os.ReadFile(planFile)
+		if err != nil {
+			t.Log(err)
+		}
+		t.Fatalf("terraform plan shows diff:\n%s\n", string(b))
+	}
+	t.Log("Running: terraform show")
+	state, err := tf.ShowStateFile(ctx, filepath.Join(aztfyDir, "terraform.tfstate"))
+	if err != nil {
+		t.Fatalf("terraform state show in the generated workspace failed: %v", err)
+	}
+	if n := len(state.Values.RootModule.Resources); n != expectResCnt {
+		t.Fatalf("expected terrafied resource: %d, got=%d", expectResCnt, n)
+	}
 }

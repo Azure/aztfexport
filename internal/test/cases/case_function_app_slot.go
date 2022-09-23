@@ -16,7 +16,11 @@ type CaseFunctionAppSlot struct{}
 func (CaseFunctionAppSlot) Tpl(d test.Data) string {
 	return fmt.Sprintf(`
 provider "azurerm" {
-  features {}
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
 }
 resource "azurerm_resource_group" "test" {
   name     = "%[1]s"
@@ -71,12 +75,27 @@ func (CaseFunctionAppSlot) ResourceMapping(d test.Data) (resmap.ResourceMapping,
 	}
 	return m, nil
 }
-func (CaseFunctionAppSlot) AzureResourceIds(d test.Data) ([]string, error) {
-	return []string{
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Storage/storageAccounts/aztfytest%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Web/serverfarms/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Web/sites/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Web/sites/aztfy-test-%[3]s/slots/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+func (CaseFunctionAppSlot) SingleResourceContext(d test.Data) ([]SingleResourceContext, error) {
+	return []SingleResourceContext{
+		{
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
+			ExpectResourceCount: 1,
+		},
+		{
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Storage/storageAccounts/aztfytest%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+			ExpectResourceCount: 1,
+		},
+		{
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Web/serverfarms/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+			ExpectResourceCount: 1,
+		},
+		{
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Web/sites/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+			ExpectResourceCount: 1,
+		},
+		{
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Web/sites/aztfy-test-%[3]s/slots/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+			ExpectResourceCount: 1,
+		},
 	}, nil
 }

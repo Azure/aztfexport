@@ -21,7 +21,7 @@ import (
 
 const indentLevel = 2
 
-func NewProgram(cfg config.RgConfig) (*tea.Program, error) {
+func NewProgram(cfg config.GroupConfig) (*tea.Program, error) {
 	m, err := newModel(cfg)
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (s status) String() string {
 }
 
 type model struct {
-	meta   meta.RgMeta
+	meta   meta.GroupMeta
 	status status
 	err    error
 
@@ -72,7 +72,7 @@ type model struct {
 	importerrormsg aztfyclient.ShowImportErrorMsg
 }
 
-func newModel(cfg config.RgConfig) (*model, error) {
+func newModel(cfg config.GroupConfig) (*model, error) {
 	s := spinner.NewModel()
 	s.Spinner = common.Spinner
 
@@ -80,7 +80,7 @@ func newModel(cfg config.RgConfig) (*model, error) {
 		status:  statusInit,
 		spinner: s,
 	}
-	meta, err := meta.NewRgMeta(cfg)
+	meta, err := meta.NewGroupMeta(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +204,7 @@ func (m model) View() string {
 	case statusInit:
 		s += m.spinner.View() + " Initializing..."
 	case statusListingResource:
-		s += m.spinner.View() + " Listing Azure Resources reside in " + `"` + m.meta.ResourceGroupName() + `"...`
+		s += m.spinner.View() + " Listing Azure Resources..."
 	case statusBuildingImportList:
 		s += m.importlist.View()
 	case statusImportErrorMsg:
@@ -229,7 +229,7 @@ func (m model) logoView() string {
 }
 
 func importErrorView(m model) string {
-	return m.importerrormsg.Item.ResourceID + "\n\n" + common.ErrorMsgStyle.Render(wordwrap.WrapString(m.importerrormsg.Item.ImportError.Error(), uint(m.winsize.Width-indentLevel)))
+	return m.importerrormsg.Item.TFResourceId + "\n\n" + common.ErrorMsgStyle.Render(wordwrap.WrapString(m.importerrormsg.Item.ImportError.Error(), uint(m.winsize.Width-indentLevel)))
 }
 
 func summaryView(m model) string {

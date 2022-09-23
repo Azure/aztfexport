@@ -16,7 +16,11 @@ type CaseApplicationInsightWebTest struct{}
 func (CaseApplicationInsightWebTest) Tpl(d test.Data) string {
 	return fmt.Sprintf(`
 provider "azurerm" {
-  features {}
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
 }
 resource "azurerm_resource_group" "test" {
   name     = "%[1]s"
@@ -63,10 +67,19 @@ func (CaseApplicationInsightWebTest) ResourceMapping(d test.Data) (resmap.Resour
 	return m, nil
 }
 
-func (CaseApplicationInsightWebTest) AzureResourceIds(d test.Data) ([]string, error) {
-	return []string{
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/microsoft.insights/components/test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.insights/webTests/test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+func (CaseApplicationInsightWebTest) SingleResourceContext(d test.Data) ([]SingleResourceContext, error) {
+	return []SingleResourceContext{
+		{
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
+			ExpectResourceCount: 1,
+		},
+		{
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/microsoft.insights/components/test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+			ExpectResourceCount: 1,
+		},
+		{
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.insights/webTests/test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+			ExpectResourceCount: 1,
+		},
 	}, nil
 }

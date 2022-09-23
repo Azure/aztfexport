@@ -20,7 +20,11 @@ type CaseKeyVaultNestedItems struct{}
 func (CaseKeyVaultNestedItems) Tpl(d test.Data) string {
 	return fmt.Sprintf(`
 provider "azurerm" {
-  features {}
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
 }
 resource "azurerm_resource_group" "test" {
   name     = "%[1]s"
@@ -192,7 +196,7 @@ func (c CaseKeyVaultNestedItems) ResourceMapping(d test.Data) (resmap.ResourceMa
 	return m, nil
 }
 
-func (c CaseKeyVaultNestedItems) AzureResourceIds(d test.Data) ([]string, error) {
+func (c CaseKeyVaultNestedItems) SingleResourceContext(d test.Data) ([]SingleResourceContext, error) {
 	keyId, secretId, certId, err := c.getItems(d)
 	if err != nil {
 		return nil, err
@@ -214,11 +218,26 @@ func (c CaseKeyVaultNestedItems) AzureResourceIds(d test.Data) ([]string, error)
 		segs := strings.Split(certId, "/")
 		certIdSuffix = strings.Join(segs[len(segs)-3:len(segs)-1], "/")
 	}
-	return []string{
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s/%[4]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), keyIdSuffix),
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s/%[4]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), secretIdSuffix),
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s/%[4]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), certIdSuffix),
+	return []SingleResourceContext{
+		{
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
+			ExpectResourceCount: 1,
+		},
+		{
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+			ExpectResourceCount: 1,
+		},
+		{
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s/%[4]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), keyIdSuffix),
+			ExpectResourceCount: 1,
+		},
+		{
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s/%[4]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), secretIdSuffix),
+			ExpectResourceCount: 1,
+		},
+		{
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s/%[4]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), certIdSuffix),
+			ExpectResourceCount: 1,
+		},
 	}, nil
 }

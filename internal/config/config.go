@@ -18,18 +18,24 @@ type CommonConfig struct {
 	BackendType    string
 	BackendConfig  []string
 	FullConfig     bool
+	Parallelism    int
+	PlainUI        bool
 }
 
-type RgConfig struct {
+type GroupConfig struct {
 	CommonConfig
 
-	ResourceGroupName   string
+	// Exactly one of below is non empty
+	ResourceGroupName string
+	ARGPredicate      string
+
 	ResourceMapping     resmap.ResourceMapping
 	ResourceNamePattern string
 	MockClient          bool
+	RecursiveQuery      bool
 }
 
-func (RgConfig) isConfig() {}
+func (GroupConfig) isConfig() {}
 
 type ResConfig struct {
 	CommonConfig

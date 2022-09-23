@@ -13,6 +13,8 @@ import (
 
 	"github.com/Azure/aztfy/internal/client"
 	"github.com/Azure/aztfy/internal/config"
+	"github.com/Azure/aztfy/internal/utils"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform-exec/tfexec"
@@ -37,11 +39,13 @@ type Meta struct {
 	rootdir        string
 	outdir         string
 	tf             *tfexec.Terraform
-	clientBuilder  *client.ClientBuilder
+	resourceClient *armresources.Client
 	devProvider    bool
 	backendType    string
 	backendConfig  []string
 	fullConfig     bool
+	parallelism    int
+
 	// Use a safer name which is less likely to conflicts with users' existing files.
 	// This is mainly used for the --append option.
 	useSafeFilename bool
@@ -119,6 +123,10 @@ The output directory is not empty. Please choose one of actions below:
 	if err != nil {
 		return nil, fmt.Errorf("building authorizer: %w", err)
 	}
+	resClient, err := b.NewResourcesClient(cfg.SubscriptionId)
+	if err != nil {
+		return nil, fmt.Errorf("new resource client")
+	}
 
 	// AzureRM provider will honor env.var "AZURE_HTTP_USER_AGENT" when constructing for HTTP "User-Agent" header.
 	os.Setenv("AZURE_HTTP_USER_AGENT", "aztfy")
@@ -131,11 +139,12 @@ The output directory is not empty. Please choose one of actions below:
 		subscriptionId:  cfg.SubscriptionId,
 		rootdir:         rootdir,
 		outdir:          outdir,
-		clientBuilder:   b,
+		resourceClient:  resClient,
 		devProvider:     cfg.DevProvider,
 		backendType:     cfg.BackendType,
 		backendConfig:   cfg.BackendConfig,
 		fullConfig:      cfg.FullConfig,
+		parallelism:     cfg.Parallelism,
 		useSafeFilename: cfg.Append,
 		empty:           empty,
 	}
@@ -190,20 +199,20 @@ func (meta Meta) Import(item *ImportItem) {
 	// This is required for the following importing.
 	cfgFile := filepath.Join(meta.outdir, meta.filenameTmpCfg())
 	tpl := fmt.Sprintf(`resource "%s" "%s" {}`, item.TFAddr.Type, item.TFAddr.Name)
-	if err := os.WriteFile(cfgFile, []byte(tpl), 0644); err != nil {
+	if err := utils.WriteFileSync(cfgFile, []byte(tpl), 0644); err != nil {
 		item.ImportError = fmt.Errorf("generating resource template file: %w", err)
 		return
 	}
 	defer os.Remove(cfgFile)
 
 	// Import resources
-	err := meta.tf.Import(ctx, item.TFAddr.String(), item.ResourceID)
+	err := meta.tf.Import(ctx, item.TFAddr.String(), item.TFResourceId)
 	item.ImportError = err
 	item.Imported = err == nil
 }
 
 func (meta Meta) GenerateCfg(l ImportList) error {
-	return meta.generateCfg(l, meta.lifecycleAddon)
+	return meta.generateCfg(l, meta.lifecycleAddon, meta.addDependency)
 }
 
 func (meta Meta) generateCfg(l ImportList, cfgTrans ...TFConfigTransformer) error {
@@ -274,7 +283,7 @@ func (meta *Meta) initProvider(ctx context.Context) error {
 	// - Otherwise, just generate the `azurerm` provider setting (as it is only for local backend)
 	if meta.empty {
 		cfgFile := filepath.Join(meta.outdir, meta.filenameProviderSetting())
-		if err := os.WriteFile(cfgFile, []byte(meta.providerConfig()), 0644); err != nil {
+		if err := utils.WriteFileSync(cfgFile, []byte(meta.providerConfig()), 0644); err != nil {
 			return fmt.Errorf("error creating provider config: %w", err)
 		}
 
