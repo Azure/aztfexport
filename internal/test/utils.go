@@ -16,6 +16,10 @@ import (
 
 const TestToggleEnvVar = "AZTFY_E2E"
 
+func Keep() bool {
+	return os.Getenv("AZTFY_KEEP") != ""
+}
+
 func Precheck(t *testing.T) {
 	variables := []string{
 		TestToggleEnvVar,
@@ -52,12 +56,18 @@ func Verify(t *testing.T, ctx context.Context, aztfyDir, tfexecPath string, expe
 		t.Fatalf("failed to new terraform: %v", err)
 	}
 	t.Log("Running: terraform plan")
-	diff, err := tf.Plan(ctx)
+
+	planFile := filepath.Join(t.TempDir(), "plan")
+	diff, err := tf.Plan(ctx, tfexec.Out(planFile))
 	if err != nil {
 		t.Fatalf("terraform plan in the generated workspace failed: %v", err)
 	}
 	if diff {
-		t.Fatalf("terraform plan shows diff")
+		b, err := os.ReadFile(planFile)
+		if err != nil {
+			t.Log(err)
+		}
+		t.Fatalf("terraform plan shows diff:\n%s\n", string(b))
 	}
 	t.Log("Running: terraform show")
 	state, err := tf.ShowStateFile(ctx, filepath.Join(aztfyDir, "terraform.tfstate"))

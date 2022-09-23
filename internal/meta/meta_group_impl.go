@@ -83,11 +83,16 @@ func (meta *MetaGroupImpl) ListResource() (ImportList, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := rset.TweakResources(); err != nil {
-		return nil, fmt.Errorf("populating managed resources in the azure resource set: %v", err)
+	if err := rset.PopulateResource(); err != nil {
+		return nil, fmt.Errorf("tweaking single resources in the azure resource set: %v", err)
+	}
+	if err := rset.ReduceResource(); err != nil {
+		return nil, fmt.Errorf("tweaking across resources in the azure resource set: %v", err)
 	}
 
-	// Some RP will flip the casing on fields like resource group name. This is then returned in the ARG response.
+	rl := rset.ToTFResources()
+
+	// Some RP will flip the casing on fields like resource group name, causing the TF ID is inconsistent on casing.
 	// We shall check the existance of the resource id case insensitively.
 	type MapInfo struct {
 		id   string
@@ -102,7 +107,6 @@ func (meta *MetaGroupImpl) ListResource() (ImportList, error) {
 	}
 
 	var l ImportList
-	rl := rset.ToTFResources()
 	for i, res := range rl {
 		item := ImportItem{
 			AzureResourceID: res.AzureId,
@@ -133,10 +137,6 @@ func (meta *MetaGroupImpl) ListResource() (ImportList, error) {
 		l = append(l, item)
 	}
 	return l, nil
-}
-
-func (meta MetaGroupImpl) GenerateCfg(l ImportList) error {
-	return meta.Meta.generateCfg(l, meta.Meta.lifecycleAddon, meta.addDependency)
 }
 
 func (meta MetaGroupImpl) ExportResourceMapping(l ImportList) error {
@@ -183,28 +183,4 @@ func (meta MetaGroupImpl) queryResourceSet(ctx context.Context) (*resourceset.Az
 	}
 
 	return &resourceset.AzureResourceSet{Resources: rl}, nil
-}
-
-func (meta MetaGroupImpl) addDependency(configs ConfigInfos) (ConfigInfos, error) {
-	if err := configs.AddDependency(); err != nil {
-		return nil, err
-	}
-
-	var out ConfigInfos
-
-	configSet := map[string]ConfigInfo{}
-	for _, cfg := range configs {
-		configSet[cfg.AzureResourceID.String()] = cfg
-	}
-
-	for _, cfg := range configs {
-		if len(cfg.DependsOn) != 0 {
-			if err := hclBlockAppendDependency(cfg.hcl.Body().Blocks()[0].Body(), cfg.DependsOn, configSet); err != nil {
-				return nil, err
-			}
-		}
-		out = append(out, cfg)
-	}
-
-	return out, nil
 }

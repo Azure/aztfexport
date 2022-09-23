@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -12,14 +11,21 @@ import (
 	"github.com/Azure/aztfy/internal/config"
 	"github.com/Azure/aztfy/internal/test"
 	"github.com/Azure/aztfy/internal/test/cases"
+	"github.com/Azure/aztfy/internal/utils"
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
 func runCase(t *testing.T, d test.Data, c cases.Case) {
 	tfexecPath := test.EnsureTF(t)
+
 	provisionDir := t.TempDir()
+	if test.Keep() {
+		provisionDir, _ = os.MkdirTemp("", "")
+		t.Log(provisionDir)
+	}
+
 	os.Chdir(provisionDir)
-	if err := os.WriteFile("main.tf", []byte(c.Tpl(d)), 0644); err != nil {
+	if err := utils.WriteFileSync("main.tf", []byte(c.Tpl(d)), 0644); err != nil {
 		t.Fatalf("created to create the TF config file: %v", err)
 	}
 	tf, err := tfexec.NewTerraform(provisionDir, tfexecPath)
@@ -35,59 +41,43 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 	if err := tf.Apply(ctx); err != nil {
 		t.Fatalf("terraform apply failed: %v", err)
 	}
-	defer func() {
-		t.Log("Running: terraform destroy")
-		if err := tf.Destroy(ctx); err != nil {
-			t.Logf("terraform destroy failed: %v", err)
-		}
-	}()
+
+	if !test.Keep() {
+		defer func() {
+			t.Log("Running: terraform destroy")
+			if err := tf.Destroy(ctx); err != nil {
+				t.Logf("terraform destroy failed: %v", err)
+			}
+		}()
+	}
 
 	const delay = time.Minute
 	t.Logf("Sleep for %v to wait for the just created resources be recorded in ARG\n", delay)
 	time.Sleep(delay)
 
 	aztfyDir := t.TempDir()
-	l, err := c.AzureResourceIds(d)
+	l, err := c.SingleResourceContext(d)
 	if err != nil {
 		t.Fatalf("failed to get resource ids: %v", err)
 	}
-	for idx, id := range l {
+	for idx, rctx := range l {
 		cfg := config.ResConfig{
 			CommonConfig: config.CommonConfig{
 				SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
 				OutputDir:      aztfyDir,
 				BackendType:    "local",
-				Append:         true,
 				DevProvider:    true,
 				PlainUI:        true,
+				Overwrite:      true,
 			},
-			ResourceId:   id,
+			ResourceId:   rctx.AzureId,
 			ResourceName: fmt.Sprintf("res-%d", idx),
 		}
-		t.Logf("Resource importing %s\n", id)
-		if err := internal.ResourceImport(cfg); err != nil {
+		t.Logf("Resource importing %s\n", rctx.AzureId)
+		if err := internal.ResourceImport(ctx, cfg); err != nil {
 			t.Fatalf("failed to run resource import: %v", err)
 		}
-	}
-	tf2, err := tfexec.NewTerraform(aztfyDir, tfexecPath)
-	if err != nil {
-		t.Fatalf("failed to new terraform: %v", err)
-	}
-	t.Log("Running: terraform plan")
-	diff, err := tf2.Plan(ctx)
-	if err != nil {
-		t.Fatalf("terraform plan in the generated workspace failed: %v", err)
-	}
-	if diff {
-		t.Fatalf("terraform plan shows diff")
-	}
-	t.Log("Running: terraform show")
-	state, err := tf2.ShowStateFile(ctx, filepath.Join(aztfyDir, "terraform.tfstate"))
-	if err != nil {
-		t.Fatalf("terraform state show in the generated workspace failed: %v", err)
-	}
-	if n, expect := len(state.Values.RootModule.Resources), len(l); n != expect {
-		t.Fatalf("expected terrafied resource: %d, got=%d", expect, n)
+		test.Verify(t, ctx, aztfyDir, tfexecPath, rctx.ExpectResourceCount)
 	}
 }
 func TestComputeVMDisk(t *testing.T) {

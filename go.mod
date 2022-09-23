@@ -6,6 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.1.3
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.1.0
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/keyvault/armkeyvault v1.0.0
+	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources v1.0.0
 	github.com/charmbracelet/bubbles v0.10.4-0.20220412141214-292a1dd7ba97
 	github.com/charmbracelet/bubbletea v0.20.1-0.20220516164627-a5f28a3a04bb
 	github.com/charmbracelet/lipgloss v0.5.0
@@ -13,8 +14,8 @@ require (
 	github.com/hashicorp/hc-install v0.4.0
 	github.com/hashicorp/hcl/v2 v2.13.0
 	github.com/hashicorp/terraform-exec v0.17.2
-	github.com/magodo/armid v0.0.0-20220915030809-9ed860f93894
-	github.com/magodo/azlist v0.0.0-20220921105044-e68b8f3820df
+	github.com/magodo/armid v0.0.0-20220923023118-aec41eaf7370
+	github.com/magodo/azlist v0.0.0-20220923015326-17b16cc9b805
 	github.com/magodo/aztft v0.1.1-0.20220921021151-00974eaacf3b
 	github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0

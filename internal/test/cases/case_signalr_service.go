@@ -51,9 +51,15 @@ func (CaseSignalRService) ResourceMapping(d test.Data) (resmap.ResourceMapping, 
 	return m, nil
 }
 
-func (CaseSignalRService) AzureResourceIds(d test.Data) ([]string, error) {
-	return []string{
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
-		fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.SignalRService/signalR/test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+func (CaseSignalRService) SingleResourceContext(d test.Data) ([]SingleResourceContext, error) {
+	return []SingleResourceContext{
+		{
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s", d.SubscriptionId, d.RandomRgName()),
+			ExpectResourceCount: 1,
+		},
+		{
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.SignalRService/signalR/test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+			ExpectResourceCount: 1,
+		},
 	}, nil
 }

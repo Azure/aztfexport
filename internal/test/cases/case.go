@@ -5,8 +5,13 @@ import (
 	"github.com/Azure/aztfy/internal/test"
 )
 
+type SingleResourceContext struct {
+	AzureId             string
+	ExpectResourceCount int
+}
+
 type Case interface {
 	Tpl(test.Data) string
 	ResourceMapping(test.Data) (resmap.ResourceMapping, error)
-	AzureResourceIds(test.Data) ([]string, error)
+	SingleResourceContext(test.Data) ([]SingleResourceContext, error)
 }

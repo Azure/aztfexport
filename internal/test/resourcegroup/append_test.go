@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/Azure/aztfy/internal/test"
+	"github.com/Azure/aztfy/internal/utils"
 
 	"github.com/Azure/aztfy/internal"
 	"github.com/Azure/aztfy/internal/config"
@@ -18,9 +19,15 @@ func TestAppendMode(t *testing.T) {
 	test.Precheck(t)
 	d := test.NewData()
 	tfexecPath := test.EnsureTF(t)
+
 	provisionDir := t.TempDir()
+	if test.Keep() {
+		provisionDir, _ = os.MkdirTemp("", "")
+		t.Log(provisionDir)
+	}
+
 	os.Chdir(provisionDir)
-	if err := os.WriteFile("main.tf", []byte(fmt.Sprintf(`
+	if err := utils.WriteFileSync("main.tf", []byte(fmt.Sprintf(`
 provider "azurerm" {
   features {
     resource_group {
@@ -56,12 +63,15 @@ resource "azurerm_resource_group" "test3" {
 	if err := tf.Apply(ctx); err != nil {
 		t.Fatalf("terraform apply failed: %v", err)
 	}
-	defer func() {
-		t.Log("Running: terraform destroy")
-		if err := tf.Destroy(ctx); err != nil {
-			t.Logf("terraform destroy failed: %v", err)
-		}
-	}()
+
+	if !test.Keep() {
+		defer func() {
+			t.Log("Running: terraform destroy")
+			if err := tf.Destroy(ctx); err != nil {
+				t.Logf("terraform destroy failed: %v", err)
+			}
+		}()
+	}
 
 	// Import the first resource group
 	aztfyDir := t.TempDir()

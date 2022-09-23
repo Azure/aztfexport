@@ -473,7 +473,7 @@ func main() {
 						ResourceType: flagResType,
 					}
 
-					return internal.ResourceImport(cfg)
+					return internal.ResourceImport(c.Context, cfg)
 				},
 			},
 		},
