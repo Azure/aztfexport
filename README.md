@@ -124,7 +124,7 @@ The command will automatically identify the Terraform resource type (e.g. correc
 
 `aztfy resource-group [option] <resource group name>` terrafies a resource group and its including resources by its name. Depending on whether `--batch` is used, it can work in either interactive mode or batch mode.
 
-### Terrafy a Customized Set of Resoruces
+### Terrafy a Customized Set of Resources
 
 `aztfy query [option] <arg where predicate>` terrafies a set of resources (and its including resources with `--recursive`) by an Azure Resource Graph [`where` predicate](https://learn.microsoft.com/en-us/azure/data-explorer/kusto/query/whereoperator). Depending on whether `--batch` is used, it can work in either interactive mode or batch mode.
 
