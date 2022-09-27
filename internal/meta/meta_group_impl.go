@@ -129,7 +129,7 @@ func (meta *MetaGroupImpl) ListResource() (ImportList, error) {
 func (meta MetaGroupImpl) ExportResourceMapping(l ImportList) error {
 	m := resmap.ResourceMapping{}
 	for _, item := range l {
-		if item.TFAddr.Type == "" {
+		if item.Skip() {
 			continue
 		}
 		m[strings.ToUpper(item.AzureResourceID.String())] = resmap.ResourceMapEntity{
@@ -145,6 +145,29 @@ func (meta MetaGroupImpl) ExportResourceMapping(l ImportList) error {
 	}
 	if err := os.WriteFile(output, b, 0644); err != nil {
 		return fmt.Errorf("writing the resource mapping to %s: %v", output, err)
+	}
+	return nil
+}
+
+func (meta MetaGroupImpl) ExportSkippedResources(l ImportList) error {
+	var sl []string
+	for _, item := range l {
+		if item.Skip() {
+			sl = append(sl, "- "+item.AzureResourceID.String())
+		}
+	}
+	if len(sl) == 0 {
+		return nil
+	}
+
+	output := filepath.Join(meta.Workspace(), SkippedResourcesFileName)
+	if err := os.WriteFile(output, []byte(fmt.Sprintf(`Following resources are marked to be skipped:
+
+%s
+
+They are either not Terraform candidate resources (e.g. not managed by users), or not supported by the Terraform AzureRM provider yet.
+`, strings.Join(sl, "\n"))), 0644); err != nil {
+		return fmt.Errorf("writing the skipped resources to %s: %v", output, err)
 	}
 	return nil
 }
