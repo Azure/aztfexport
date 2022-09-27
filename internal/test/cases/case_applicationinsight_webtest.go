@@ -1,7 +1,6 @@
 package cases
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/Azure/aztfy/internal/test"
@@ -54,17 +53,24 @@ XML
 }
 
 func (CaseApplicationInsightWebTest) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
-	rm := fmt.Sprintf(`{
-"/subscriptions/%[1]s/resourceGroups/%[2]s": "azurerm_resource_group.test",
-"/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Insights/components/test-%[3]s": "azurerm_application_insights.test",
-"/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Insights/webTests/test-%[3]s": "azurerm_application_insights_web_test.test"
+	return test.ResourceMapping(fmt.Sprintf(`{
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | ToUpper | Quote }}: {
+  "resource_type": "azurerm_resource_group",
+  "resource_name": "test",
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s"
+},
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.insights/components/test-%[3]s" | ToUpper | Quote }}: {
+  "resource_type": "azurerm_application_insights",
+  "resource_name": "test",
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Insights/components/test-%[3]s"
+},
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.insights/webtests/test-%[3]s" | ToUpper | Quote }}: {
+  "resource_type": "azurerm_application_insights_web_test",
+  "resource_name": "test",
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Insights/webTests/test-%[3]s"
 }
-`, d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8))
-	m := resmap.ResourceMapping{}
-	if err := json.Unmarshal([]byte(rm), &m); err != nil {
-		return nil, err
-	}
-	return m, nil
+}
+`, d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)))
 }
 
 func (CaseApplicationInsightWebTest) SingleResourceContext(d test.Data) ([]SingleResourceContext, error) {

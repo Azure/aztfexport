@@ -92,20 +92,6 @@ func (meta *MetaGroupImpl) ListResource() (ImportList, error) {
 
 	rl := rset.ToTFResources()
 
-	// Some RP will flip the casing on fields like resource group name, causing the TF ID is inconsistent on casing.
-	// We shall check the existance of the resource id case insensitively.
-	type MapInfo struct {
-		id   string
-		addr tfaddr.TFAddr
-	}
-	caseInsensitiveMapping := map[string]MapInfo{}
-	for k, v := range meta.resourceMapping {
-		caseInsensitiveMapping[strings.ToUpper(k)] = MapInfo{
-			id:   k,
-			addr: v,
-		}
-	}
-
 	var l ImportList
 	for i, res := range rl {
 		item := ImportItem{
@@ -120,12 +106,13 @@ func (meta *MetaGroupImpl) ListResource() (ImportList, error) {
 			item.Recommendations = []string{res.TFType}
 		}
 
-		if len(caseInsensitiveMapping) != 0 {
-			// TODO: There is a potential issue here that the more than one Azure resources might have the same TF resource id (e.g. a parent resource and its singleton child resource).
-			// 		 Ideally, we should refactor the resource mapping file to make the Azure resource id as key, and record the TF id and TF address (type + name) as its value.
-			if info, ok := caseInsensitiveMapping[strings.ToUpper(res.TFId)]; ok {
-				item.TFResourceId = info.id
-				item.TFAddr = info.addr
+		if len(meta.resourceMapping) != 0 {
+			if entity, ok := meta.resourceMapping[strings.ToUpper(res.AzureId.String())]; ok {
+				item.TFResourceId = entity.ResourceId
+				item.TFAddr = tfaddr.TFAddr{
+					Type: entity.ResourceType,
+					Name: entity.ResourceName,
+				}
 			}
 		} else {
 			// Only auto deduce the TF resource type from recommendations when there is no resource mapping file specified.
@@ -142,7 +129,14 @@ func (meta *MetaGroupImpl) ListResource() (ImportList, error) {
 func (meta MetaGroupImpl) ExportResourceMapping(l ImportList) error {
 	m := resmap.ResourceMapping{}
 	for _, item := range l {
-		m[item.TFResourceId] = item.TFAddr
+		if item.TFAddr.Type == "" {
+			continue
+		}
+		m[strings.ToUpper(item.AzureResourceID.String())] = resmap.ResourceMapEntity{
+			ResourceId:   item.TFResourceId,
+			ResourceType: item.TFAddr.Type,
+			ResourceName: item.TFAddr.Name,
+		}
 	}
 	output := filepath.Join(meta.Workspace(), ResourceMappingFileName)
 	b, err := json.MarshalIndent(m, "", "\t")
