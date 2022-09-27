@@ -40,6 +40,10 @@ type ExportResourceMappingDoneMsg struct {
 	List meta.ImportList
 }
 
+type ExportSkippedResourcesDoneMsg struct {
+	List meta.ImportList
+}
+
 type GenerateCfgDoneMsg struct{}
 
 type QuitMsg struct{}
@@ -119,6 +123,15 @@ func ExportResourceMapping(c meta.GroupMeta, l meta.ImportList) tea.Cmd {
 			return ErrMsg(err)
 		}
 		return ExportResourceMappingDoneMsg{List: l}
+	}
+}
+
+func ExportSkippedResources(c meta.GroupMeta, l meta.ImportList) tea.Cmd {
+	return func() tea.Msg {
+		if err := c.ExportSkippedResources(l); err != nil {
+			return ErrMsg(err)
+		}
+		return ExportSkippedResourcesDoneMsg{List: l}
 	}
 }
 

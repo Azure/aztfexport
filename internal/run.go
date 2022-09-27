@@ -151,10 +151,21 @@ func BatchImport(cfg config.GroupConfig, continueOnError bool) error {
 			}
 		}
 
+		msg.SetStatus("Exporting Resource Mapping file...")
+		if err := c.ExportResourceMapping(list); err != nil {
+			return fmt.Errorf("exporting Resource Mapping file: %v", err)
+		}
+
+		msg.SetStatus("Exporting Skipped Resource file...")
+		if err := c.ExportSkippedResources(list); err != nil {
+			return fmt.Errorf("exporting Skipped Resource file: %v", err)
+		}
+
 		msg.SetStatus("Generating Terraform configurations...")
 		if err := c.GenerateCfg(list); err != nil {
 			return fmt.Errorf("generating Terraform configuration: %v", err)
 		}
+
 		return nil
 	}
 
