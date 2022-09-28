@@ -41,6 +41,10 @@ resource "azurerm_storage_share" "test" {
 `, d.RandomRgName(), d.RandomStringOfLength(8))
 }
 
+func (CaseStorageFileShare) Total() int {
+	return 3
+}
+
 func (CaseStorageFileShare) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
 	return test.ResourceMapping(fmt.Sprintf(`{
 {{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | Quote }}: {

@@ -88,6 +88,10 @@ resource "azurerm_virtual_machine_data_disk_attachment" "test" {
 `, d.RandomRgName(), d.RandomStringOfLength(8))
 }
 
+func (CaseComputeVMDisk) Total() int {
+	return 7
+}
+
 func (CaseComputeVMDisk) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
 	return test.ResourceMapping(fmt.Sprintf(`{
 {{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | Quote }}: {

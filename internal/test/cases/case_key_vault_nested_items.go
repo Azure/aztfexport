@@ -120,6 +120,10 @@ resource "azurerm_key_vault_key" "test" {
 `, d.RandomRgName(), d.RandomStringOfLength(8))
 }
 
+func (CaseKeyVaultNestedItems) Total() int {
+	return 5
+}
+
 func (CaseKeyVaultNestedItems) getItems(d test.Data) (keyId, secretId, certId string, err error) {
 	b, err := client.NewClientBuilder()
 	if err != nil {
