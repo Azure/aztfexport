@@ -39,13 +39,13 @@ resource "azurerm_signalr_service" "test" {
 
 func (CaseSignalRService) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
 	return test.ResourceMapping(fmt.Sprintf(`{
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | Quote }}: {
   "resource_type": "azurerm_resource_group",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.signalrservice/signalr/test-%[3]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.signalrservice/signalr/test-%[3]s" | Quote }}: {
   "resource_type": "azurerm_signalr_service",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.SignalRService/signalR/test-%[3]s"

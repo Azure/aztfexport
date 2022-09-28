@@ -53,7 +53,7 @@ func ResourceImport(ctx context.Context, cfg config.ResConfig) error {
 		rl := resourceSet.ToTFResources()
 
 		var l meta.ImportList
-		for i, res := range rl {
+		for _, res := range rl {
 			item := meta.ImportItem{
 				AzureResourceID: res.AzureId,
 				TFResourceId:    res.TFId, // this might be empty if have multiple matches in aztft
@@ -65,13 +65,15 @@ func ResourceImport(ctx context.Context, cfg config.ResConfig) error {
 
 			// Some special Azure resource is missing the essential property that is used by aztft to detect their TF resource type.
 			// In this case, users can use the `--type` option to manually specify the TF resource type.
-			if i == 0 && c.ResourceType != "" {
-				tfid, err := c.QueryResourceId(c.ResourceType)
-				if err != nil {
-					return err
+			if c.ResourceType != "" {
+				if c.AzureId.Equal(res.AzureId) {
+					tfid, err := c.QueryResourceId(c.ResourceType)
+					if err != nil {
+						return err
+					}
+					item.TFResourceId = tfid
+					item.TFAddr.Type = c.ResourceType
 				}
-				item.TFResourceId = tfid
-				item.TFAddr.Type = c.ResourceType
 			}
 
 			l = append(l, item)

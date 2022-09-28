@@ -224,7 +224,7 @@ func (meta Meta) ExportResourceMapping(l ImportList) error {
 		if item.Skip() {
 			continue
 		}
-		m[strings.ToUpper(item.AzureResourceID.String())] = resmap.ResourceMapEntity{
+		m[item.AzureResourceID.String()] = resmap.ResourceMapEntity{
 			ResourceId:   item.TFResourceId,
 			ResourceType: item.TFAddr.Type,
 			ResourceName: item.TFAddr.Name,

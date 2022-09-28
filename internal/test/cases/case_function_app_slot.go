@@ -61,31 +61,31 @@ resource "azurerm_windows_function_app_slot" "test" {
 
 func (CaseFunctionAppSlot) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
 	return test.ResourceMapping(fmt.Sprintf(`{
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | Quote }}: {
   "resource_type": "azurerm_resource_group",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.storage/storageaccounts/aztfytest%[3]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.storage/storageaccounts/aztfytest%[3]s" | Quote }}: {
   "resource_type": "azurerm_storage_account",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Storage/storageAccounts/aztfytest%[3]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.web/serverfarms/aztfy-test-%[3]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.web/serverfarms/aztfy-test-%[3]s" | Quote }}: {
   "resource_type": "azurerm_service_plan",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Web/serverfarms/aztfy-test-%[3]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.web/sites/aztfy-test-%[3]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.web/sites/aztfy-test-%[3]s" | Quote }}: {
   "resource_type": "azurerm_windows_function_app",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Web/sites/aztfy-test-%[3]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.web/sites/aztfy-test-%[3]s/slots/aztfy-test-%[3]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.web/sites/aztfy-test-%[3]s/slots/aztfy-test-%[3]s" | Quote }}: {
   "resource_type": "azurerm_windows_function_app_slot",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Web/sites/aztfy-test-%[3]s/slots/aztfy-test-%[3]s"

@@ -54,17 +54,17 @@ XML
 
 func (CaseApplicationInsightWebTest) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
 	return test.ResourceMapping(fmt.Sprintf(`{
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | Quote }}: {
   "resource_type": "azurerm_resource_group",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s"
 },
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.insights/components/test-%[3]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.insights/components/test-%[3]s" | Quote }}: {
   "resource_type": "azurerm_application_insights",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Insights/components/test-%[3]s"
 },
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.insights/webtests/test-%[3]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.insights/webtests/test-%[3]s" | Quote }}: {
   "resource_type": "azurerm_application_insights_web_test",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Insights/webTests/test-%[3]s"

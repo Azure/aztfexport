@@ -43,19 +43,19 @@ resource "azurerm_storage_share" "test" {
 
 func (CaseStorageFileShare) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
 	return test.ResourceMapping(fmt.Sprintf(`{
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | Quote }}: {
   "resource_type": "azurerm_resource_group",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.storage/storageaccounts/aztfy%[3]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.storage/storageaccounts/aztfy%[3]s" | Quote }}: {
   "resource_type": "azurerm_storage_account",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Storage/storageAccounts/aztfy%[3]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.storage/storageaccounts/aztfy%[3]s/fileservices/default/shares/aztfy%[3]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.storage/storageaccounts/aztfy%[3]s/fileservices/default/shares/aztfy%[3]s" | Quote }}: {
   "resource_type": "azurerm_storage_share",
   "resource_name": "test",
   "resource_id": "https://aztfy%[3]s.file.core.windows.net/aztfy%[3]s"

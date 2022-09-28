@@ -181,31 +181,31 @@ func (c CaseKeyVaultNestedItems) ResourceMapping(d test.Data) (resmap.ResourceMa
 		return nil, err
 	}
 	return test.ResourceMapping(fmt.Sprintf(`{
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | Quote }}: {
   "resource_type": "azurerm_resource_group",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.keyvault/vaults/aztfy-test-%[3]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.keyvault/vaults/aztfy-test-%[3]s" | Quote }}: {
   "resource_type": "azurerm_key_vault",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s"
 },
 
-{{  "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.keyvault/vaults/aztfy-test-%[3]s/keys/key-%[3]s" | ToUpper | Quote }} : {
+{{  "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.keyvault/vaults/aztfy-test-%[3]s/keys/key-%[3]s" | Quote }} : {
   "resource_type": "azurerm_key_vault_key",
   "resource_name": "test",
   "resource_id": %[4]q
 },
 
-{{  "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.keyvault/vaults/aztfy-test-%[3]s/secrets/secret-%[3]s" | ToUpper | Quote }} : {
+{{  "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.keyvault/vaults/aztfy-test-%[3]s/secrets/secret-%[3]s" | Quote }} : {
   "resource_type": "azurerm_key_vault_secret",
   "resource_name": "test",
   "resource_id": %[5]q
 },
 
-{{  "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.keyvault/vaults/aztfy-test-%[3]s/certificates/cert-%[3]s" | ToUpper | Quote }} : {
+{{  "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.keyvault/vaults/aztfy-test-%[3]s/certificates/cert-%[3]s" | Quote }} : {
   "resource_type": "azurerm_key_vault_certificate",
   "resource_name": "test",
   "resource_id": %[6]q

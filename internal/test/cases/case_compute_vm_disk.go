@@ -90,43 +90,43 @@ resource "azurerm_virtual_machine_data_disk_attachment" "test" {
 
 func (CaseComputeVMDisk) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
 	return test.ResourceMapping(fmt.Sprintf(`{
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | Quote }}: {
   "resource_type": "azurerm_resource_group",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.compute/disks/aztfy-test-%[3]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.compute/disks/aztfy-test-%[3]s" | Quote }}: {
   "resource_type": "azurerm_managed_disk",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/disks/aztfy-test-%[3]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.compute/virtualmachines/aztfy-test-%[3]s/datadisks/aztfy-test-%[3]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.compute/virtualmachines/aztfy-test-%[3]s/datadisks/aztfy-test-%[3]s" | Quote }}: {
   "resource_type": "azurerm_virtual_machine_data_disk_attachment",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/virtualMachines/aztfy-test-%[3]s/dataDisks/aztfy-test-%[3]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.compute/virtualmachines/aztfy-test-%[3]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.compute/virtualmachines/aztfy-test-%[3]s" | Quote }}: {
   "resource_type": "azurerm_linux_virtual_machine",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/virtualMachines/aztfy-test-%[3]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.network/networkinterfaces/aztfy-test-%[3]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.network/networkinterfaces/aztfy-test-%[3]s" | Quote }}: {
   "resource_type": "azurerm_network_interface",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/networkInterfaces/aztfy-test-%[3]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.network/virtualnetworks/aztfy-test-%[3]s" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.network/virtualnetworks/aztfy-test-%[3]s" | Quote }}: {
   "resource_type": "azurerm_virtual_network",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfy-test-%[3]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.network/virtualnetworks/aztfy-test-%[3]s/subnets/internal" | ToUpper | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.network/virtualnetworks/aztfy-test-%[3]s/subnets/internal" | Quote }}: {
   "resource_type": "azurerm_subnet",
   "resource_name": "test",
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfy-test-%[3]s/subnets/internal"
