@@ -4,14 +4,13 @@ import (
 	"github.com/Azure/aztfy/internal/config"
 )
 
-const ResourceMappingFileName = ".aztfyResourceMapping.json"
-const SkippedResourcesFileName = ".aztfySkippedResources.txt"
+const ResourceMappingFileName = "aztfyResourceMapping.json"
+const SkippedResourcesFileName = "aztfySkippedResources.txt"
 
 type GroupMeta interface {
 	meta
 	ScopeName() string
 	ListResource() (ImportList, error)
-	ExportResourceMapping(l ImportList) error
 	ExportSkippedResources(l ImportList) error
 }
 

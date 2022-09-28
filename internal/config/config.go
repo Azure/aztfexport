@@ -9,17 +9,18 @@ type Config interface {
 }
 
 type CommonConfig struct {
-	SubscriptionId string
-	OutputDir      string
-	Overwrite      bool
-	Append         bool
-	DevProvider    bool
-	BatchMode      bool
-	BackendType    string
-	BackendConfig  []string
-	FullConfig     bool
-	Parallelism    int
-	PlainUI        bool
+	SubscriptionId      string
+	OutputDir           string
+	Overwrite           bool
+	Append              bool
+	DevProvider         bool
+	BatchMode           bool
+	BackendType         string
+	BackendConfig       []string
+	FullConfig          bool
+	Parallelism         int
+	PlainUI             bool
+	GenerateMappingFile bool
 }
 
 type GroupConfig struct {

@@ -2,7 +2,6 @@ package meta
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -106,8 +105,13 @@ func (meta *MetaGroupImpl) ListResource() (ImportList, error) {
 			item.Recommendations = []string{res.TFType}
 		}
 
-		if len(meta.resourceMapping) != 0 {
-			if entity, ok := meta.resourceMapping[strings.ToUpper(res.AzureId.String())]; ok {
+		m := resmap.ResourceMapping{}
+		for k, v := range meta.resourceMapping {
+			m[strings.ToUpper(k)] = v
+		}
+
+		if len(m) != 0 {
+			if entity, ok := m[strings.ToUpper(res.AzureId.String())]; ok {
 				item.TFResourceId = entity.ResourceId
 				item.TFAddr = tfaddr.TFAddr{
 					Type: entity.ResourceType,
@@ -124,29 +128,6 @@ func (meta *MetaGroupImpl) ListResource() (ImportList, error) {
 		l = append(l, item)
 	}
 	return l, nil
-}
-
-func (meta MetaGroupImpl) ExportResourceMapping(l ImportList) error {
-	m := resmap.ResourceMapping{}
-	for _, item := range l {
-		if item.Skip() {
-			continue
-		}
-		m[strings.ToUpper(item.AzureResourceID.String())] = resmap.ResourceMapEntity{
-			ResourceId:   item.TFResourceId,
-			ResourceType: item.TFAddr.Type,
-			ResourceName: item.TFAddr.Name,
-		}
-	}
-	output := filepath.Join(meta.Workspace(), ResourceMappingFileName)
-	b, err := json.MarshalIndent(m, "", "\t")
-	if err != nil {
-		return fmt.Errorf("JSON marshalling the resource mapping: %v", err)
-	}
-	if err := os.WriteFile(output, b, 0644); err != nil {
-		return fmt.Errorf("writing the resource mapping to %s: %v", output, err)
-	}
-	return nil
 }
 
 func (meta MetaGroupImpl) ExportSkippedResources(l ImportList) error {

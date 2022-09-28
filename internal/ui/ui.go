@@ -53,6 +53,8 @@ func (s status) String() string {
 		"importing",
 		"import error message",
 		"generating Terraform configuration",
+		"exporting resource mapping file",
+		"exporting skipped resources file",
 		"summary",
 		"quitting",
 		"error",

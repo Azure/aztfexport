@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/Azure/aztfy/internal/client"
 	"github.com/Azure/aztfy/internal/config"
+	"github.com/Azure/aztfy/internal/resmap"
 	"github.com/Azure/aztfy/internal/utils"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
 	"github.com/hashicorp/hcl/v2"
@@ -30,6 +32,7 @@ type meta interface {
 	Import(item *ImportItem)
 	CleanTFState(addr string)
 	GenerateCfg(ImportList) error
+	ExportResourceMapping(ImportList) error
 }
 
 var _ meta = &Meta{}
@@ -213,6 +216,29 @@ func (meta Meta) Import(item *ImportItem) {
 
 func (meta Meta) GenerateCfg(l ImportList) error {
 	return meta.generateCfg(l, meta.lifecycleAddon, meta.addDependency)
+}
+
+func (meta Meta) ExportResourceMapping(l ImportList) error {
+	m := resmap.ResourceMapping{}
+	for _, item := range l {
+		if item.Skip() {
+			continue
+		}
+		m[item.AzureResourceID.String()] = resmap.ResourceMapEntity{
+			ResourceId:   item.TFResourceId,
+			ResourceType: item.TFAddr.Type,
+			ResourceName: item.TFAddr.Name,
+		}
+	}
+	output := filepath.Join(meta.Workspace(), ResourceMappingFileName)
+	b, err := json.MarshalIndent(m, "", "\t")
+	if err != nil {
+		return fmt.Errorf("JSON marshalling the resource mapping: %v", err)
+	}
+	if err := os.WriteFile(output, b, 0644); err != nil {
+		return fmt.Errorf("writing the resource mapping to %s: %v", output, err)
+	}
+	return nil
 }
 
 func (meta Meta) generateCfg(l ImportList, cfgTrans ...TFConfigTransformer) error {

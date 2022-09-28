@@ -152,12 +152,12 @@ In batch mode, instead of interactively specifying the mapping from Azurem resou
 
 ```json
 {
-    "<AZURE RESOURCE ID1 IN UPPERCASE>": {
+    "<Azure resource id1>": {
         "resource_type" : "<terraform resource type>",
         "resource_name" : "<terraform resource name>",
         "resource_id"   : "<terraform resource id>"
     },
-    "<AZURE RESOURCE ID2 IN UPPERCASE>": {
+    "<Azure resource id2>": {
         "resource_type" : "<terraform resource type>",
         "resource_name" : "<terraform resource name>",
         "resource_id"   : "<terraform resource id>"
@@ -170,17 +170,17 @@ Example:
 
 ```json
 {
-	"/SUBSCRIPTIONS/0000/RESOURCEGROUPS/AZTFY-VMDISK": {
+	"/subscriptions/0000/resourceGroups/aztfy-vmdisk": {
 		"resource_id": "/subscriptions/0000/resourceGroups/aztfy-vmdisk",
 		"resource_type": "azurerm_resource_group",
 		"resource_name": "res-1"
 	},
-	"/SUBSCRIPTIONS/0000/RESOURCEGROUPS/AZTFY-VMDISK/PROVIDERS/MICROSOFT.COMPUTE/DISKS/AZTFY-TEST-TEST": {
+	"/subscriptions/0000/resourceGroups/aztfy-vmdisk/providers/Microsoft.Compute/disks/aztfy-test-test": {
 		"resource_id": "/subscriptions/0000/resourceGroups/aztfy-vmdisk/providers/Microsoft.Compute/disks/aztfy-test-test",
 		"resource_type": "azurerm_managed_disk",
 		"resource_name": "res-2"
 	},
-	"/SUBSCRIPTIONS/0000/RESOURCEGROUPS/AZTFY-VMDISK/PROVIDERS/MICROSOFT.COMPUTE/VIRTUALMACHINES/AZTFY-TEST-TEST": {
+	"/subscriptions/0000/resourceGroups/aztfy-vmdisk/providers/Microsoft.Compute/virtualMachines/aztfy-test-test": {
 		"resource_id": "/subscriptions/0000/resourceGroups/aztfy-vmdisk/providers/Microsoft.Compute/virtualMachines/aztfy-test-test",
 		"resource_type": "azurerm_linux_virtual_machine",
 		"resource_name": "res-3"
