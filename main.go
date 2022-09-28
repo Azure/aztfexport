@@ -25,15 +25,16 @@ import (
 func main() {
 	var (
 		// common flags
-		flagSubscriptionId string
-		flagOutputDir      string
-		flagOverwrite      bool
-		flagAppend         bool
-		flagDevProvider    bool
-		flagBackendType    string
-		flagBackendConfig  cli.StringSlice
-		flagFullConfig     bool
-		flagParallelism    int
+		flagSubscriptionId      string
+		flagOutputDir           string
+		flagOverwrite           bool
+		flagAppend              bool
+		flagDevProvider         bool
+		flagBackendType         string
+		flagBackendConfig       cli.StringSlice
+		flagFullConfig          bool
+		flagParallelism         int
+		flagGenerateMappingFile bool
 
 		// common flags (hidden)
 		hflagLogPath string
@@ -134,6 +135,13 @@ func main() {
 			Value:       10,
 			Destination: &flagParallelism,
 		},
+		&cli.BoolFlag{
+			Name:        "generate-mapping-file",
+			Aliases:     []string{"g"},
+			EnvVars:     []string{"AZTFY_GENERATE_MAPPING_FILE"},
+			Usage:       "In batch mode, only generate the resource mapping file, but DO NOT import any resource",
+			Destination: &flagGenerateMappingFile,
+		},
 
 		// Hidden flags
 		&cli.StringFlag{
@@ -172,7 +180,7 @@ func main() {
 			Name:        "continue",
 			EnvVars:     []string{"AZTFY_CONTINUE"},
 			Aliases:     []string{"k"},
-			Usage:       "Whether continue on import error (batch mode only)",
+			Usage:       "In batch mode, whether to continue on any import error",
 			Destination: &flagContinue,
 		},
 		&cli.StringFlag{
@@ -233,6 +241,9 @@ func main() {
 					if flagContinue && !flagBatchMode {
 						return fmt.Errorf("`--continue` must be used together with `--batch`")
 					}
+					if flagGenerateMappingFile && !flagBatchMode {
+						return fmt.Errorf("`--generate-mapping-file` must be used together with `--batch`")
+					}
 
 					predicate := c.Args().First()
 
@@ -259,16 +270,17 @@ func main() {
 					cfg := config.GroupConfig{
 						MockClient: hflagMockClient,
 						CommonConfig: config.CommonConfig{
-							SubscriptionId: subscriptionId,
-							OutputDir:      flagOutputDir,
-							Overwrite:      flagOverwrite,
-							Append:         flagAppend,
-							DevProvider:    flagDevProvider,
-							BackendType:    flagBackendType,
-							BackendConfig:  flagBackendConfig.Value(),
-							FullConfig:     flagFullConfig,
-							Parallelism:    flagParallelism,
-							PlainUI:        hflagPlainUI,
+							SubscriptionId:      subscriptionId,
+							OutputDir:           flagOutputDir,
+							Overwrite:           flagOverwrite,
+							Append:              flagAppend,
+							DevProvider:         flagDevProvider,
+							BackendType:         flagBackendType,
+							BackendConfig:       flagBackendConfig.Value(),
+							FullConfig:          flagFullConfig,
+							Parallelism:         flagParallelism,
+							PlainUI:             hflagPlainUI,
+							GenerateMappingFile: flagGenerateMappingFile,
 						},
 					}
 
@@ -324,6 +336,9 @@ func main() {
 					if flagContinue && !flagBatchMode {
 						return fmt.Errorf("`--continue` must be used together with `--batch`")
 					}
+					if flagGenerateMappingFile && !flagBatchMode {
+						return fmt.Errorf("`--generate-mapping-file` must be used together with `--batch`")
+					}
 
 					rg := c.Args().First()
 
@@ -350,16 +365,17 @@ func main() {
 					cfg := config.GroupConfig{
 						MockClient: hflagMockClient,
 						CommonConfig: config.CommonConfig{
-							SubscriptionId: subscriptionId,
-							OutputDir:      flagOutputDir,
-							Overwrite:      flagOverwrite,
-							Append:         flagAppend,
-							DevProvider:    flagDevProvider,
-							BackendType:    flagBackendType,
-							BackendConfig:  flagBackendConfig.Value(),
-							FullConfig:     flagFullConfig,
-							Parallelism:    flagParallelism,
-							PlainUI:        hflagPlainUI,
+							SubscriptionId:      subscriptionId,
+							OutputDir:           flagOutputDir,
+							Overwrite:           flagOverwrite,
+							Append:              flagAppend,
+							DevProvider:         flagDevProvider,
+							BackendType:         flagBackendType,
+							BackendConfig:       flagBackendConfig.Value(),
+							FullConfig:          flagFullConfig,
+							Parallelism:         flagParallelism,
+							PlainUI:             hflagPlainUI,
+							GenerateMappingFile: flagGenerateMappingFile,
 						},
 					}
 
@@ -456,17 +472,18 @@ func main() {
 					// Initialize the config
 					cfg := config.ResConfig{
 						CommonConfig: config.CommonConfig{
-							SubscriptionId: subscriptionId,
-							OutputDir:      flagOutputDir,
-							Overwrite:      flagOverwrite,
-							Append:         flagAppend,
-							DevProvider:    flagDevProvider,
-							BatchMode:      true,
-							BackendType:    flagBackendType,
-							BackendConfig:  flagBackendConfig.Value(),
-							FullConfig:     flagFullConfig,
-							Parallelism:    flagParallelism,
-							PlainUI:        hflagPlainUI,
+							SubscriptionId:      subscriptionId,
+							OutputDir:           flagOutputDir,
+							Overwrite:           flagOverwrite,
+							Append:              flagAppend,
+							DevProvider:         flagDevProvider,
+							BatchMode:           true,
+							BackendType:         flagBackendType,
+							BackendConfig:       flagBackendConfig.Value(),
+							FullConfig:          flagFullConfig,
+							Parallelism:         flagParallelism,
+							PlainUI:             hflagPlainUI,
+							GenerateMappingFile: flagGenerateMappingFile,
 						},
 						ResourceId:   resId,
 						ResourceName: flagName,

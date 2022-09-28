@@ -77,6 +77,16 @@ func ResourceImport(ctx context.Context, cfg config.ResConfig) error {
 			l = append(l, item)
 		}
 
+		msg.SetStatus("Exporting Resource Mapping file...")
+		if err := c.ExportResourceMapping(l); err != nil {
+			return fmt.Errorf("exporting Resource Mapping file: %v", err)
+		}
+
+		// Return early if only generating mapping file
+		if cfg.GenerateMappingFile {
+			return nil
+		}
+
 		msgs := []string{}
 		for _, item := range l {
 			msgs = append(msgs, fmt.Sprintf(`Resource Address: %s
@@ -133,6 +143,21 @@ func BatchImport(cfg config.GroupConfig, continueOnError bool) error {
 			return err
 		}
 
+		msg.SetStatus("Exporting Skipped Resource file...")
+		if err := c.ExportSkippedResources(list); err != nil {
+			return fmt.Errorf("exporting Skipped Resource file: %v", err)
+		}
+
+		msg.SetStatus("Exporting Resource Mapping file...")
+		if err := c.ExportResourceMapping(list); err != nil {
+			return fmt.Errorf("exporting Resource Mapping file: %v", err)
+		}
+
+		// Return early if only generating mapping file
+		if cfg.GenerateMappingFile {
+			return nil
+		}
+
 		msg.SetStatus("Importing resources...")
 		for i := range list {
 			if list[i].Skip() {
@@ -149,16 +174,6 @@ func BatchImport(cfg config.GroupConfig, continueOnError bool) error {
 				}
 				warnings = append(warnings, msg)
 			}
-		}
-
-		msg.SetStatus("Exporting Resource Mapping file...")
-		if err := c.ExportResourceMapping(list); err != nil {
-			return fmt.Errorf("exporting Resource Mapping file: %v", err)
-		}
-
-		msg.SetStatus("Exporting Skipped Resource file...")
-		if err := c.ExportSkippedResources(list); err != nil {
-			return fmt.Errorf("exporting Skipped Resource file: %v", err)
 		}
 
 		msg.SetStatus("Generating Terraform configurations...")
