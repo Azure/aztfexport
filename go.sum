@@ -26,6 +26,8 @@ github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/dataprotection/armdataprot
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/dataprotection/armdataprotection v1.0.0/go.mod h1:CmZQSRwBPP7KNjDA+PHaoR2m8wgOsbTd9ncqZgSzgHA=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/datashare/armdatashare v1.0.0 h1:9xFFUWVgkCIRg42rNq9cnaq/hct+tV5eCwja+1BBcpk=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/datashare/armdatashare v1.0.0/go.mod h1:O8rDteaSO14ijw1tEpQ1+h8doTODhRPcbaxT+hqlsRo=
+github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/desktopvirtualization/armdesktopvirtualization v1.0.0 h1:E404espBxzBWw7BlZa7TONlqMEH7P3P8XCe686PSmZQ=
+github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/desktopvirtualization/armdesktopvirtualization v1.0.0/go.mod h1:XM/9J9tLtumXaGIJwbsbm7WlsZwxOtKB34HwmFW9qyU=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/devtestlabs/armdevtestlabs v1.0.0 h1:GuqpJGl+Ua5hVijY/ovYSO+iTf1QHDZDFXtVSLrZeq8=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/devtestlabs/armdevtestlabs v1.0.0/go.mod h1:igAw5va/nEHEc8OYWPz+g3y1LdPig04qMS+9aqwtn+w=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/digitaltwins/armdigitaltwins v1.0.0 h1:7zDYZ29qnHH8+QJ+oIIAb1NnBIXE2OmeIraWtd76OZI=
@@ -61,6 +63,8 @@ github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storage/armstorage v1.0.0 
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storage/armstorage v1.0.0/go.mod h1:c+Lifp3EDEamAkPVzMooRNOK6CZjNSdEnf1A7jsI9u4=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storagecache/armstoragecache v1.0.0 h1:3UQFOxKO93+20/+4mZweaGTbICtgQDRchk946N6/mvI=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storagecache/armstoragecache v1.0.0/go.mod h1:3n9xGw4M5LJpJLV62q8elF/XpfC/f4CY0SudWJuQOIQ=
+github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storagepool/armstoragepool v1.0.0 h1:x51iJ683OHrnUqfTsRM8Q5yAOb+a08ifYWPc8+fFifc=
+github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storagepool/armstoragepool v1.0.0/go.mod h1:4QQ4coy9WcnRgkB8P1wfhcnHqfhU2rD2NOaqEUmBBno=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/streamanalytics/armstreamanalytics v1.0.0 h1:IDuSHsqMhi6PysfqSycxXBz7WOYRGSvw31IK/Zio8cA=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/streamanalytics/armstreamanalytics v1.0.0/go.mod h1:44ZAL1LS24yrReci8LqmY3tY9sX0wf/wXadZNT8SQHY=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/synapse/armsynapse v0.5.0 h1:CMHxfGGGbg9ua3uSBNRdhKa+fciYNavayBiG0I6LA34=
@@ -179,8 +183,8 @@ github.com/magodo/armid v0.0.0-20220923023118-aec41eaf7370 h1:n8RrB7jcZ9lQE7tyF2
 github.com/magodo/armid v0.0.0-20220923023118-aec41eaf7370/go.mod h1:rR8E7zfGMbmfnSQvrkFiWYdhrfTqsVSltelnZB09BwA=
 github.com/magodo/azlist v0.0.0-20220923015326-17b16cc9b805 h1:kDaY1/REkmmcBxPJdAETUD/J0MpE++P3Zdc9gGl+x30=
 github.com/magodo/azlist v0.0.0-20220923015326-17b16cc9b805/go.mod h1:Zke5PFfagiNep06RgNgMXgpLVW4LafSWJJqSQKQAd80=
-github.com/magodo/aztft v0.1.1-0.20220923054138-3dfe6a12ed5e h1:yV2GuHH07JefAUx84efDK43SSDj8/1fBZCoA1m8jbp0=
-github.com/magodo/aztft v0.1.1-0.20220923054138-3dfe6a12ed5e/go.mod h1:WvcLoLom5tLx+aVDRbImtg7V/D3avnUEN9YSI3+92n8=
+github.com/magodo/aztft v0.3.0 h1:7T+HqyEoDo3WGvTsLVhUeM5iZQJHha34HI2BG5jMCm8=
+github.com/magodo/aztft v0.3.0/go.mod h1:tk3eGjxk+d+Y3fcenXT2fWMLGZqzHww4mdxYuvcrfLU=
 github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6 h1:CElHO4hPXC+Eivy8sUC/WrnH3jmQzdF2x0lEXBEYul8=
 github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6/go.mod h1:Cn4fFwFH/Ddw9sjWPeSS72bNaxbM+FRXf7pkGEDReq8=
 github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0 h1:aNtr4iNv/tex2t8W1u3scAoNHEnFlTKhNNHOpYStqbs=

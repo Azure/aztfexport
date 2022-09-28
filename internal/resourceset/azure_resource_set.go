@@ -15,9 +15,6 @@ type AzureResourceSet struct {
 type AzureResource struct {
 	Id         armid.ResourceId
 	Properties map[string]interface{}
-
-	// PesudoResourceInfo is only non-nil for the specially populated resources
-	PesudoResourceInfo *PesudoResourceInfo
 }
 
 type PesudoResourceInfo struct {
@@ -28,39 +25,37 @@ type PesudoResourceInfo struct {
 func (rset AzureResourceSet) ToTFResources() []TFResource {
 	tfresources := []TFResource{}
 	for _, res := range rset.Resources {
-		// This is a TF pesudo resource, whose TF info are already available.
-		if res.PesudoResourceInfo != nil {
+		azureId := res.Id.String()
+		tftypes, tfids, exact, err := aztft.QueryTypeAndId(azureId, true)
+		if err != nil {
+			log.Printf("WARNING: Failed to query resource type for %s: %v\n", azureId, err)
+			// Still put this unresolved resource in the resource set, so that users can later specify the expected TF resource type.
 			tfresources = append(tfresources, TFResource{
 				AzureId: res.Id,
-				TFId:    res.PesudoResourceInfo.TFId,
-				TFType:  res.PesudoResourceInfo.TFType,
+				// Use the azure ID as the TF ID as a fallback
+				TFId: azureId,
 			})
-			continue
-		}
-
-		azureId := res.Id.String()
-		var (
-			// Use the azure ID as the TF ID as a fallback
-			tfId   = azureId
-			tfType string
-		)
-		tftypes, tfids, err := aztft.QueryTypeAndId(azureId, true)
-		if err == nil {
-			if len(tfids) == 1 && len(tftypes) == 1 {
-				tfId = tfids[0]
-				tfType = tftypes[0]
-			} else {
-				log.Printf("WARNING: Expect one query result for resource type and TF id for %s, got %d type and %d id.\n", azureId, len(tftypes), len(tfids))
-			}
 		} else {
-			log.Printf("WARNING: Failed to query resource type for %s: %v\n", azureId, err)
+			if !exact {
+				// It is not possible to return multiple result when API is used.
+				log.Printf("WARNING: No query result for resource type and TF id for %s\n", azureId)
+				// Still put this unresolved resource in the resource set, so that users can later specify the expected TF resource type.
+				tfresources = append(tfresources, TFResource{
+					AzureId: res.Id,
+					// Use the azure ID as the TF ID as a fallback
+					TFId: azureId,
+				})
+			} else {
+				for i := range tfids {
+					tfresources = append(tfresources, TFResource{
+						AzureId: tftypes[i].AzureId,
+						TFId:    tfids[i],
+						TFType:  tftypes[i].TFType,
+					})
+				}
+			}
 		}
 
-		tfresources = append(tfresources, TFResource{
-			AzureId: res.Id,
-			TFId:    tfId,
-			TFType:  tfType,
-		})
 	}
 
 	sort.Slice(tfresources, func(i, j int) bool {

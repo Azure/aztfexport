@@ -16,7 +16,7 @@ require (
 	github.com/hashicorp/terraform-exec v0.17.2
 	github.com/magodo/armid v0.0.0-20220923023118-aec41eaf7370
 	github.com/magodo/azlist v0.0.0-20220923015326-17b16cc9b805
-	github.com/magodo/aztft v0.1.1-0.20220923054138-3dfe6a12ed5e
+	github.com/magodo/aztft v0.3.0
 	github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
 	github.com/magodo/tfadd v0.10.1-0.20220923051211-d1a1b9297df4
@@ -41,6 +41,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/datafactory/armdatafactory v1.2.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/dataprotection/armdataprotection v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/datashare/armdatashare v1.0.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/desktopvirtualization/armdesktopvirtualization v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/devtestlabs/armdevtestlabs v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/digitaltwins/armdigitaltwins v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/domainservices/armdomainservices v1.0.0 // indirect
@@ -56,6 +57,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/securityinsights/armsecurityinsights/v2 v2.0.0-beta.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storage/armstorage v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storagecache/armstoragecache v1.0.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storagepool/armstoragepool v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/streamanalytics/armstreamanalytics v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/synapse/armsynapse v0.5.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/timeseriesinsights/armtimeseriesinsights v1.0.0 // indirect
