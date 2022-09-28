@@ -6,19 +6,18 @@ import (
 	"strings"
 
 	"github.com/magodo/armid"
-	"github.com/magodo/aztft/aztft"
 
 	"github.com/tidwall/gjson"
 )
 
-// PopulateResourceTypesNeedsBody is a map to record resources that need API body to decide whether to populate.
-// This is used in single resource mode to see whether an API call is needed.
-var PopulateResourceTypesNeedsBody = map[string]bool{
+// PopulateResourceTypes is a map to record resources that might to be populate other resources.
+// This is used in single resource mode to decide whether to call API to get its body.
+var PopulateResourceTypes = map[string]bool{
 	"MICROSOFT.COMPUTE/VIRTUALMACHINES": true,
 }
 
-// PopulateResource populate single resource for certain Azure resouce type that is known might maps to more than one TF resources.
-// In most cases, this step is used to populate the Azure managed resource, or the Terraform pesudo (i.e. association/property-like) resource.
+// PopulateResource populate single resource for certain Azure resouce type that is known might maps to more than one TF resources, which are missing from azlist.
+// In most cases, this step is used to populate the Azure managed resource.
 func (rset *AzureResourceSet) PopulateResource() error {
 	// Populate managed data disk (and the association) for VMs that are missing from Azure exported resource set.
 	if err := rset.populateForVirtualMachine(); err != nil {
@@ -75,29 +74,6 @@ func (rset *AzureResourceSet) populateForVirtualMachine() error {
 			return fmt.Errorf(`populating managed disks for %q: %v`, res.Id, err)
 		}
 		rset.Resources = append(rset.Resources, disks...)
-
-		// Add the association resource
-		for _, disk := range disks {
-			diskName := disk.Id.Names()[0]
-
-			// It doesn't matter using linux/windows below, as their resource ids are the same.
-			vmTFId, err := aztft.QueryId(res.Id.String(), "azurerm_linux_virtual_machine", false)
-			if err != nil {
-				return fmt.Errorf("querying resource id for %s: %v", res.Id, err)
-			}
-
-			azureId := res.Id.Clone().(*armid.ScopedResourceId)
-			azureId.AttrTypes = append(azureId.AttrTypes, "dataDisks")
-			azureId.AttrNames = append(azureId.AttrNames, diskName)
-
-			rset.Resources = append(rset.Resources, AzureResource{
-				Id: azureId,
-				PesudoResourceInfo: &PesudoResourceInfo{
-					TFType: "azurerm_virtual_machine_data_disk_attachment",
-					TFId:   vmTFId + "/dataDisks/" + diskName,
-				},
-			})
-		}
 	}
 	return nil
 }

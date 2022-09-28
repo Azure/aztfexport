@@ -38,7 +38,7 @@ func ResourceImport(ctx context.Context, cfg config.ResConfig) error {
 		// Populating resource requires API body. We only call GET on the known resources because:
 		// 1. The ARM schema API version might be wrong
 		// 2. Resoruce mode supports pesudo resources defined by aztft (e.g. key vault certificate), which has no Azure counterpart
-		if resourceset.PopulateResourceTypesNeedsBody[strings.ToUpper(c.AzureId.TypeString())] {
+		if resourceset.PopulateResourceTypes[strings.ToUpper(c.AzureId.TypeString())] {
 			body, err := c.GetAzureResource(ctx)
 			if err != nil {
 				return err

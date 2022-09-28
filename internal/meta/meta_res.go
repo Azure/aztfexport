@@ -70,17 +70,17 @@ func (meta ResMeta) GetAzureResource(ctx context.Context) (map[string]interface{
 }
 
 func (meta ResMeta) QueryResourceTypeAndId() (string, string, error) {
-	lrt, lid, err := aztft.QueryTypeAndId(meta.AzureId.String(), true)
+	ltype, lid, _, err := aztft.QueryTypeAndId(meta.AzureId.String(), true)
 	if err != nil {
 		return "", "", err
 	}
-	if len(lrt) != 1 {
-		return "", "", fmt.Errorf("expect exactly one resource type, got=%d", len(lrt))
+	if len(ltype) != 1 {
+		return "", "", fmt.Errorf("expect exactly one resource type, got=%d", len(ltype))
 	}
 	if len(lid) != 1 {
 		return "", "", fmt.Errorf("expect exactly one resource id, got=%d", len(lid))
 	}
-	return lrt[0], lid[0], nil
+	return ltype[0].TFType, lid[0], nil
 }
 
 func (meta ResMeta) QueryResourceId(rt string) (string, error) {
