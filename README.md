@@ -118,7 +118,7 @@ aztfy resource /subscriptions/0000/resourceGroups/rg1/providers/Microsoft.Comput
 
 The command will automatically identify the Terraform resource type (e.g. correctly identifies above resource as `azurerm_linux_virtual_machine`), and import it into state file and generate the Terraform configuration.
 
-> ❗For data plane only resources (e.g. `azurerm_key_vault_certificate`), the resource id is using a pesudo format, as is defined [here](https://github.com/magodo/aztft#pesudo-resource-id).
+> ❗For data plane only or property-like resources, the Azure resource ID is using a pesudo format, as is defined [here](https://github.com/magodo/aztft#pesudo-resource-id).
 
 ### Terrafy a Resource Group
 
@@ -134,21 +134,11 @@ The command will automatically identify the Terraform resource type (e.g. correc
 
 To workaround above, you can query with a bigger scope (e.g. `type =~ "microsoft.network/virtualnetworks"`) in interactive mode, then manually remove the resources other than subnets.
 
-#### Interactive Mode
+### Terrafy a Predefined Set of Resources
 
-In interactive mode, `aztfy` list all the resources resides in the specified resource group or customized set. For each resource, user is expected to input the Terraform resource address in form of `<resource type>.<resource name>` (e.g. `azurerm_linux_virtual_machine.test`). Users can press `r` to see the possible resource type(s) for the selected import item. In case there is exactly one resource type match for the import item, that resource type will be automatically filled in the text input for the users, with a 💡 line prefix as an indication.
+`aztfy mapping-file [option] <resource mapping file>` terrafies a set of resources that is defined in the resource mapping file.
 
-In some cases, there are Azure resources that have no corresponding Terraform resources (e.g. due to lacks of Terraform support), or some resources might be created as a side effect of provisioning another resource (e.g. the OS Disk resource is created automatically when provisioning a VM). In these cases, you can skip these resources without typing anything.
-
-> 💡 Option `--resource-mapping`/`-m` can be used to specify a resource mapping file, either constructed manually or from other runs of `aztfy` (generated in the output directory with name: _.aztfyResourceMapping.json_).
-
-After going through all the resources to be imported, users press `w` to instruct `aztfy` to proceed importing resources into Terraform state and generating the Terraform configuration.
-
-As the last step, `aztfy` will leverage the ARM template to inject dependencies between each resource. This makes the generated Terraform template to be useful.
-
-#### Batch Mode
-
-In batch mode, instead of interactively specifying the mapping from Azurem resource id to the Terraform resource info, users are expected to provide that mapping via the resource mapping file, with the following format:
+The format of the mapping file is defined below:
 
 ```json
 {
@@ -189,11 +179,27 @@ Example:
 }
 ```
 
-Then the tool will import each specified resource in the mapping file (if exists) and skip the others.
+You can generate the mapping file in other modes (i.e. `resource`, `resource-group`, `query`) by specifying the `--generate-mapping-file` option when running non-interactively, or press <kbd>s</kbd> when running interactively in the resource list stage. Also, each run of `aztfy` will generate the resource mapping file for you, to record what resources have been imported.
 
-Especially if the no resource mapping file is specified, `aztfy` will only import the "recognized" resources for you, based on its knowledge on the ARM and Terraform resource mappings.
+Of course, you are welcome to manually construct or edit the mapping file.
 
-In the batch import mode, users can further specify the `--continue`/`-k` option to make the tool continue even on hitting import error of any resource.
+> ❗For data plane only or property-like resources, the Azure resource ID is using a pesudo format, as is defined [here](https://github.com/magodo/aztft#pesudo-resource-id).
+
+### Interactive vs Non-Interactive
+
+The subcommands `resource-group`, `query` and `mapping-file` can run in either interactive mode (default) or non-interactive mode (with `--batch`). While `resource` runs in non-interactive mode only.
+
+#### Interactive mode
+
+In interactive mode, `aztfy` list all the resources resides in the specified resource group or customized set. For each resource, `aztfy` will try to recognize the corresponding Terraform resource type. If it finds one, the line will be prefixed by a 💡 as an indicator. Otherwise, user is expected to input the Terraform resource address in form of `<resource type>.<resource name>` (e.g. `azurerm_linux_virtual_machine.test`). Users can press `r` to see the possible resource type(s) for the selected resource.
+
+In some cases, there are Azure resources that have no corresponding Terraform resources (e.g. due to lacks of Terraform support), or some resources might be created as a side effect of provisioning another resource (e.g. the OS Disk resource is created automatically when provisioning a VM). In these cases, you can skip these resources without typing anything.
+
+After going through all the resources to be imported, users press `w` to instruct `aztfy` to proceed importing resources into Terraform state and generating the Terraform configuration.
+
+#### Non-Interactive mode
+
+In non-interactive mode, `aztfy` only imports the recognized resources, and skip the others. Users can further specify the `--continue`/`-k` option to make the tool continue even on hitting any import error.
 
 ### Remote Backend
 
@@ -202,7 +208,7 @@ By default `aztfy` uses local backend to store the state file. While it is also 
 E.g. to use the [`azurerm` backend](https://www.terraform.io/language/settings/backends/azurerm#azurerm), users can invoke `aztfy` like following:
 
 ```shell
-aztfy --backend-type=azurerm --backend-config=resource_group_name=<resource group name> --backend-config=storage_account_name=<account name> --backend-config=container_name=<container name> --backend-config=key=terraform.tfstate <importing resource group name>
+aztfy [subcommand] --backend-type=azurerm --backend-config=resource_group_name=<resource group name> --backend-config=storage_account_name=<account name> --backend-config=container_name=<container name> --backend-config=key=terraform.tfstate 
 ```
 
 ### Import Into Existing Local State
@@ -224,16 +230,6 @@ This means if the output directory has an active Terraform workspace, i.e. there
 ## Limitation
 
 There are several limitations causing `aztfy` can hardly generate reproducible Terraform configurations.
-
-### N:M Model Mappings
-
-Azure resources are modeled differently in AzureRM provider.
-
-For example, the `azurerm_lb_backend_address_pool_address` is actually a property of `azurerm_lb_backend_address_pool` in Azure platform. Whilst in the AzureRM provider, it has its own resource and a synthetic resource ID as `/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.Network/loadBalancers/loadBalancer1/backendAddressPools/backendAddressPool1/addresses/address1`.
-
-Another popular case is that in the AzureRM provider, there are a bunch of "association" resources, e.g. the `azurerm_network_interface_security_group_association`. These "association" resources represent the association relationship between two Terraform resources (in this case they are `azurerm_network_interface` and `azurerm_network_security_group`). They also have some synthetic resource ID, e.g. `/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/mygroup1/providers/microsoft.network/networkInterfaces/example|/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/group1/providers/Microsoft.Network/networkSecurityGroups/group1`.
-
-Currently, this tool only works on the assumption that there is 1:1 mapping between Azure resources and the Terraform resources. For those property-like Terraform resources, `aztfy` will just ignore them.
 
 ### AzureRM Provider Validation
 
