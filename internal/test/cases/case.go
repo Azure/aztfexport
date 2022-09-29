@@ -12,6 +12,7 @@ type SingleResourceContext struct {
 
 type Case interface {
 	Tpl(test.Data) string
+	Total() int
 	ResourceMapping(test.Data) (resmap.ResourceMapping, error)
 	SingleResourceContext(test.Data) ([]SingleResourceContext, error)
 }

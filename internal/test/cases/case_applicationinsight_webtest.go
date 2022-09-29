@@ -52,6 +52,10 @@ XML
 `, d.RandomRgName(), d.RandomStringOfLength(8))
 }
 
+func (CaseApplicationInsightWebTest) Total() int {
+	return 3
+}
+
 func (CaseApplicationInsightWebTest) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
 	return test.ResourceMapping(fmt.Sprintf(`{
 {{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | Quote }}: {

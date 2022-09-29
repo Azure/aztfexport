@@ -1,9 +1,10 @@
-package resource
+package resmap
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/Azure/aztfy/internal/test/cases"
 	"github.com/Azure/aztfy/internal/utils"
 	"github.com/hashicorp/terraform-exec/tfexec"
+	"github.com/stretchr/testify/require"
 )
 
 func runCase(t *testing.T, d test.Data, c cases.Case) {
@@ -56,30 +58,31 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 	time.Sleep(delay)
 
 	aztfyDir := t.TempDir()
-	l, err := c.SingleResourceContext(d)
-	if err != nil {
-		t.Fatalf("failed to get resource ids: %v", err)
+
+	mapFile := filepath.Join(t.TempDir(), "mapping.json")
+	resMapping, err := c.ResourceMapping(d)
+	require.NoError(t, err)
+	bMapping, err := json.Marshal(resMapping)
+	require.NoError(t, err)
+	require.NoError(t, utils.WriteFileSync(mapFile, bMapping, 0644))
+
+	cfg := config.GroupConfig{
+		CommonConfig: config.CommonConfig{
+			SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
+			OutputDir:      aztfyDir,
+			BackendType:    "local",
+			DevProvider:    true,
+			PlainUI:        true,
+		},
+		MappingFile: mapFile,
 	}
-	for idx, rctx := range l {
-		cfg := config.ResConfig{
-			CommonConfig: config.CommonConfig{
-				SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
-				OutputDir:      aztfyDir,
-				BackendType:    "local",
-				DevProvider:    true,
-				PlainUI:        true,
-				Overwrite:      true,
-			},
-			ResourceId:   rctx.AzureId,
-			ResourceName: fmt.Sprintf("res-%d", idx),
-		}
-		t.Logf("Resource importing %s\n", rctx.AzureId)
-		if err := internal.ResourceImport(ctx, cfg, false); err != nil {
-			t.Fatalf("failed to run resource import: %v", err)
-		}
-		test.Verify(t, ctx, aztfyDir, tfexecPath, rctx.ExpectResourceCount)
+	t.Logf("Batch importing the resource group %s\n", d.RandomRgName())
+	if err := internal.BatchImport(cfg, false); err != nil {
+		t.Fatalf("failed to run batch import: %v", err)
 	}
+	test.Verify(t, ctx, aztfyDir, tfexecPath, len(resMapping))
 }
+
 func TestComputeVMDisk(t *testing.T) {
 	t.Parallel()
 	test.Precheck(t)

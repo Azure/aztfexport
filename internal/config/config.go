@@ -1,9 +1,5 @@
 package config
 
-import (
-	"github.com/Azure/aztfy/internal/resmap"
-)
-
 type Config interface {
 	isConfig()
 }
@@ -29,8 +25,8 @@ type GroupConfig struct {
 	// Exactly one of below is non empty
 	ResourceGroupName string
 	ARGPredicate      string
+	MappingFile       string
 
-	ResourceMapping     resmap.ResourceMapping
 	ResourceNamePattern string
 	MockClient          bool
 	RecursiveQuery      bool

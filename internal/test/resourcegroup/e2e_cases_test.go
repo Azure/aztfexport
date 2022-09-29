@@ -55,10 +55,6 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 	time.Sleep(delay)
 
 	aztfyDir := t.TempDir()
-	resourceMapping, err := c.ResourceMapping(d)
-	if err != nil {
-		t.Fatalf("failed to get resource mapping: %v", err)
-	}
 	cfg := config.GroupConfig{
 		CommonConfig: config.CommonConfig{
 			SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
@@ -67,15 +63,14 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 			DevProvider:    true,
 			PlainUI:        true,
 		},
-		ResourceGroupName: d.RandomRgName(),
-		ResourceMapping:   resourceMapping,
-		RecursiveQuery:    true,
+		ResourceGroupName:   d.RandomRgName(),
+		ResourceNamePattern: "res-",
 	}
 	t.Logf("Batch importing the resource group %s\n", d.RandomRgName())
 	if err := internal.BatchImport(cfg, false); err != nil {
 		t.Fatalf("failed to run batch import: %v", err)
 	}
-	test.Verify(t, ctx, aztfyDir, tfexecPath, len(resourceMapping))
+	test.Verify(t, ctx, aztfyDir, tfexecPath, c.Total())
 }
 
 func TestComputeVMDisk(t *testing.T) {
@@ -106,12 +101,13 @@ func TestKeyVaultNestedItems(t *testing.T) {
 	runCase(t, d, c)
 }
 
-func TestFunctionAppSlot(t *testing.T) {
-	t.Parallel()
-	test.Precheck(t)
-	c, d := cases.CaseFunctionAppSlot{}, test.NewData()
-	runCase(t, d, c)
-}
+// There are a couple of additional resources will be created by the service, so skip this test for resouce group mode.
+// func TestFunctionAppSlot(t *testing.T) {
+// 	t.Parallel()
+// 	test.Precheck(t)
+// 	c, d := cases.CaseFunctionAppSlot{}, test.NewData()
+// 	runCase(t, d, c)
+// }
 
 func TestStorageFileShare(t *testing.T) {
 	t.Parallel()

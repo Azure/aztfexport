@@ -59,6 +59,10 @@ resource "azurerm_windows_function_app_slot" "test" {
 `, d.RandomRgName(), d.RandomStringOfLength(8))
 }
 
+func (CaseFunctionAppSlot) Total() int {
+	return 5
+}
+
 func (CaseFunctionAppSlot) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
 	return test.ResourceMapping(fmt.Sprintf(`{
 {{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | Quote }}: {

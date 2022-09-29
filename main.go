@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -25,36 +24,51 @@ import (
 func main() {
 	var (
 		// common flags
-		flagSubscriptionId      string
-		flagOutputDir           string
-		flagOverwrite           bool
-		flagAppend              bool
-		flagDevProvider         bool
-		flagBackendType         string
-		flagBackendConfig       cli.StringSlice
-		flagFullConfig          bool
-		flagParallelism         int
-		flagGenerateMappingFile bool
+		flagSubscriptionId string
+		flagOutputDir      string
+		flagOverwrite      bool
+		flagAppend         bool
+		flagDevProvider    bool
+		flagBackendType    string
+		flagBackendConfig  cli.StringSlice
+		flagFullConfig     bool
+		flagParallelism    int
+		flagContinue       bool
 
 		// common flags (hidden)
 		hflagLogPath string
 		hflagPlainUI bool
 
-		// rg & query flags
-		flagBatchMode   bool
-		flagContinue    bool
-		flagMappingFile string
-		flagPattern     string
+		// Subcommand specific flags
+		//
+		// res:
+		// flagName
+		// flagResType
+		// flagGenerateMappingFile
+		//
+		// rg:
+		// flagBatchMode
+		// flagPattern
+		// flagGenerateMappingFile
+		// hflagMockClient
+		//
+		// query:
+		// flagBatchMode
+		// flagPattern
+		// flagGenerateMappingFile
+		// flagRecursive
+		// hflagMockClient
+		//
+		// map:
+		// flagBatchMode
 
-		// rg & query flags (hidden)
-		hflagMockClient bool
-
-		// query only flags
-		flagRecursive bool
-
-		// res-only flags
-		flagName    string
-		flagResType string
+		flagGenerateMappingFile bool
+		flagBatchMode           bool
+		flagPattern             string
+		flagRecursive           bool
+		flagName                string
+		flagResType             string
+		hflagMockClient         bool
 	)
 
 	commonFlagsCheck := func() error {
@@ -136,11 +150,11 @@ func main() {
 			Destination: &flagParallelism,
 		},
 		&cli.BoolFlag{
-			Name:        "generate-mapping-file",
-			Aliases:     []string{"g"},
-			EnvVars:     []string{"AZTFY_GENERATE_MAPPING_FILE"},
-			Usage:       "In batch mode, only generate the resource mapping file, but DO NOT import any resource",
-			Destination: &flagGenerateMappingFile,
+			Name:        "continue",
+			EnvVars:     []string{"AZTFY_CONTINUE"},
+			Aliases:     []string{"k"},
+			Usage:       "In batch mode, whether to continue on any import error",
+			Destination: &flagContinue,
 		},
 
 		// Hidden flags
@@ -161,7 +175,31 @@ func main() {
 		},
 	}
 
-	resourceGroupFlags := []cli.Flag{
+	resourceFlags := append([]cli.Flag{
+		&cli.StringFlag{
+			Name:        "name",
+			EnvVars:     []string{"AZTFY_NAME"},
+			Aliases:     []string{"n"},
+			Usage:       `The Terraform resource name.`,
+			Value:       "res-0",
+			Destination: &flagName,
+		},
+		&cli.StringFlag{
+			Name:        "type",
+			EnvVars:     []string{"AZTFY_TYPE"},
+			Usage:       `The Terraform resource type.`,
+			Destination: &flagResType,
+		},
+		&cli.BoolFlag{
+			Name:        "generate-mapping-file",
+			Aliases:     []string{"g"},
+			EnvVars:     []string{"AZTFY_GENERATE_MAPPING_FILE"},
+			Usage:       "Only generate the resource mapping file, but DO NOT import any resource",
+			Destination: &flagGenerateMappingFile,
+		},
+	}, commonFlags...)
+
+	resourceGroupFlags := append([]cli.Flag{
 		&cli.BoolFlag{
 			Name:        "batch",
 			EnvVars:     []string{"AZTFY_BATCH"},
@@ -170,26 +208,19 @@ func main() {
 			Destination: &flagBatchMode,
 		},
 		&cli.StringFlag{
-			Name:        "resource-mapping",
-			EnvVars:     []string{"AZTFY_RESOURCE_MAPPING"},
-			Aliases:     []string{"m"},
-			Usage:       "The resource mapping file",
-			Destination: &flagMappingFile,
-		},
-		&cli.BoolFlag{
-			Name:        "continue",
-			EnvVars:     []string{"AZTFY_CONTINUE"},
-			Aliases:     []string{"k"},
-			Usage:       "In batch mode, whether to continue on any import error",
-			Destination: &flagContinue,
-		},
-		&cli.StringFlag{
 			Name:        "name-pattern",
 			EnvVars:     []string{"AZTFY_NAME_PATTERN"},
 			Aliases:     []string{"p"},
 			Usage:       `The pattern of the resource name. The semantic of a pattern is the same as Go's os.CreateTemp()`,
 			Value:       "res-",
 			Destination: &flagPattern,
+		},
+		&cli.BoolFlag{
+			Name:        "generate-mapping-file",
+			Aliases:     []string{"g"},
+			EnvVars:     []string{"AZTFY_GENERATE_MAPPING_FILE"},
+			Usage:       "In batch mode, only generate the resource mapping file, but DO NOT import any resource",
+			Destination: &flagGenerateMappingFile,
 		},
 
 		// Hidden flags
@@ -200,9 +231,9 @@ func main() {
 			Hidden:      true,
 			Destination: &hflagMockClient,
 		},
-	}
+	}, commonFlags...)
 
-	queryFlags := []cli.Flag{
+	queryFlags := append([]cli.Flag{
 		&cli.BoolFlag{
 			Name:        "recursive",
 			EnvVars:     []string{"AZTFY_RECURSIVE"},
@@ -210,7 +241,17 @@ func main() {
 			Usage:       "Whether to recursively list child resources of the query result",
 			Destination: &flagRecursive,
 		},
-	}
+	}, resourceGroupFlags...)
+
+	mappingFileFlags := append([]cli.Flag{
+		&cli.BoolFlag{
+			Name:        "batch",
+			EnvVars:     []string{"AZTFY_BATCH"},
+			Aliases:     []string{"b"},
+			Usage:       "Batch mode (i.e. Non-interactive mode)",
+			Destination: &flagBatchMode,
+		},
+	}, commonFlags...)
 
 	app := &cli.App{
 		Name:      "aztfy",
@@ -219,220 +260,11 @@ func main() {
 		UsageText: "aztfy [command] [option]",
 		Commands: []*cli.Command{
 			{
-				Name:      "query",
-				Usage:     "Terrafying a customized scope of resources determined by an Azure Resource Graph where predicate",
-				UsageText: "aztfy query [option] <ARG where predicate>",
-				Flags: append(
-					queryFlags,
-					append(
-						commonFlags,
-						resourceGroupFlags...,
-					)...),
-				Action: func(c *cli.Context) error {
-					if err := commonFlagsCheck(); err != nil {
-						return err
-					}
-					if c.NArg() == 0 {
-						return fmt.Errorf("No query specified")
-					}
-					if c.NArg() > 1 {
-						return fmt.Errorf("More than one queries specified")
-					}
-					if flagContinue && !flagBatchMode {
-						return fmt.Errorf("`--continue` must be used together with `--batch`")
-					}
-					if flagGenerateMappingFile && !flagBatchMode {
-						return fmt.Errorf("`--generate-mapping-file` must be used together with `--batch`")
-					}
-
-					predicate := c.Args().First()
-
-					// Initialize log
-					if err := initLog(hflagLogPath); err != nil {
-						return err
-					}
-
-					// Identify the subscription id, which comes from one of following (starts from the highest priority):
-					// - Command line option
-					// - Env variable: AZTFY_SUBSCRIPTION_ID
-					// - Env variable: ARM_SUBSCRIPTION_ID
-					// - Output of azure cli, the current active subscription
-					subscriptionId := flagSubscriptionId
-					if subscriptionId == "" {
-						var err error
-						subscriptionId, err = subscriptionIdFromCLI()
-						if err != nil {
-							return fmt.Errorf("retrieving subscription id from CLI: %v", err)
-						}
-					}
-
-					// Initialize the config
-					cfg := config.GroupConfig{
-						MockClient: hflagMockClient,
-						CommonConfig: config.CommonConfig{
-							SubscriptionId:      subscriptionId,
-							OutputDir:           flagOutputDir,
-							Overwrite:           flagOverwrite,
-							Append:              flagAppend,
-							DevProvider:         flagDevProvider,
-							BackendType:         flagBackendType,
-							BackendConfig:       flagBackendConfig.Value(),
-							FullConfig:          flagFullConfig,
-							Parallelism:         flagParallelism,
-							PlainUI:             hflagPlainUI,
-							GenerateMappingFile: flagGenerateMappingFile,
-						},
-					}
-
-					if flagMappingFile != "" {
-						b, err := os.ReadFile(flagMappingFile)
-						if err != nil {
-							return fmt.Errorf("reading mapping file %s: %v", flagMappingFile, err)
-						}
-						if err := json.Unmarshal(b, &cfg.ResourceMapping); err != nil {
-							return fmt.Errorf("unmarshalling the mapping file: %v", err)
-						}
-					}
-					cfg.ARGPredicate = predicate
-					cfg.ResourceNamePattern = flagPattern
-					cfg.BatchMode = flagBatchMode
-					cfg.RecursiveQuery = flagRecursive
-
-					// Run in batch mode
-					if cfg.BatchMode {
-						if err := internal.BatchImport(cfg, flagContinue); err != nil {
-							return err
-						}
-						return nil
-					}
-
-					// Run in interactive mode
-					prog, err := ui.NewProgram(cfg)
-					if err != nil {
-						return err
-					}
-					if err := prog.Start(); err != nil {
-						return err
-					}
-					return nil
-				},
-			},
-			{
-				Name:      "resource-group",
-				Aliases:   []string{"rg"},
-				Usage:     "Terrafying a resource group and the nested resources resides within it",
-				UsageText: "aztfy resource-group [option] <resource group name>",
-				Flags:     append(resourceGroupFlags, commonFlags...),
-				Action: func(c *cli.Context) error {
-					if err := commonFlagsCheck(); err != nil {
-						return err
-					}
-					if c.NArg() == 0 {
-						return fmt.Errorf("No resource group specified")
-					}
-					if c.NArg() > 1 {
-						return fmt.Errorf("More than one resource groups specified")
-					}
-					if flagContinue && !flagBatchMode {
-						return fmt.Errorf("`--continue` must be used together with `--batch`")
-					}
-					if flagGenerateMappingFile && !flagBatchMode {
-						return fmt.Errorf("`--generate-mapping-file` must be used together with `--batch`")
-					}
-
-					rg := c.Args().First()
-
-					// Initialize log
-					if err := initLog(hflagLogPath); err != nil {
-						return err
-					}
-
-					// Identify the subscription id, which comes from one of following (starts from the highest priority):
-					// - Command line option
-					// - Env variable: AZTFY_SUBSCRIPTION_ID
-					// - Env variable: ARM_SUBSCRIPTION_ID
-					// - Output of azure cli, the current active subscription
-					subscriptionId := flagSubscriptionId
-					if subscriptionId == "" {
-						var err error
-						subscriptionId, err = subscriptionIdFromCLI()
-						if err != nil {
-							return fmt.Errorf("retrieving subscription id from CLI: %v", err)
-						}
-					}
-
-					// Initialize the config
-					cfg := config.GroupConfig{
-						MockClient: hflagMockClient,
-						CommonConfig: config.CommonConfig{
-							SubscriptionId:      subscriptionId,
-							OutputDir:           flagOutputDir,
-							Overwrite:           flagOverwrite,
-							Append:              flagAppend,
-							DevProvider:         flagDevProvider,
-							BackendType:         flagBackendType,
-							BackendConfig:       flagBackendConfig.Value(),
-							FullConfig:          flagFullConfig,
-							Parallelism:         flagParallelism,
-							PlainUI:             hflagPlainUI,
-							GenerateMappingFile: flagGenerateMappingFile,
-						},
-					}
-
-					if flagMappingFile != "" {
-						b, err := os.ReadFile(flagMappingFile)
-						if err != nil {
-							return fmt.Errorf("reading mapping file %s: %v", flagMappingFile, err)
-						}
-						if err := json.Unmarshal(b, &cfg.ResourceMapping); err != nil {
-							return fmt.Errorf("unmarshalling the mapping file: %v", err)
-						}
-					}
-					cfg.ResourceGroupName = rg
-					cfg.ResourceNamePattern = flagPattern
-					cfg.BatchMode = flagBatchMode
-					cfg.RecursiveQuery = true
-
-					// Run in batch mode
-					if cfg.BatchMode {
-						if err := internal.BatchImport(cfg, flagContinue); err != nil {
-							return err
-						}
-						return nil
-					}
-
-					// Run in interactive mode
-					prog, err := ui.NewProgram(cfg)
-					if err != nil {
-						return err
-					}
-					if err := prog.Start(); err != nil {
-						return err
-					}
-					return nil
-				},
-			},
-			{
 				Name:      "resource",
 				Aliases:   []string{"res"},
 				Usage:     "Terrafying a single resource",
 				UsageText: "aztfy resource [option] <resource id>",
-				Flags: append([]cli.Flag{
-					&cli.StringFlag{
-						Name:        "name",
-						EnvVars:     []string{"AZTFY_NAME"},
-						Aliases:     []string{"n"},
-						Usage:       `The Terraform resource name.`,
-						Value:       "res-0",
-						Destination: &flagName,
-					},
-					&cli.StringFlag{
-						Name:        "type",
-						EnvVars:     []string{"AZTFY_TYPE"},
-						Usage:       `The Terraform resource type.`,
-						Destination: &flagResType,
-					},
-				}, commonFlags...),
+				Flags:     resourceFlags,
 				Action: func(c *cli.Context) error {
 					if err := commonFlagsCheck(); err != nil {
 						return err
@@ -490,7 +322,253 @@ func main() {
 						ResourceType: flagResType,
 					}
 
-					return internal.ResourceImport(c.Context, cfg)
+					return internal.ResourceImport(c.Context, cfg, flagContinue)
+				},
+			},
+			{
+				Name:      "resource-group",
+				Aliases:   []string{"rg"},
+				Usage:     "Terrafying a resource group and the nested resources resides within it",
+				UsageText: "aztfy resource-group [option] <resource group name>",
+				Flags:     resourceGroupFlags,
+				Action: func(c *cli.Context) error {
+					if err := commonFlagsCheck(); err != nil {
+						return err
+					}
+					if c.NArg() == 0 {
+						return fmt.Errorf("No resource group specified")
+					}
+					if c.NArg() > 1 {
+						return fmt.Errorf("More than one resource groups specified")
+					}
+					if flagContinue && !flagBatchMode {
+						return fmt.Errorf("`--continue` must be used together with `--batch`")
+					}
+					if flagGenerateMappingFile && !flagBatchMode {
+						return fmt.Errorf("`--generate-mapping-file` must be used together with `--batch`")
+					}
+
+					rg := c.Args().First()
+
+					// Initialize log
+					if err := initLog(hflagLogPath); err != nil {
+						return err
+					}
+
+					// Identify the subscription id, which comes from one of following (starts from the highest priority):
+					// - Command line option
+					// - Env variable: AZTFY_SUBSCRIPTION_ID
+					// - Env variable: ARM_SUBSCRIPTION_ID
+					// - Output of azure cli, the current active subscription
+					subscriptionId := flagSubscriptionId
+					if subscriptionId == "" {
+						var err error
+						subscriptionId, err = subscriptionIdFromCLI()
+						if err != nil {
+							return fmt.Errorf("retrieving subscription id from CLI: %v", err)
+						}
+					}
+
+					// Initialize the config
+					cfg := config.GroupConfig{
+						MockClient: hflagMockClient,
+						CommonConfig: config.CommonConfig{
+							SubscriptionId:      subscriptionId,
+							OutputDir:           flagOutputDir,
+							Overwrite:           flagOverwrite,
+							Append:              flagAppend,
+							DevProvider:         flagDevProvider,
+							BatchMode:           flagBatchMode,
+							BackendType:         flagBackendType,
+							BackendConfig:       flagBackendConfig.Value(),
+							FullConfig:          flagFullConfig,
+							Parallelism:         flagParallelism,
+							PlainUI:             hflagPlainUI,
+							GenerateMappingFile: flagGenerateMappingFile,
+						},
+						ResourceGroupName:   rg,
+						ResourceNamePattern: flagPattern,
+						RecursiveQuery:      true,
+					}
+
+					// Run in batch mode
+					if cfg.BatchMode {
+						if err := internal.BatchImport(cfg, flagContinue); err != nil {
+							return err
+						}
+						return nil
+					}
+
+					// Run in interactive mode
+					prog, err := ui.NewProgram(cfg)
+					if err != nil {
+						return err
+					}
+					if err := prog.Start(); err != nil {
+						return err
+					}
+					return nil
+				},
+			},
+			{
+				Name:      "query",
+				Usage:     "Terrafying a customized scope of resources determined by an Azure Resource Graph where predicate",
+				UsageText: "aztfy query [option] <ARG where predicate>",
+				Flags:     queryFlags,
+				Action: func(c *cli.Context) error {
+					if err := commonFlagsCheck(); err != nil {
+						return err
+					}
+					if c.NArg() == 0 {
+						return fmt.Errorf("No query specified")
+					}
+					if c.NArg() > 1 {
+						return fmt.Errorf("More than one queries specified")
+					}
+					if flagContinue && !flagBatchMode {
+						return fmt.Errorf("`--continue` must be used together with `--batch`")
+					}
+					if flagGenerateMappingFile && !flagBatchMode {
+						return fmt.Errorf("`--generate-mapping-file` must be used together with `--batch`")
+					}
+
+					predicate := c.Args().First()
+
+					// Initialize log
+					if err := initLog(hflagLogPath); err != nil {
+						return err
+					}
+
+					// Identify the subscription id, which comes from one of following (starts from the highest priority):
+					// - Command line option
+					// - Env variable: AZTFY_SUBSCRIPTION_ID
+					// - Env variable: ARM_SUBSCRIPTION_ID
+					// - Output of azure cli, the current active subscription
+					subscriptionId := flagSubscriptionId
+					if subscriptionId == "" {
+						var err error
+						subscriptionId, err = subscriptionIdFromCLI()
+						if err != nil {
+							return fmt.Errorf("retrieving subscription id from CLI: %v", err)
+						}
+					}
+
+					// Initialize the config
+					cfg := config.GroupConfig{
+						MockClient: hflagMockClient,
+						CommonConfig: config.CommonConfig{
+							SubscriptionId:      subscriptionId,
+							OutputDir:           flagOutputDir,
+							Overwrite:           flagOverwrite,
+							Append:              flagAppend,
+							DevProvider:         flagDevProvider,
+							BatchMode:           flagBatchMode,
+							BackendType:         flagBackendType,
+							BackendConfig:       flagBackendConfig.Value(),
+							FullConfig:          flagFullConfig,
+							Parallelism:         flagParallelism,
+							PlainUI:             hflagPlainUI,
+							GenerateMappingFile: flagGenerateMappingFile,
+						},
+						ARGPredicate:        predicate,
+						ResourceNamePattern: flagPattern,
+						RecursiveQuery:      flagRecursive,
+					}
+
+					// Run in batch mode
+					if cfg.BatchMode {
+						if err := internal.BatchImport(cfg, flagContinue); err != nil {
+							return err
+						}
+						return nil
+					}
+
+					// Run in interactive mode
+					prog, err := ui.NewProgram(cfg)
+					if err != nil {
+						return err
+					}
+					if err := prog.Start(); err != nil {
+						return err
+					}
+					return nil
+				},
+			},
+			{
+				Name:      "mapping-file",
+				Aliases:   []string{"map"},
+				Usage:     "Terrafying a customized scope of resources determined by the resource mapping file",
+				UsageText: "aztfy mapping-file [option] <resource mapping file>",
+				Flags:     mappingFileFlags,
+				Action: func(c *cli.Context) error {
+					if err := commonFlagsCheck(); err != nil {
+						return err
+					}
+					if c.NArg() == 0 {
+						return fmt.Errorf("No resource mapping file specified")
+					}
+					if c.NArg() > 1 {
+						return fmt.Errorf("More than one resource mapping files specified")
+					}
+
+					mapFile := c.Args().First()
+
+					// Initialize log
+					if err := initLog(hflagLogPath); err != nil {
+						return err
+					}
+
+					// Identify the subscription id, which comes from one of following (starts from the highest priority):
+					// - Command line option
+					// - Env variable: AZTFY_SUBSCRIPTION_ID
+					// - Env variable: ARM_SUBSCRIPTION_ID
+					// - Output of azure cli, the current active subscription
+					subscriptionId := flagSubscriptionId
+					if subscriptionId == "" {
+						var err error
+						subscriptionId, err = subscriptionIdFromCLI()
+						if err != nil {
+							return fmt.Errorf("retrieving subscription id from CLI: %v", err)
+						}
+					}
+
+					// Initialize the config
+					cfg := config.GroupConfig{
+						MockClient: hflagMockClient,
+						CommonConfig: config.CommonConfig{
+							SubscriptionId:      subscriptionId,
+							OutputDir:           flagOutputDir,
+							Overwrite:           flagOverwrite,
+							Append:              flagAppend,
+							DevProvider:         flagDevProvider,
+							BatchMode:           flagBatchMode,
+							BackendType:         flagBackendType,
+							BackendConfig:       flagBackendConfig.Value(),
+							FullConfig:          flagFullConfig,
+							Parallelism:         flagParallelism,
+							PlainUI:             hflagPlainUI,
+							GenerateMappingFile: flagGenerateMappingFile,
+						},
+						MappingFile: mapFile,
+					}
+
+					// Run in batch mode
+					if cfg.BatchMode {
+						if err := internal.BatchImport(cfg, flagContinue); err != nil {
+							return err
+						}
+						return nil
+					}
+
+					// Run in interactive mode
+					prog, err := ui.NewProgram(cfg)
+					if err != nil {
+						return err
+					}
+					if err := prog.Start(); err != nil {
+						return err
+					}
+					return nil
 				},
 			},
 		},

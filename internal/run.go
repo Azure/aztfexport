@@ -15,11 +15,13 @@ import (
 	"github.com/magodo/spinner"
 )
 
-func ResourceImport(ctx context.Context, cfg config.ResConfig) error {
+func ResourceImport(ctx context.Context, cfg config.ResConfig, continueOnError bool) error {
 	c, err := meta.NewResMeta(cfg)
 	if err != nil {
 		return err
 	}
+
+	var errors []string
 
 	f := func(msg Messager) error {
 		msg.SetStatus("Initializing...")
@@ -101,7 +103,11 @@ Resource Id  : %s`, item.TFAddr, item.TFResourceId))
 			msg.SetStatus(fmt.Sprintf("(%d/%d) Importing %s as %s", i+1, len(l), item.TFResourceId, item.TFAddr))
 			c.Import(item)
 			if err := item.ImportError; err != nil {
-				return fmt.Errorf("failed to import %s as %s: %v", item.TFResourceId, item.TFAddr, err)
+				msg := fmt.Sprintf("Failed to import %s as %s: %v", item.TFResourceId, item.TFAddr, err)
+				if !continueOnError {
+					return fmt.Errorf(msg)
+				}
+				errors = append(errors, msg)
 			}
 		}
 
@@ -114,15 +120,26 @@ Resource Id  : %s`, item.TFAddr, item.TFResourceId))
 	}
 
 	if cfg.PlainUI {
-		return f(&StdoutMessager{})
+		err = f(&StdoutMessager{})
+	} else {
+		s := bspinner.NewModel()
+		s.Spinner = common.Spinner
+		sf := func(msg spinner.Messager) error {
+			return f(&msg)
+		}
+		err = spinner.Run(s, sf)
 	}
 
-	s := bspinner.NewModel()
-	s.Spinner = common.Spinner
-	sf := func(msg spinner.Messager) error {
-		return f(&msg)
+	if err != nil {
+		return err
 	}
-	return spinner.Run(s, sf)
+
+	// Print out the errors, if any
+	if len(errors) != 0 {
+		fmt.Fprintln(os.Stderr, "Errors:\n"+strings.Join(errors, "\n"))
+	}
+
+	return nil
 }
 
 func BatchImport(cfg config.GroupConfig, continueOnError bool) error {
@@ -131,7 +148,7 @@ func BatchImport(cfg config.GroupConfig, continueOnError bool) error {
 		return err
 	}
 
-	var warnings []string
+	var errors []string
 
 	f := func(msg Messager) error {
 		msg.SetStatus("Initializing...")
@@ -163,8 +180,6 @@ func BatchImport(cfg config.GroupConfig, continueOnError bool) error {
 		msg.SetStatus("Importing resources...")
 		for i := range list {
 			if list[i].Skip() {
-				warnings = append(warnings, fmt.Sprintf("No mapping information for resource: %s, skip it", list[i].TFResourceId))
-				msg.SetDetail(strings.Join(warnings, "\n"))
 				continue
 			}
 			msg.SetStatus(fmt.Sprintf("(%d/%d) Importing %s as %s", i+1, len(list), list[i].TFResourceId, list[i].TFAddr))
@@ -174,7 +189,7 @@ func BatchImport(cfg config.GroupConfig, continueOnError bool) error {
 				if !continueOnError {
 					return fmt.Errorf(msg)
 				}
-				warnings = append(warnings, msg)
+				errors = append(errors, msg)
 			}
 		}
 
@@ -197,10 +212,14 @@ func BatchImport(cfg config.GroupConfig, continueOnError bool) error {
 		err = spinner.Run(s, sf)
 	}
 
-	// Print out the warnings, if any
-	if len(warnings) != 0 {
-		fmt.Fprintln(os.Stderr, "Warnings:\n"+strings.Join(warnings, "\n"))
+	if err != nil {
+		return err
 	}
 
-	return err
+	// Print out the errors, if any
+	if len(errors) != 0 {
+		fmt.Fprintln(os.Stderr, "Errors:\n"+strings.Join(errors, "\n"))
+	}
+
+	return nil
 }

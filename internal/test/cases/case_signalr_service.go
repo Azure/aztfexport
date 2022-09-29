@@ -37,6 +37,10 @@ resource "azurerm_signalr_service" "test" {
 `, d.RandomRgName(), d.RandomStringOfLength(8))
 }
 
+func (CaseSignalRService) Total() int {
+	return 2
+}
+
 func (CaseSignalRService) ResourceMapping(d test.Data) (resmap.ResourceMapping, error) {
 	return test.ResourceMapping(fmt.Sprintf(`{
 {{ "/subscriptions/%[1]s/resourcegroups/%[2]s" | Quote }}: {
