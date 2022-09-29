@@ -74,7 +74,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 			ResourceName: fmt.Sprintf("res-%d", idx),
 		}
 		t.Logf("Resource importing %s\n", rctx.AzureId)
-		if err := internal.ResourceImport(ctx, cfg); err != nil {
+		if err := internal.ResourceImport(ctx, cfg, false); err != nil {
 			t.Fatalf("failed to run resource import: %v", err)
 		}
 		test.Verify(t, ctx, aztfyDir, tfexecPath, rctx.ExpectResourceCount)
