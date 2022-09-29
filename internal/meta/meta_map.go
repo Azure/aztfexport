@@ -61,6 +61,7 @@ func (meta *MetaMap) ListResource() (ImportList, error) {
 				Type: res.ResourceType,
 				Name: res.ResourceName,
 			},
+			Recommendations: []string{res.ResourceType},
 		}
 		l = append(l, item)
 	}

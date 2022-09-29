@@ -61,6 +61,7 @@ func main() {
 		// hflagMockClient
 		//
 		// map:
+		// flagBatchMode
 		// flagContinue
 
 		flagGenerateMappingFile bool
@@ -245,15 +246,22 @@ func main() {
 		},
 	}, resourceGroupFlags...)
 
-	mappingFileFlags := []cli.Flag{
+	mappingFileFlags := append([]cli.Flag{
+		&cli.BoolFlag{
+			Name:        "batch",
+			EnvVars:     []string{"AZTFY_BATCH"},
+			Aliases:     []string{"b"},
+			Usage:       "Batch mode (i.e. Non-interactive mode)",
+			Destination: &flagBatchMode,
+		},
 		&cli.BoolFlag{
 			Name:        "continue",
 			EnvVars:     []string{"AZTFY_CONTINUE"},
 			Aliases:     []string{"k"},
-			Usage:       "Whether to continue on any import error",
+			Usage:       "In batch mode, whether to continue on any import error",
 			Destination: &flagContinue,
 		},
-	}
+	}, commonFlags...)
 
 	app := &cli.App{
 		Name:      "aztfy",
@@ -543,6 +551,7 @@ func main() {
 							Overwrite:           flagOverwrite,
 							Append:              flagAppend,
 							DevProvider:         flagDevProvider,
+							BatchMode:           flagBatchMode,
 							BackendType:         flagBackendType,
 							BackendConfig:       flagBackendConfig.Value(),
 							FullConfig:          flagFullConfig,
@@ -553,7 +562,23 @@ func main() {
 						MappingFile: mapFile,
 					}
 
-					return internal.BatchImport(cfg, flagContinue)
+					// Run in batch mode
+					if cfg.BatchMode {
+						if err := internal.BatchImport(cfg, flagContinue); err != nil {
+							return err
+						}
+						return nil
+					}
+
+					// Run in interactive mode
+					prog, err := ui.NewProgram(cfg)
+					if err != nil {
+						return err
+					}
+					if err := prog.Start(); err != nil {
+						return err
+					}
+					return nil
 				},
 			},
 		},
