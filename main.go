@@ -47,23 +47,23 @@ func main() {
 		// flagGenerateMappingFile
 		//
 		// rg:
-		// flagBatchMode
+		// flagNonInteractive
 		// flagPattern
 		// flagGenerateMappingFile
 		// hflagMockClient
 		//
 		// query:
-		// flagBatchMode
+		// flagNonInteractive
 		// flagPattern
 		// flagGenerateMappingFile
 		// flagRecursive
 		// hflagMockClient
 		//
 		// map:
-		// flagBatchMode
+		// flagNonInteractive
 
 		flagGenerateMappingFile bool
-		flagBatchMode           bool
+		flagBatch               bool
 		flagPattern             string
 		flagRecursive           bool
 		flagName                string
@@ -153,7 +153,7 @@ func main() {
 			Name:        "continue",
 			EnvVars:     []string{"AZTFY_CONTINUE"},
 			Aliases:     []string{"k"},
-			Usage:       "In batch mode, whether to continue on any import error",
+			Usage:       "In non-interactive mode, whether to continue on any import error",
 			Destination: &flagContinue,
 		},
 
@@ -169,7 +169,7 @@ func main() {
 		&cli.BoolFlag{
 			Name:        "plain-ui",
 			EnvVars:     []string{"AZTFY_PLAIN_UI"},
-			Usage:       "In batch mode, print the progress information line by line, rather than the spinner UI",
+			Usage:       "In non-interactive mode, print the progress information line by line, rather than the spinner UI",
 			Hidden:      true,
 			Destination: &hflagPlainUI,
 		},
@@ -201,11 +201,11 @@ func main() {
 
 	resourceGroupFlags := append([]cli.Flag{
 		&cli.BoolFlag{
-			Name:        "batch",
-			EnvVars:     []string{"AZTFY_BATCH"},
-			Aliases:     []string{"b"},
-			Usage:       "Batch mode (i.e. Non-interactive mode)",
-			Destination: &flagBatchMode,
+			Name:        "non-interactive",
+			EnvVars:     []string{"AZTFY_NON_INTERACTIVE"},
+			Aliases:     []string{"n"},
+			Usage:       "Non-interactive mode",
+			Destination: &flagBatch,
 		},
 		&cli.StringFlag{
 			Name:        "name-pattern",
@@ -219,7 +219,7 @@ func main() {
 			Name:        "generate-mapping-file",
 			Aliases:     []string{"g"},
 			EnvVars:     []string{"AZTFY_GENERATE_MAPPING_FILE"},
-			Usage:       "In batch mode, only generate the resource mapping file, but DO NOT import any resource",
+			Usage:       "In non-interactive mode, only generate the resource mapping file, but DO NOT import any resource",
 			Destination: &flagGenerateMappingFile,
 		},
 
@@ -245,11 +245,11 @@ func main() {
 
 	mappingFileFlags := append([]cli.Flag{
 		&cli.BoolFlag{
-			Name:        "batch",
-			EnvVars:     []string{"AZTFY_BATCH"},
-			Aliases:     []string{"b"},
-			Usage:       "Batch mode (i.e. Non-interactive mode)",
-			Destination: &flagBatchMode,
+			Name:        "non-interactive",
+			EnvVars:     []string{"AZTFY_NON_INTERACTIVE"},
+			Aliases:     []string{"n"},
+			Usage:       "Non-interactive mode",
+			Destination: &flagBatch,
 		},
 	}, commonFlags...)
 
@@ -309,7 +309,7 @@ func main() {
 							Overwrite:           flagOverwrite,
 							Append:              flagAppend,
 							DevProvider:         flagDevProvider,
-							BatchMode:           true,
+							Batch:               true,
 							BackendType:         flagBackendType,
 							BackendConfig:       flagBackendConfig.Value(),
 							FullConfig:          flagFullConfig,
@@ -341,11 +341,11 @@ func main() {
 					if c.NArg() > 1 {
 						return fmt.Errorf("More than one resource groups specified")
 					}
-					if flagContinue && !flagBatchMode {
-						return fmt.Errorf("`--continue` must be used together with `--batch`")
+					if flagContinue && !flagBatch {
+						return fmt.Errorf("`--continue` must be used together with `--non-interactive`")
 					}
-					if flagGenerateMappingFile && !flagBatchMode {
-						return fmt.Errorf("`--generate-mapping-file` must be used together with `--batch`")
+					if flagGenerateMappingFile && !flagBatch {
+						return fmt.Errorf("`--generate-mapping-file` must be used together with `--non-interactive`")
 					}
 
 					rg := c.Args().First()
@@ -378,7 +378,7 @@ func main() {
 							Overwrite:           flagOverwrite,
 							Append:              flagAppend,
 							DevProvider:         flagDevProvider,
-							BatchMode:           flagBatchMode,
+							Batch:               flagBatch,
 							BackendType:         flagBackendType,
 							BackendConfig:       flagBackendConfig.Value(),
 							FullConfig:          flagFullConfig,
@@ -391,8 +391,8 @@ func main() {
 						RecursiveQuery:      true,
 					}
 
-					// Run in batch mode
-					if cfg.BatchMode {
+					// Run in non-interactive mode
+					if cfg.Batch {
 						if err := internal.BatchImport(cfg, flagContinue); err != nil {
 							return err
 						}
@@ -425,11 +425,11 @@ func main() {
 					if c.NArg() > 1 {
 						return fmt.Errorf("More than one queries specified")
 					}
-					if flagContinue && !flagBatchMode {
-						return fmt.Errorf("`--continue` must be used together with `--batch`")
+					if flagContinue && !flagBatch {
+						return fmt.Errorf("`--continue` must be used together with `--non-interactive`")
 					}
-					if flagGenerateMappingFile && !flagBatchMode {
-						return fmt.Errorf("`--generate-mapping-file` must be used together with `--batch`")
+					if flagGenerateMappingFile && !flagBatch {
+						return fmt.Errorf("`--generate-mapping-file` must be used together with `--non-interactive`")
 					}
 
 					predicate := c.Args().First()
@@ -462,7 +462,7 @@ func main() {
 							Overwrite:           flagOverwrite,
 							Append:              flagAppend,
 							DevProvider:         flagDevProvider,
-							BatchMode:           flagBatchMode,
+							Batch:               flagBatch,
 							BackendType:         flagBackendType,
 							BackendConfig:       flagBackendConfig.Value(),
 							FullConfig:          flagFullConfig,
@@ -475,8 +475,8 @@ func main() {
 						RecursiveQuery:      flagRecursive,
 					}
 
-					// Run in batch mode
-					if cfg.BatchMode {
+					// Run in non-interactive mode
+					if cfg.Batch {
 						if err := internal.BatchImport(cfg, flagContinue); err != nil {
 							return err
 						}
@@ -541,7 +541,7 @@ func main() {
 							Overwrite:           flagOverwrite,
 							Append:              flagAppend,
 							DevProvider:         flagDevProvider,
-							BatchMode:           flagBatchMode,
+							Batch:               flagBatch,
 							BackendType:         flagBackendType,
 							BackendConfig:       flagBackendConfig.Value(),
 							FullConfig:          flagFullConfig,
@@ -552,8 +552,8 @@ func main() {
 						MappingFile: mapFile,
 					}
 
-					// Run in batch mode
-					if cfg.BatchMode {
+					// Run in non-interactive mode
+					if cfg.Batch {
 						if err := internal.BatchImport(cfg, flagContinue); err != nil {
 							return err
 						}

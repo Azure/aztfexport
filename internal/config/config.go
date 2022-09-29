@@ -10,7 +10,7 @@ type CommonConfig struct {
 	Overwrite           bool
 	Append              bool
 	DevProvider         bool
-	BatchMode           bool
+	Batch               bool
 	BackendType         string
 	BackendConfig       []string
 	FullConfig          bool
