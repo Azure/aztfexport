@@ -21,45 +21,45 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+var (
+	// common flags
+	flagSubscriptionId      string
+	flagOutputDir           string
+	flagOverwrite           bool
+	flagAppend              bool
+	flagDevProvider         bool
+	flagBackendType         string
+	flagBackendConfig       cli.StringSlice
+	flagFullConfig          bool
+	flagParallelism         int
+	flagContinue            bool
+	flagNonInteractive      bool
+	flagGenerateMappingFile bool
+
+	// common flags (hidden)
+	hflagMockClient bool
+	hflagLogPath    string
+	hflagPlainUI    bool
+
+	// Subcommand specific flags
+	//
+	// res:
+	// flagResName
+	// flagResType
+	//
+	// rg:
+	// flagPattern
+	//
+	// query:
+	// flagPattern
+	// flagRecursive
+	flagPattern   string
+	flagRecursive bool
+	flagResName   string
+	flagResType   string
+)
+
 func main() {
-	var (
-		// common flags
-		flagSubscriptionId      string
-		flagOutputDir           string
-		flagOverwrite           bool
-		flagAppend              bool
-		flagDevProvider         bool
-		flagBackendType         string
-		flagBackendConfig       cli.StringSlice
-		flagFullConfig          bool
-		flagParallelism         int
-		flagContinue            bool
-		flagNonInteractive      bool
-		flagGenerateMappingFile bool
-
-		// common flags (hidden)
-		hflagMockClient bool
-		hflagLogPath    string
-		hflagPlainUI    bool
-
-		// Subcommand specific flags
-		//
-		// res:
-		// flagResName
-		// flagResType
-		//
-		// rg:
-		// flagPattern
-		//
-		// query:
-		// flagPattern
-		// flagRecursive
-		flagPattern   string
-		flagRecursive bool
-		flagResName   string
-		flagResType   string
-	)
-
 	commonFlagsCheck := func() error {
 		if flagAppend {
 			if flagBackendType != "local" {
@@ -238,6 +238,25 @@ func main() {
 		Version:   getVersion(),
 		Usage:     "Bring existing Azure resources under Terraform's management",
 		UsageText: "aztfy [command] [option]",
+		Before: func(ctx *cli.Context) error {
+			if err := commonFlagsCheck(); err != nil {
+				return err
+			}
+
+			// Identify the subscription id, which comes from one of following (starts from the highest priority):
+			// - Command line option
+			// - Env variable: AZTFY_SUBSCRIPTION_ID
+			// - Env variable: ARM_SUBSCRIPTION_ID
+			// - Output of azure cli, the current active subscription
+			if flagSubscriptionId == "" {
+				var err error
+				flagSubscriptionId, err = subscriptionIdFromCLI()
+				if err != nil {
+					return fmt.Errorf("retrieving subscription id from CLI: %v", err)
+				}
+			}
+			return nil
+		},
 		Commands: []*cli.Command{
 			{
 				Name:      "resource",
@@ -246,9 +265,6 @@ func main() {
 				UsageText: "aztfy resource [option] <resource id>",
 				Flags:     resourceFlags,
 				Action: func(c *cli.Context) error {
-					if err := commonFlagsCheck(); err != nil {
-						return err
-					}
 					if c.NArg() == 0 {
 						return fmt.Errorf("No resource id specified")
 					}
@@ -262,30 +278,11 @@ func main() {
 						return fmt.Errorf("invalid resource id: %v", err)
 					}
 
-					// Initialize log
-					if err := initLog(hflagLogPath); err != nil {
-						return err
-					}
-
-					// Identify the subscription id, which comes from one of following (starts from the highest priority):
-					// - Command line option
-					// - Env variable: AZTFY_SUBSCRIPTION_ID
-					// - Env variable: ARM_SUBSCRIPTION_ID
-					// - Output of azure cli, the current active subscription
-					subscriptionId := flagSubscriptionId
-					if subscriptionId == "" {
-						var err error
-						subscriptionId, err = subscriptionIdFromCLI()
-						if err != nil {
-							return fmt.Errorf("retrieving subscription id from CLI: %v", err)
-						}
-					}
-
 					// Initialize the config
 					cfg := config.Config{
 						MockClient: hflagMockClient,
 						CommonConfig: config.CommonConfig{
-							SubscriptionId:      subscriptionId,
+							SubscriptionId:      flagSubscriptionId,
 							OutputDir:           flagOutputDir,
 							Overwrite:           flagOverwrite,
 							Append:              flagAppend,
@@ -303,23 +300,7 @@ func main() {
 						TFResourceType: flagResType,
 					}
 
-					// Run in non-interactive mode
-					if cfg.Batch {
-						if err := internal.BatchImport(cfg, flagContinue); err != nil {
-							return err
-						}
-						return nil
-					}
-
-					// Run in interactive mode
-					prog, err := ui.NewProgram(cfg)
-					if err != nil {
-						return err
-					}
-					if err := prog.Start(); err != nil {
-						return err
-					}
-					return nil
+					return realMain(cfg)
 				},
 			},
 			{
@@ -329,9 +310,6 @@ func main() {
 				UsageText: "aztfy resource-group [option] <resource group name>",
 				Flags:     resourceGroupFlags,
 				Action: func(c *cli.Context) error {
-					if err := commonFlagsCheck(); err != nil {
-						return err
-					}
 					if c.NArg() == 0 {
 						return fmt.Errorf("No resource group specified")
 					}
@@ -341,30 +319,11 @@ func main() {
 
 					rg := c.Args().First()
 
-					// Initialize log
-					if err := initLog(hflagLogPath); err != nil {
-						return err
-					}
-
-					// Identify the subscription id, which comes from one of following (starts from the highest priority):
-					// - Command line option
-					// - Env variable: AZTFY_SUBSCRIPTION_ID
-					// - Env variable: ARM_SUBSCRIPTION_ID
-					// - Output of azure cli, the current active subscription
-					subscriptionId := flagSubscriptionId
-					if subscriptionId == "" {
-						var err error
-						subscriptionId, err = subscriptionIdFromCLI()
-						if err != nil {
-							return fmt.Errorf("retrieving subscription id from CLI: %v", err)
-						}
-					}
-
 					// Initialize the config
 					cfg := config.Config{
 						MockClient: hflagMockClient,
 						CommonConfig: config.CommonConfig{
-							SubscriptionId:      subscriptionId,
+							SubscriptionId:      flagSubscriptionId,
 							OutputDir:           flagOutputDir,
 							Overwrite:           flagOverwrite,
 							Append:              flagAppend,
@@ -382,23 +341,7 @@ func main() {
 						RecursiveQuery:      true,
 					}
 
-					// Run in non-interactive mode
-					if cfg.Batch {
-						if err := internal.BatchImport(cfg, flagContinue); err != nil {
-							return err
-						}
-						return nil
-					}
-
-					// Run in interactive mode
-					prog, err := ui.NewProgram(cfg)
-					if err != nil {
-						return err
-					}
-					if err := prog.Start(); err != nil {
-						return err
-					}
-					return nil
+					return realMain(cfg)
 				},
 			},
 			{
@@ -407,9 +350,6 @@ func main() {
 				UsageText: "aztfy query [option] <ARG where predicate>",
 				Flags:     queryFlags,
 				Action: func(c *cli.Context) error {
-					if err := commonFlagsCheck(); err != nil {
-						return err
-					}
 					if c.NArg() == 0 {
 						return fmt.Errorf("No query specified")
 					}
@@ -419,30 +359,11 @@ func main() {
 
 					predicate := c.Args().First()
 
-					// Initialize log
-					if err := initLog(hflagLogPath); err != nil {
-						return err
-					}
-
-					// Identify the subscription id, which comes from one of following (starts from the highest priority):
-					// - Command line option
-					// - Env variable: AZTFY_SUBSCRIPTION_ID
-					// - Env variable: ARM_SUBSCRIPTION_ID
-					// - Output of azure cli, the current active subscription
-					subscriptionId := flagSubscriptionId
-					if subscriptionId == "" {
-						var err error
-						subscriptionId, err = subscriptionIdFromCLI()
-						if err != nil {
-							return fmt.Errorf("retrieving subscription id from CLI: %v", err)
-						}
-					}
-
 					// Initialize the config
 					cfg := config.Config{
 						MockClient: hflagMockClient,
 						CommonConfig: config.CommonConfig{
-							SubscriptionId:      subscriptionId,
+							SubscriptionId:      flagSubscriptionId,
 							OutputDir:           flagOutputDir,
 							Overwrite:           flagOverwrite,
 							Append:              flagAppend,
@@ -460,23 +381,7 @@ func main() {
 						RecursiveQuery:      flagRecursive,
 					}
 
-					// Run in non-interactive mode
-					if cfg.Batch {
-						if err := internal.BatchImport(cfg, flagContinue); err != nil {
-							return err
-						}
-						return nil
-					}
-
-					// Run in interactive mode
-					prog, err := ui.NewProgram(cfg)
-					if err != nil {
-						return err
-					}
-					if err := prog.Start(); err != nil {
-						return err
-					}
-					return nil
+					return realMain(cfg)
 				},
 			},
 			{
@@ -486,9 +391,6 @@ func main() {
 				UsageText: "aztfy mapping-file [option] <resource mapping file>",
 				Flags:     mappingFileFlags,
 				Action: func(c *cli.Context) error {
-					if err := commonFlagsCheck(); err != nil {
-						return err
-					}
 					if c.NArg() == 0 {
 						return fmt.Errorf("No resource mapping file specified")
 					}
@@ -498,30 +400,11 @@ func main() {
 
 					mapFile := c.Args().First()
 
-					// Initialize log
-					if err := initLog(hflagLogPath); err != nil {
-						return err
-					}
-
-					// Identify the subscription id, which comes from one of following (starts from the highest priority):
-					// - Command line option
-					// - Env variable: AZTFY_SUBSCRIPTION_ID
-					// - Env variable: ARM_SUBSCRIPTION_ID
-					// - Output of azure cli, the current active subscription
-					subscriptionId := flagSubscriptionId
-					if subscriptionId == "" {
-						var err error
-						subscriptionId, err = subscriptionIdFromCLI()
-						if err != nil {
-							return fmt.Errorf("retrieving subscription id from CLI: %v", err)
-						}
-					}
-
 					// Initialize the config
 					cfg := config.Config{
 						MockClient: hflagMockClient,
 						CommonConfig: config.CommonConfig{
-							SubscriptionId:      subscriptionId,
+							SubscriptionId:      flagSubscriptionId,
 							OutputDir:           flagOutputDir,
 							Overwrite:           flagOverwrite,
 							Append:              flagAppend,
@@ -537,23 +420,7 @@ func main() {
 						MappingFile: mapFile,
 					}
 
-					// Run in non-interactive mode
-					if cfg.Batch {
-						if err := internal.BatchImport(cfg, flagContinue); err != nil {
-							return err
-						}
-						return nil
-					}
-
-					// Run in interactive mode
-					prog, err := ui.NewProgram(cfg)
-					if err != nil {
-						return err
-					}
-					if err := prog.Start(); err != nil {
-						return err
-					}
-					return nil
+					return realMain(cfg)
 				},
 			},
 		},
@@ -603,4 +470,29 @@ func subscriptionIdFromCLI() (string, error) {
 		return "", fmt.Errorf("subscription id is not specified")
 	}
 	return strconv.Unquote(strings.TrimSpace(stdout.String()))
+}
+
+func realMain(cfg config.Config) error {
+	// Initialize log
+	if err := initLog(hflagLogPath); err != nil {
+		return err
+	}
+
+	// Run in non-interactive mode
+	if cfg.Batch {
+		if err := internal.BatchImport(cfg, flagContinue); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	// Run in interactive mode
+	prog, err := ui.NewProgram(cfg)
+	if err != nil {
+		return err
+	}
+	if err := prog.Start(); err != nil {
+		return err
+	}
+	return nil
 }

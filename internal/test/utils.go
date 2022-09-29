@@ -77,6 +77,11 @@ func Verify(t *testing.T, ctx context.Context, aztfyDir, tfexecPath string, expe
 				if change == nil {
 					continue
 				}
+				before, _ := json.MarshalIndent(change.Change.Before, "", "  ")
+				after, _ := json.MarshalIndent(change.Change.After, "", "  ")
+				if string(before) == string(after) {
+					continue
+				}
 				b, err := json.MarshalIndent(change.Change, "", "  ")
 				if err != nil {
 					t.Logf("failed to marshal plan for %s: %v", change.Address, err)
