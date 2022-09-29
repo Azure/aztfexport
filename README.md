@@ -122,11 +122,11 @@ The command will automatically identify the Terraform resource type (e.g. correc
 
 ### Terrafy a Resource Group
 
-`aztfy resource-group [option] <resource group name>` terrafies a resource group and its including resources by its name. Depending on whether `--batch` is used, it can work in either interactive mode or batch mode.
+`aztfy resource-group [option] <resource group name>` terrafies a resource group and its including resources by its name.
 
 ### Terrafy a Customized Set of Resources
 
-`aztfy query [option] <arg where predicate>` terrafies a set of resources (and its including resources with `--recursive`) by an Azure Resource Graph [`where` predicate](https://learn.microsoft.com/en-us/azure/data-explorer/kusto/query/whereoperator). Depending on whether `--batch` is used, it can work in either interactive mode or batch mode.
+`aztfy query [option] <arg where predicate>` terrafies a set of resources (and its including resources with `--recursive`) by an Azure Resource Graph [`where` predicate](https://learn.microsoft.com/en-us/azure/data-explorer/kusto/query/whereoperator).
 
 > 💡 Resource group mode is the same as running `aztfy query --recursive "resourceGroup =~ 'my-rg'"`, except it also add on the resource group itself.
 
@@ -179,13 +179,13 @@ Example:
 }
 ```
 
-You can generate the mapping file in other modes (i.e. `resource`, `resource-group`, `query`) by specifying the `--generate-mapping-file` option when running non-interactively, or press <kbd>s</kbd> when running interactively in the resource list stage. Also, each run of `aztfy` will generate the resource mapping file for you, to record what resources have been imported.
+You can generate the mapping file in all other modes (i.e. `resource`, `resource-group`, `query`) by specifying the `--generate-mapping-file` option when running non-interactively, or press <kbd>s</kbd> when running interactively in the resource list stage. Also, each run of `aztfy` will generate the resource mapping file for you, to record what resources have been imported.
 
 Of course, you are welcome to manually construct or edit the mapping file. Note that only the object value in the mapping file matters, while the key just plays as an identifier in this mode. 
 
 ### Interactive vs Non-Interactive
 
-The subcommands `resource-group`, `query` and `mapping-file` can run in either interactive mode (default) or non-interactive mode (with `--batch`). While `resource` runs in non-interactive mode only.
+The subcommands `resource-group`, `query` and `mapping-file` can run in either interactive mode (default) or non-interactive mode (with `--non-interactive`). While `resource` runs in non-interactive mode only.
 
 #### Interactive mode
 

@@ -91,7 +91,7 @@ func NewMeta(cfg config.CommonConfig) (*Meta, error) {
 				}
 				empty = true
 			} else {
-				if cfg.BatchMode {
+				if cfg.Batch {
 					return nil, fmt.Errorf("the output directory %q is not empty", outdir)
 				}
 
