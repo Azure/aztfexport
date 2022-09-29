@@ -181,9 +181,7 @@ Example:
 
 You can generate the mapping file in other modes (i.e. `resource`, `resource-group`, `query`) by specifying the `--generate-mapping-file` option when running non-interactively, or press <kbd>s</kbd> when running interactively in the resource list stage. Also, each run of `aztfy` will generate the resource mapping file for you, to record what resources have been imported.
 
-Of course, you are welcome to manually construct or edit the mapping file.
-
-> ❗For data plane only or property-like resources, the Azure resource ID is using a pesudo format, as is defined [here](https://github.com/magodo/aztft#pesudo-resource-id).
+Of course, you are welcome to manually construct or edit the mapping file. Note that only the object value in the mapping file matters, while the key just plays as an identifier in this mode. 
 
 ### Interactive vs Non-Interactive
 
