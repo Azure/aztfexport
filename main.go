@@ -33,6 +33,7 @@ func main() {
 		flagBackendConfig  cli.StringSlice
 		flagFullConfig     bool
 		flagParallelism    int
+		flagContinue       bool
 
 		// common flags (hidden)
 		hflagLogPath string
@@ -47,14 +48,12 @@ func main() {
 		//
 		// rg:
 		// flagBatchMode
-		// flagContinue
 		// flagPattern
 		// flagGenerateMappingFile
 		// hflagMockClient
 		//
 		// query:
 		// flagBatchMode
-		// flagContinue
 		// flagPattern
 		// flagGenerateMappingFile
 		// flagRecursive
@@ -62,10 +61,8 @@ func main() {
 		//
 		// map:
 		// flagBatchMode
-		// flagContinue
 
 		flagGenerateMappingFile bool
-		flagContinue            bool
 		flagBatchMode           bool
 		flagPattern             string
 		flagRecursive           bool
@@ -152,6 +149,13 @@ func main() {
 			Value:       10,
 			Destination: &flagParallelism,
 		},
+		&cli.BoolFlag{
+			Name:        "continue",
+			EnvVars:     []string{"AZTFY_CONTINUE"},
+			Aliases:     []string{"k"},
+			Usage:       "In batch mode, whether to continue on any import error",
+			Destination: &flagContinue,
+		},
 
 		// Hidden flags
 		&cli.StringFlag{
@@ -203,13 +207,6 @@ func main() {
 			Usage:       "Batch mode (i.e. Non-interactive mode)",
 			Destination: &flagBatchMode,
 		},
-		&cli.BoolFlag{
-			Name:        "continue",
-			EnvVars:     []string{"AZTFY_CONTINUE"},
-			Aliases:     []string{"k"},
-			Usage:       "In batch mode, whether to continue on any import error",
-			Destination: &flagContinue,
-		},
 		&cli.StringFlag{
 			Name:        "name-pattern",
 			EnvVars:     []string{"AZTFY_NAME_PATTERN"},
@@ -253,13 +250,6 @@ func main() {
 			Aliases:     []string{"b"},
 			Usage:       "Batch mode (i.e. Non-interactive mode)",
 			Destination: &flagBatchMode,
-		},
-		&cli.BoolFlag{
-			Name:        "continue",
-			EnvVars:     []string{"AZTFY_CONTINUE"},
-			Aliases:     []string{"k"},
-			Usage:       "In batch mode, whether to continue on any import error",
-			Destination: &flagContinue,
 		},
 	}, commonFlags...)
 
@@ -332,7 +322,7 @@ func main() {
 						ResourceType: flagResType,
 					}
 
-					return internal.ResourceImport(c.Context, cfg)
+					return internal.ResourceImport(c.Context, cfg, flagContinue)
 				},
 			},
 			{
