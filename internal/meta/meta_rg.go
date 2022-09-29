@@ -11,23 +11,23 @@ import (
 	"github.com/magodo/azlist/azlist"
 )
 
-var _ GroupMeta = &MetaResourceGroup{}
+var _ Meta = &MetaResourceGroup{}
 
 type MetaResourceGroup struct {
-	Meta
+	baseMeta
 	resourceGroup      string
 	resourceNamePrefix string
 	resourceNameSuffix string
 }
 
-func newMetaResourceGroup(cfg config.GroupConfig) (GroupMeta, error) {
-	baseMeta, err := NewMeta(cfg.CommonConfig)
+func newMetaResourceGroup(cfg config.Config) (Meta, error) {
+	baseMeta, err := NewBaseMeta(cfg.CommonConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	meta := &MetaResourceGroup{
-		Meta:          *baseMeta,
+		baseMeta:      *baseMeta,
 		resourceGroup: cfg.ResourceGroupName,
 	}
 	meta.resourceNamePrefix, meta.resourceNameSuffix = resourceNamePattern(cfg.ResourceNamePattern)
@@ -74,10 +74,6 @@ func (meta *MetaResourceGroup) ListResource() (ImportList, error) {
 		l = append(l, item)
 	}
 	return l, nil
-}
-
-func (meta MetaResourceGroup) ExportSkippedResources(l ImportList) error {
-	return exportSkippedResources(l, meta.Workspace())
 }
 
 func (meta MetaResourceGroup) queryResourceSet(ctx context.Context, rg string) (*resourceset.AzureResourceSet, error) {

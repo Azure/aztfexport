@@ -148,7 +148,7 @@ func (CaseComputeVMDisk) SingleResourceContext(d test.Data) ([]SingleResourceCon
 		},
 		{
 			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/virtualMachines/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
-			ExpectResourceCount: 3,
+			ExpectResourceCount: 2,
 		},
 		{
 			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/networkInterfaces/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),

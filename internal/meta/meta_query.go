@@ -10,24 +10,24 @@ import (
 	"github.com/magodo/azlist/azlist"
 )
 
-var _ GroupMeta = &MetaQuery{}
+var _ Meta = &MetaQuery{}
 
 type MetaQuery struct {
-	Meta
+	baseMeta
 	argPredicate       string
 	recursiveQuery     bool
 	resourceNamePrefix string
 	resourceNameSuffix string
 }
 
-func newMetaQuery(cfg config.GroupConfig) (GroupMeta, error) {
-	baseMeta, err := NewMeta(cfg.CommonConfig)
+func newMetaQuery(cfg config.Config) (Meta, error) {
+	baseMeta, err := NewBaseMeta(cfg.CommonConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	meta := &MetaQuery{
-		Meta:           *baseMeta,
+		baseMeta:       *baseMeta,
 		argPredicate:   cfg.ARGPredicate,
 		recursiveQuery: cfg.RecursiveQuery,
 	}
@@ -79,10 +79,6 @@ func (meta *MetaQuery) ListResource() (ImportList, error) {
 		l = append(l, item)
 	}
 	return l, nil
-}
-
-func (meta MetaQuery) ExportSkippedResources(l ImportList) error {
-	return exportSkippedResources(l, meta.Workspace())
 }
 
 func (meta MetaQuery) queryResourceSet(ctx context.Context, predicate string, recursive bool) (*resourceset.AzureResourceSet, error) {

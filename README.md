@@ -185,7 +185,7 @@ Of course, you are welcome to manually construct or edit the mapping file. Note 
 
 ### Interactive vs Non-Interactive
 
-The subcommands `resource-group`, `query` and `mapping-file` can run in either interactive mode (default) or non-interactive mode (with `--non-interactive`). While `resource` runs in non-interactive mode only.
+By default `aztfy` runs in interactive mode, whilst you can also run in non-interactive mode by adding the `--non-interactive`/`-n` option.
 
 #### Interactive mode
 

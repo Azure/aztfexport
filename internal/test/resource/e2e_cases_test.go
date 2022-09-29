@@ -61,7 +61,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 		t.Fatalf("failed to get resource ids: %v", err)
 	}
 	for idx, rctx := range l {
-		cfg := config.ResConfig{
+		cfg := config.Config{
 			CommonConfig: config.CommonConfig{
 				SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
 				OutputDir:      aztfyDir,
@@ -70,11 +70,11 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 				PlainUI:        true,
 				Overwrite:      true,
 			},
-			ResourceId:   rctx.AzureId,
-			ResourceName: fmt.Sprintf("res-%d", idx),
+			ResourceId:     rctx.AzureId,
+			TFResourceName: fmt.Sprintf("res-%d", idx),
 		}
 		t.Logf("Resource importing %s\n", rctx.AzureId)
-		if err := internal.ResourceImport(ctx, cfg, false); err != nil {
+		if err := internal.BatchImport(cfg, false); err != nil {
 			t.Fatalf("failed to run resource import: %v", err)
 		}
 		test.Verify(t, ctx, aztfyDir, tfexecPath, rctx.ExpectResourceCount)

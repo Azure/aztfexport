@@ -16,14 +16,14 @@ type result struct {
 }
 
 type Model struct {
-	c        meta.GroupMeta
+	c        meta.Meta
 	l        meta.ImportList
 	idx      int
 	results  []result
 	progress prog.Model
 }
 
-func NewModel(c meta.GroupMeta, l meta.ImportList) Model {
+func NewModel(c meta.Meta, l meta.ImportList) Model {
 	return Model{
 		c:        c,
 		l:        l,
