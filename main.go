@@ -238,25 +238,6 @@ func main() {
 		Version:   getVersion(),
 		Usage:     "Bring existing Azure resources under Terraform's management",
 		UsageText: "aztfy [command] [option]",
-		Before: func(ctx *cli.Context) error {
-			if err := commonFlagsCheck(); err != nil {
-				return err
-			}
-
-			// Identify the subscription id, which comes from one of following (starts from the highest priority):
-			// - Command line option
-			// - Env variable: AZTFY_SUBSCRIPTION_ID
-			// - Env variable: ARM_SUBSCRIPTION_ID
-			// - Output of azure cli, the current active subscription
-			if flagSubscriptionId == "" {
-				var err error
-				flagSubscriptionId, err = subscriptionIdFromCLI()
-				if err != nil {
-					return fmt.Errorf("retrieving subscription id from CLI: %v", err)
-				}
-			}
-			return nil
-		},
 		Commands: []*cli.Command{
 			{
 				Name:      "resource",
@@ -265,11 +246,28 @@ func main() {
 				UsageText: "aztfy resource [option] <resource id>",
 				Flags:     resourceFlags,
 				Action: func(c *cli.Context) error {
+					if err := commonFlagsCheck(); err != nil {
+						return err
+					}
+
 					if c.NArg() == 0 {
 						return fmt.Errorf("No resource id specified")
 					}
 					if c.NArg() > 1 {
 						return fmt.Errorf("More than one resource ids specified")
+					}
+
+					// Identify the subscription id, which comes from one of following (starts from the highest priority):
+					// - Command line option
+					// - Env variable: AZTFY_SUBSCRIPTION_ID
+					// - Env variable: ARM_SUBSCRIPTION_ID
+					// - Output of azure cli, the current active subscription
+					if flagSubscriptionId == "" {
+						var err error
+						flagSubscriptionId, err = subscriptionIdFromCLI()
+						if err != nil {
+							return fmt.Errorf("retrieving subscription id from CLI: %v", err)
+						}
 					}
 
 					resId := c.Args().First()
@@ -310,11 +308,28 @@ func main() {
 				UsageText: "aztfy resource-group [option] <resource group name>",
 				Flags:     resourceGroupFlags,
 				Action: func(c *cli.Context) error {
+					if err := commonFlagsCheck(); err != nil {
+						return err
+					}
+
 					if c.NArg() == 0 {
 						return fmt.Errorf("No resource group specified")
 					}
 					if c.NArg() > 1 {
 						return fmt.Errorf("More than one resource groups specified")
+					}
+
+					// Identify the subscription id, which comes from one of following (starts from the highest priority):
+					// - Command line option
+					// - Env variable: AZTFY_SUBSCRIPTION_ID
+					// - Env variable: ARM_SUBSCRIPTION_ID
+					// - Output of azure cli, the current active subscription
+					if flagSubscriptionId == "" {
+						var err error
+						flagSubscriptionId, err = subscriptionIdFromCLI()
+						if err != nil {
+							return fmt.Errorf("retrieving subscription id from CLI: %v", err)
+						}
 					}
 
 					rg := c.Args().First()
@@ -350,11 +365,28 @@ func main() {
 				UsageText: "aztfy query [option] <ARG where predicate>",
 				Flags:     queryFlags,
 				Action: func(c *cli.Context) error {
+					if err := commonFlagsCheck(); err != nil {
+						return err
+					}
+
 					if c.NArg() == 0 {
 						return fmt.Errorf("No query specified")
 					}
 					if c.NArg() > 1 {
 						return fmt.Errorf("More than one queries specified")
+					}
+
+					// Identify the subscription id, which comes from one of following (starts from the highest priority):
+					// - Command line option
+					// - Env variable: AZTFY_SUBSCRIPTION_ID
+					// - Env variable: ARM_SUBSCRIPTION_ID
+					// - Output of azure cli, the current active subscription
+					if flagSubscriptionId == "" {
+						var err error
+						flagSubscriptionId, err = subscriptionIdFromCLI()
+						if err != nil {
+							return fmt.Errorf("retrieving subscription id from CLI: %v", err)
+						}
 					}
 
 					predicate := c.Args().First()
@@ -391,6 +423,10 @@ func main() {
 				UsageText: "aztfy mapping-file [option] <resource mapping file>",
 				Flags:     mappingFileFlags,
 				Action: func(c *cli.Context) error {
+					if err := commonFlagsCheck(); err != nil {
+						return err
+					}
+
 					if c.NArg() == 0 {
 						return fmt.Errorf("No resource mapping file specified")
 					}
@@ -399,6 +435,19 @@ func main() {
 					}
 
 					mapFile := c.Args().First()
+
+					// Identify the subscription id, which comes from one of following (starts from the highest priority):
+					// - Command line option
+					// - Env variable: AZTFY_SUBSCRIPTION_ID
+					// - Env variable: ARM_SUBSCRIPTION_ID
+					// - Output of azure cli, the current active subscription
+					if flagSubscriptionId == "" {
+						var err error
+						flagSubscriptionId, err = subscriptionIdFromCLI()
+						if err != nil {
+							return fmt.Errorf("retrieving subscription id from CLI: %v", err)
+						}
+					}
 
 					// Initialize the config
 					cfg := config.Config{
