@@ -75,7 +75,7 @@ resource "azurerm_resource_group" "test3" {
 
 	// Import the first resource group
 	aztfyDir := t.TempDir()
-	cfg := config.GroupConfig{
+	cfg := config.Config{
 		CommonConfig: config.CommonConfig{
 			SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
 			OutputDir:      aztfyDir,

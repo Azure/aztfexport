@@ -55,7 +55,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 	time.Sleep(delay)
 
 	aztfyDir := t.TempDir()
-	cfg := config.GroupConfig{
+	cfg := config.Config{
 		CommonConfig: config.CommonConfig{
 			SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
 			OutputDir:      aztfyDir,

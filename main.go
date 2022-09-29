@@ -24,51 +24,40 @@ import (
 func main() {
 	var (
 		// common flags
-		flagSubscriptionId string
-		flagOutputDir      string
-		flagOverwrite      bool
-		flagAppend         bool
-		flagDevProvider    bool
-		flagBackendType    string
-		flagBackendConfig  cli.StringSlice
-		flagFullConfig     bool
-		flagParallelism    int
-		flagContinue       bool
+		flagSubscriptionId      string
+		flagOutputDir           string
+		flagOverwrite           bool
+		flagAppend              bool
+		flagDevProvider         bool
+		flagBackendType         string
+		flagBackendConfig       cli.StringSlice
+		flagFullConfig          bool
+		flagParallelism         int
+		flagContinue            bool
+		flagNonInteractive      bool
+		flagGenerateMappingFile bool
 
 		// common flags (hidden)
-		hflagLogPath string
-		hflagPlainUI bool
+		hflagMockClient bool
+		hflagLogPath    string
+		hflagPlainUI    bool
 
 		// Subcommand specific flags
 		//
 		// res:
-		// flagName
+		// flagResName
 		// flagResType
-		// flagGenerateMappingFile
 		//
 		// rg:
-		// flagNonInteractive
 		// flagPattern
-		// flagGenerateMappingFile
-		// hflagMockClient
 		//
 		// query:
-		// flagNonInteractive
 		// flagPattern
-		// flagGenerateMappingFile
 		// flagRecursive
-		// hflagMockClient
-		//
-		// map:
-		// flagNonInteractive
-
-		flagGenerateMappingFile bool
-		flagBatch               bool
-		flagPattern             string
-		flagRecursive           bool
-		flagName                string
-		flagResType             string
-		hflagMockClient         bool
+		flagPattern   string
+		flagRecursive bool
+		flagResName   string
+		flagResType   string
 	)
 
 	commonFlagsCheck := func() error {
@@ -80,6 +69,15 @@ func main() {
 				return fmt.Errorf("`--append` conflicts with `--overwrite`")
 			}
 		}
+		if !flagNonInteractive {
+			if flagContinue {
+				return fmt.Errorf("`--continue` must be used together with `--non-interactive`")
+			}
+			if flagGenerateMappingFile {
+				return fmt.Errorf("`--generate-mapping-file` must be used together with `--non-interactive`")
+			}
+		}
+
 		return nil
 	}
 
@@ -150,14 +148,35 @@ func main() {
 			Destination: &flagParallelism,
 		},
 		&cli.BoolFlag{
+			Name:        "non-interactive",
+			EnvVars:     []string{"AZTFY_NON_INTERACTIVE"},
+			Aliases:     []string{"n"},
+			Usage:       "Non-interactive mode",
+			Destination: &flagNonInteractive,
+		},
+		&cli.BoolFlag{
 			Name:        "continue",
 			EnvVars:     []string{"AZTFY_CONTINUE"},
 			Aliases:     []string{"k"},
 			Usage:       "In non-interactive mode, whether to continue on any import error",
 			Destination: &flagContinue,
 		},
+		&cli.BoolFlag{
+			Name:        "generate-mapping-file",
+			Aliases:     []string{"g"},
+			EnvVars:     []string{"AZTFY_GENERATE_MAPPING_FILE"},
+			Usage:       "Only generate the resource mapping file, but DO NOT import any resource",
+			Destination: &flagGenerateMappingFile,
+		},
 
 		// Hidden flags
+		&cli.BoolFlag{
+			Name:        "mock-client",
+			EnvVars:     []string{"AZTFY_MOCK_CLIENT"},
+			Usage:       "Whether to mock the client. This is for testing UI",
+			Hidden:      true,
+			Destination: &hflagMockClient,
+		},
 		&cli.StringFlag{
 			Name:        "log-path",
 			EnvVars:     []string{"AZTFY_LOG_PATH"},
@@ -179,10 +198,9 @@ func main() {
 		&cli.StringFlag{
 			Name:        "name",
 			EnvVars:     []string{"AZTFY_NAME"},
-			Aliases:     []string{"n"},
 			Usage:       `The Terraform resource name.`,
 			Value:       "res-0",
-			Destination: &flagName,
+			Destination: &flagResName,
 		},
 		&cli.StringFlag{
 			Name:        "type",
@@ -190,23 +208,9 @@ func main() {
 			Usage:       `The Terraform resource type.`,
 			Destination: &flagResType,
 		},
-		&cli.BoolFlag{
-			Name:        "generate-mapping-file",
-			Aliases:     []string{"g"},
-			EnvVars:     []string{"AZTFY_GENERATE_MAPPING_FILE"},
-			Usage:       "Only generate the resource mapping file, but DO NOT import any resource",
-			Destination: &flagGenerateMappingFile,
-		},
 	}, commonFlags...)
 
 	resourceGroupFlags := append([]cli.Flag{
-		&cli.BoolFlag{
-			Name:        "non-interactive",
-			EnvVars:     []string{"AZTFY_NON_INTERACTIVE"},
-			Aliases:     []string{"n"},
-			Usage:       "Non-interactive mode",
-			Destination: &flagBatch,
-		},
 		&cli.StringFlag{
 			Name:        "name-pattern",
 			EnvVars:     []string{"AZTFY_NAME_PATTERN"},
@@ -214,22 +218,6 @@ func main() {
 			Usage:       `The pattern of the resource name. The semantic of a pattern is the same as Go's os.CreateTemp()`,
 			Value:       "res-",
 			Destination: &flagPattern,
-		},
-		&cli.BoolFlag{
-			Name:        "generate-mapping-file",
-			Aliases:     []string{"g"},
-			EnvVars:     []string{"AZTFY_GENERATE_MAPPING_FILE"},
-			Usage:       "In non-interactive mode, only generate the resource mapping file, but DO NOT import any resource",
-			Destination: &flagGenerateMappingFile,
-		},
-
-		// Hidden flags
-		&cli.BoolFlag{
-			Name:        "mock-client",
-			EnvVars:     []string{"AZTFY_MOCK_CLIENT"},
-			Usage:       "Whether to mock the client. This is for testing UI",
-			Hidden:      true,
-			Destination: &hflagMockClient,
 		},
 	}, commonFlags...)
 
@@ -243,15 +231,7 @@ func main() {
 		},
 	}, resourceGroupFlags...)
 
-	mappingFileFlags := append([]cli.Flag{
-		&cli.BoolFlag{
-			Name:        "non-interactive",
-			EnvVars:     []string{"AZTFY_NON_INTERACTIVE"},
-			Aliases:     []string{"n"},
-			Usage:       "Non-interactive mode",
-			Destination: &flagBatch,
-		},
-	}, commonFlags...)
+	mappingFileFlags := append([]cli.Flag{}, commonFlags...)
 
 	app := &cli.App{
 		Name:      "aztfy",
@@ -302,14 +282,15 @@ func main() {
 					}
 
 					// Initialize the config
-					cfg := config.ResConfig{
+					cfg := config.Config{
+						MockClient: hflagMockClient,
 						CommonConfig: config.CommonConfig{
 							SubscriptionId:      subscriptionId,
 							OutputDir:           flagOutputDir,
 							Overwrite:           flagOverwrite,
 							Append:              flagAppend,
 							DevProvider:         flagDevProvider,
-							Batch:               true,
+							Batch:               flagNonInteractive,
 							BackendType:         flagBackendType,
 							BackendConfig:       flagBackendConfig.Value(),
 							FullConfig:          flagFullConfig,
@@ -317,12 +298,28 @@ func main() {
 							PlainUI:             hflagPlainUI,
 							GenerateMappingFile: flagGenerateMappingFile,
 						},
-						ResourceId:   resId,
-						ResourceName: flagName,
-						ResourceType: flagResType,
+						ResourceId:     resId,
+						TFResourceName: flagResName,
+						TFResourceType: flagResType,
 					}
 
-					return internal.ResourceImport(c.Context, cfg, flagContinue)
+					// Run in non-interactive mode
+					if cfg.Batch {
+						if err := internal.BatchImport(cfg, flagContinue); err != nil {
+							return err
+						}
+						return nil
+					}
+
+					// Run in interactive mode
+					prog, err := ui.NewProgram(cfg)
+					if err != nil {
+						return err
+					}
+					if err := prog.Start(); err != nil {
+						return err
+					}
+					return nil
 				},
 			},
 			{
@@ -340,12 +337,6 @@ func main() {
 					}
 					if c.NArg() > 1 {
 						return fmt.Errorf("More than one resource groups specified")
-					}
-					if flagContinue && !flagBatch {
-						return fmt.Errorf("`--continue` must be used together with `--non-interactive`")
-					}
-					if flagGenerateMappingFile && !flagBatch {
-						return fmt.Errorf("`--generate-mapping-file` must be used together with `--non-interactive`")
 					}
 
 					rg := c.Args().First()
@@ -370,7 +361,7 @@ func main() {
 					}
 
 					// Initialize the config
-					cfg := config.GroupConfig{
+					cfg := config.Config{
 						MockClient: hflagMockClient,
 						CommonConfig: config.CommonConfig{
 							SubscriptionId:      subscriptionId,
@@ -378,7 +369,7 @@ func main() {
 							Overwrite:           flagOverwrite,
 							Append:              flagAppend,
 							DevProvider:         flagDevProvider,
-							Batch:               flagBatch,
+							Batch:               flagNonInteractive,
 							BackendType:         flagBackendType,
 							BackendConfig:       flagBackendConfig.Value(),
 							FullConfig:          flagFullConfig,
@@ -425,12 +416,6 @@ func main() {
 					if c.NArg() > 1 {
 						return fmt.Errorf("More than one queries specified")
 					}
-					if flagContinue && !flagBatch {
-						return fmt.Errorf("`--continue` must be used together with `--non-interactive`")
-					}
-					if flagGenerateMappingFile && !flagBatch {
-						return fmt.Errorf("`--generate-mapping-file` must be used together with `--non-interactive`")
-					}
 
 					predicate := c.Args().First()
 
@@ -454,7 +439,7 @@ func main() {
 					}
 
 					// Initialize the config
-					cfg := config.GroupConfig{
+					cfg := config.Config{
 						MockClient: hflagMockClient,
 						CommonConfig: config.CommonConfig{
 							SubscriptionId:      subscriptionId,
@@ -462,7 +447,7 @@ func main() {
 							Overwrite:           flagOverwrite,
 							Append:              flagAppend,
 							DevProvider:         flagDevProvider,
-							Batch:               flagBatch,
+							Batch:               flagNonInteractive,
 							BackendType:         flagBackendType,
 							BackendConfig:       flagBackendConfig.Value(),
 							FullConfig:          flagFullConfig,
@@ -533,7 +518,7 @@ func main() {
 					}
 
 					// Initialize the config
-					cfg := config.GroupConfig{
+					cfg := config.Config{
 						MockClient: hflagMockClient,
 						CommonConfig: config.CommonConfig{
 							SubscriptionId:      subscriptionId,
@@ -541,7 +526,7 @@ func main() {
 							Overwrite:           flagOverwrite,
 							Append:              flagAppend,
 							DevProvider:         flagDevProvider,
-							Batch:               flagBatch,
+							Batch:               flagNonInteractive,
 							BackendType:         flagBackendType,
 							BackendConfig:       flagBackendConfig.Value(),
 							FullConfig:          flagFullConfig,

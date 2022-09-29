@@ -1,26 +1,22 @@
 package meta
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"strings"
-
-	"github.com/Azure/aztfy/internal/armschema"
 	"github.com/Azure/aztfy/internal/config"
+	"github.com/Azure/aztfy/internal/resourceset"
+	"github.com/Azure/aztfy/internal/tfaddr"
 	"github.com/magodo/armid"
 	"github.com/magodo/aztft/aztft"
 )
 
-type ResMeta struct {
-	Meta
+type MetaResource struct {
+	baseMeta
 	AzureId      armid.ResourceId
 	ResourceName string
 	ResourceType string
 }
 
-func NewResMeta(cfg config.ResConfig) (*ResMeta, error) {
-	baseMeta, err := NewMeta(cfg.CommonConfig)
+func newMetaResource(cfg config.Config) (Meta, error) {
+	baseMeta, err := NewBaseMeta(cfg.CommonConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -29,60 +25,54 @@ func NewResMeta(cfg config.ResConfig) (*ResMeta, error) {
 	if err != nil {
 		return nil, err
 	}
-	meta := &ResMeta{
-		Meta:         *baseMeta,
+	meta := &MetaResource{
+		baseMeta:     *baseMeta,
 		AzureId:      id,
-		ResourceName: cfg.ResourceName,
-		ResourceType: cfg.ResourceType,
+		ResourceName: cfg.TFResourceName,
+		ResourceType: cfg.TFResourceType,
 	}
 	return meta, nil
 }
 
-func (meta ResMeta) GetAzureResource(ctx context.Context) (map[string]interface{}, error) {
-	armschemas, err := armschema.GetARMSchemas()
-	if err != nil {
-		return nil, err
-	}
-
-	rt := meta.AzureId.TypeString()
-	versions, ok := armschemas[strings.ToUpper(rt)]
-	if !ok {
-		return nil, fmt.Errorf("no resource type %q found in the ARM schema", rt)
-	}
-	if len(versions) == 0 {
-		return nil, fmt.Errorf("no available api version defined for resource type %q in the ARM schema", rt)
-	}
-	version := versions[len(versions)-1]
-
-	resp, err := meta.resourceClient.GetByID(ctx, meta.AzureId.String(), version, nil)
-	if err != nil {
-		return nil, fmt.Errorf("getting Azure resource %s: %v", meta.AzureId, err)
-	}
-	b, err := json.Marshal(resp.GenericResource)
-	if err != nil {
-		return nil, fmt.Errorf("marshal resource model for %s: %v", meta.AzureId, err)
-	}
-	var body map[string]interface{}
-	if err := json.Unmarshal(b, &body); err != nil {
-		return nil, fmt.Errorf("unmarshal resource model for %s: %v", meta.AzureId, err)
-	}
-	return body, nil
+func (meta MetaResource) ScopeName() string {
+	return meta.AzureId.String()
 }
 
-func (meta ResMeta) QueryResourceTypeAndId() (string, string, error) {
-	ltype, lid, _, err := aztft.QueryTypeAndId(meta.AzureId.String(), true)
-	if err != nil {
-		return "", "", err
+func (meta *MetaResource) ListResource() (ImportList, error) {
+	resourceSet := resourceset.AzureResourceSet{
+		Resources: []resourceset.AzureResource{
+			{
+				Id: meta.AzureId,
+			},
+		},
 	}
-	if len(ltype) != 1 {
-		return "", "", fmt.Errorf("expect exactly one resource type, got=%d", len(ltype))
-	}
-	if len(lid) != 1 {
-		return "", "", fmt.Errorf("expect exactly one resource id, got=%d", len(lid))
-	}
-	return ltype[0].TFType, lid[0], nil
-}
+	rl := resourceSet.ToTFResources()
+	var l ImportList
+	for _, res := range rl {
+		item := ImportItem{
+			AzureResourceID: res.AzureId,
+			TFResourceId:    res.TFId, // this might be empty if have multiple matches in aztft
+			TFAddr: tfaddr.TFAddr{
+				Type: res.TFType, //this might be empty if have multiple matches in aztft
+				Name: meta.ResourceName,
+			},
+		}
 
-func (meta ResMeta) QueryResourceId(rt string) (string, error) {
-	return aztft.QueryId(meta.AzureId.String(), rt, true)
+		// Some special Azure resource is missing the essential property that is used by aztft to detect their TF resource type.
+		// In this case, users can use the `--type` option to manually specify the TF resource type.
+		if meta.ResourceType != "" {
+			if meta.AzureId.Equal(res.AzureId) {
+				tfid, err := aztft.QueryId(meta.AzureId.String(), meta.ResourceType, true)
+				if err != nil {
+					return nil, err
+				}
+				item.TFResourceId = tfid
+				item.TFAddr.Type = meta.ResourceType
+			}
+		}
+
+		l = append(l, item)
+	}
+
+	return l, nil
 }

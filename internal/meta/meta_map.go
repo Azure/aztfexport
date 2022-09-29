@@ -12,21 +12,21 @@ import (
 	"github.com/magodo/armid"
 )
 
-var _ GroupMeta = &MetaMap{}
+var _ Meta = &MetaMap{}
 
 type MetaMap struct {
-	Meta
+	baseMeta
 	mappingFile string
 }
 
-func newMetaMap(cfg config.GroupConfig) (GroupMeta, error) {
-	baseMeta, err := NewMeta(cfg.CommonConfig)
+func newMetaMap(cfg config.Config) (Meta, error) {
+	baseMeta, err := NewBaseMeta(cfg.CommonConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	meta := &MetaMap{
-		Meta:        *baseMeta,
+		baseMeta:    *baseMeta,
 		mappingFile: cfg.MappingFile,
 	}
 
@@ -71,8 +71,4 @@ func (meta *MetaMap) ListResource() (ImportList, error) {
 	})
 
 	return l, nil
-}
-
-func (meta MetaMap) ExportSkippedResources(l ImportList) error {
-	return exportSkippedResources(l, meta.Workspace())
 }

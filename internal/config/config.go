@@ -1,9 +1,5 @@
 package config
 
-type Config interface {
-	isConfig()
-}
-
 type CommonConfig struct {
 	SubscriptionId      string
 	OutputDir           string
@@ -19,32 +15,23 @@ type CommonConfig struct {
 	GenerateMappingFile bool
 }
 
-type GroupConfig struct {
+type Config struct {
 	CommonConfig
+	MockClient bool
 
 	// Exactly one of below is non empty
 	ResourceGroupName string
 	ARGPredicate      string
 	MappingFile       string
+	ResourceId        string
 
+	// Rg and query mode
 	ResourceNamePattern string
-	MockClient          bool
-	RecursiveQuery      bool
+
+	// Query mode only
+	RecursiveQuery bool
+
+	// Resource mode only
+	TFResourceName string
+	TFResourceType string // TF resource type. If this is empty, then uses aztft to deduce the correct resource type.
 }
-
-func (GroupConfig) isConfig() {}
-
-type ResConfig struct {
-	CommonConfig
-
-	// Azure resource id
-	ResourceId string
-
-	// TF resource name
-	ResourceName string
-
-	// TF resource type. If this is empty, then uses aztft to deduce the correct resource type.
-	ResourceType string
-}
-
-func (ResConfig) isConfig() {}
