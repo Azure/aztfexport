@@ -67,7 +67,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 		ResourceNamePattern: "res-",
 	}
 	t.Logf("Batch importing the resource group %s\n", d.RandomRgName())
-	if err := internal.BatchImport(cfg, false); err != nil {
+	if err := internal.BatchImport(cfg); err != nil {
 		t.Fatalf("failed to run batch import: %v", err)
 	}
 	test.Verify(t, ctx, aztfyDir, tfexecPath, c.Total())

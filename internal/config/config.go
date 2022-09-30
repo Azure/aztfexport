@@ -1,12 +1,14 @@
 package config
 
 type CommonConfig struct {
+	LogPath             string
 	SubscriptionId      string
 	OutputDir           string
 	Overwrite           bool
 	Append              bool
 	DevProvider         bool
 	Batch               bool
+	ContinueOnError     bool
 	BackendType         string
 	BackendConfig       []string
 	FullConfig          bool

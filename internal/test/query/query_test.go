@@ -96,7 +96,7 @@ resource "azurerm_subnet" "test" {
 		ARGPredicate:        fmt.Sprintf(`resourceGroup =~ "%s" and type =~ "microsoft.network/virtualnetworks"`, d.RandomRgName()),
 	}
 	t.Log("Importing in non-recursive mode")
-	if err := internal.BatchImport(cfg, false); err != nil {
+	if err := internal.BatchImport(cfg); err != nil {
 		t.Fatalf("failed to run batch import non-recursively: %v", err)
 	}
 	test.Verify(t, ctx, aztfyDir, tfexecPath, 1)
@@ -106,7 +106,7 @@ resource "azurerm_subnet" "test" {
 	// aztfyDir = t.TempDir()
 	// cfg.CommonConfig.OutputDir = aztfyDir
 	cfg.RecursiveQuery = true
-	if err := internal.BatchImport(cfg, false); err != nil {
+	if err := internal.BatchImport(cfg); err != nil {
 		t.Fatalf("failed to run batch import recursively: %v", err)
 	}
 	test.Verify(t, ctx, aztfyDir, tfexecPath, 2)
