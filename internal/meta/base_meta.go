@@ -35,6 +35,7 @@ type BaseMeta interface {
 	GenerateCfg(ImportList) error
 	ExportSkippedResources(l ImportList) error
 	ExportResourceMapping(ImportList) error
+	CleanUpWorkspace() error
 }
 
 var _ BaseMeta = &baseMeta{}
@@ -50,6 +51,7 @@ type baseMeta struct {
 	backendConfig  []string
 	fullConfig     bool
 	parallelism    int
+	hclOnly        bool
 
 	// Use a safer name which is less likely to conflicts with users' existing files.
 	// This is mainly used for the --append option.
@@ -152,6 +154,7 @@ The output directory is not empty. Please choose one of actions below:
 		parallelism:     cfg.Parallelism,
 		useSafeFilename: cfg.Append,
 		empty:           empty,
+		hclOnly:         cfg.HCLOnly,
 	}
 
 	return meta, nil
@@ -261,6 +264,44 @@ func (meta baseMeta) ExportSkippedResources(l ImportList) error {
 `, strings.Join(sl, "\n"))), 0644); err != nil {
 		return fmt.Errorf("writing the skipped resources to %s: %v", output, err)
 	}
+	return nil
+}
+
+func (meta baseMeta) CleanUpWorkspace() error {
+	// Do nothing if not HCL only... Otherwise, clean up the workspace to only keep the HCL files.
+	if !meta.hclOnly {
+		return nil
+	}
+
+	tmpDir, err := os.MkdirTemp("", "")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		os.RemoveAll(tmpDir)
+	}()
+
+	tmpMainCfg := filepath.Join(tmpDir, meta.filenameMainCfg())
+	tmpProviderCfg := filepath.Join(tmpDir, meta.filenameProviderSetting())
+
+	if err := os.Rename(filepath.Join(meta.Workspace(), meta.filenameMainCfg()), tmpMainCfg); err != nil {
+		return err
+	}
+	if err := os.Rename(filepath.Join(meta.Workspace(), meta.filenameProviderSetting()), tmpProviderCfg); err != nil {
+		return err
+	}
+
+	if err := removeEverythingUnder(meta.Workspace()); err != nil {
+		return err
+	}
+
+	if err := os.Rename(tmpMainCfg, filepath.Join(meta.Workspace(), meta.filenameMainCfg())); err != nil {
+		return err
+	}
+	if err := os.Rename(tmpProviderCfg, filepath.Join(meta.Workspace(), meta.filenameProviderSetting())); err != nil {
+		return err
+	}
+
 	return nil
 }
 

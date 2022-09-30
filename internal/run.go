@@ -68,6 +68,11 @@ func BatchImport(cfg config.Config) error {
 			return fmt.Errorf("generating Terraform configuration: %v", err)
 		}
 
+		msg.SetStatus("Cleaning up the output directory to only keep the .tf files...")
+		if err := c.CleanUpWorkspace(); err != nil {
+			return fmt.Errorf("cleaning up the output directory to only keep the .tf files: %v", err)
+		}
+
 		return nil
 	}
 

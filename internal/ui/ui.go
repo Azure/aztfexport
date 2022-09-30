@@ -38,6 +38,7 @@ const (
 	statusImporting
 	statusImportErrorMsg
 	statusGeneratingCfg
+	statusCleaningUpWorkspaceCfg
 	statusExportResourceMapping
 	statusExportSkippedResources
 	statusSummary
@@ -53,6 +54,7 @@ func (s status) String() string {
 		"importing",
 		"import error message",
 		"generating Terraform configuration",
+		"cleaning up output directory",
 		"exporting resource mapping file",
 		"exporting skipped resources file",
 		"summary",
@@ -162,6 +164,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.status = statusGeneratingCfg
 		return m, aztfyclient.GenerateCfg(m.meta, msg.List)
 	case aztfyclient.GenerateCfgDoneMsg:
+		m.status = statusCleaningUpWorkspaceCfg
+		return m, aztfyclient.CleanUpWorkspace(m.meta)
+	case aztfyclient.WorkspaceCleanupDoneMsg:
 		m.status = statusSummary
 		return m, nil
 	case aztfyclient.QuitMsg:
@@ -217,12 +222,14 @@ func (m model) View() string {
 		s += importErrorView(m)
 	case statusImporting:
 		s += m.spinner.View() + m.progress.View()
-	case statusGeneratingCfg:
-		s += m.spinner.View() + " Generating Terraform Configurations..."
 	case statusExportResourceMapping:
 		s += m.spinner.View() + " Exporting Resource Mapping..."
 	case statusExportSkippedResources:
 		s += m.spinner.View() + " Exporting Skipped Resources..."
+	case statusGeneratingCfg:
+		s += m.spinner.View() + " Generating Terraform Configurations..."
+	case statusCleaningUpWorkspaceCfg:
+		s += m.spinner.View() + " Cleaning up the output directory..."
 	case statusSummary:
 		s += summaryView(m)
 	case statusError:
