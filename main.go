@@ -36,6 +36,7 @@ func main() {
 		flagContinue            bool
 		flagNonInteractive      bool
 		flagGenerateMappingFile bool
+		flagHCLOnly             bool
 
 		// common flags (hidden)
 		hflagMockClient bool
@@ -76,6 +77,14 @@ func main() {
 			}
 			if flagGenerateMappingFile {
 				return fmt.Errorf("`--generate-mapping-file` must be used together with `--non-interactive`")
+			}
+		}
+		if flagHCLOnly {
+			if flagBackendType != "local" {
+				return fmt.Errorf("`--hcl-only` only works for local backend")
+			}
+			if flagAppend {
+				return fmt.Errorf("`--appned` conflicts with `--hcl-only`")
 			}
 		}
 
@@ -181,6 +190,12 @@ func main() {
 			EnvVars:     []string{"AZTFY_GENERATE_MAPPING_FILE"},
 			Usage:       "Only generate the resource mapping file, but DO NOT import any resource",
 			Destination: &flagGenerateMappingFile,
+		},
+		&cli.BoolFlag{
+			Name:        "hcl-only",
+			EnvVars:     []string{"AZTFY_HCL_ONLY"},
+			Usage:       "Only generate HCL code, but not the files for resource management (e.g. the state file)",
+			Destination: &flagHCLOnly,
 		},
 
 		// Hidden flags
@@ -292,6 +307,7 @@ func main() {
 							Parallelism:         flagParallelism,
 							PlainUI:             hflagPlainUI,
 							GenerateMappingFile: flagGenerateMappingFile,
+							HCLOnly:             flagHCLOnly,
 						},
 						ResourceId:     resId,
 						TFResourceName: flagResName,
@@ -336,6 +352,7 @@ func main() {
 							Parallelism:         flagParallelism,
 							PlainUI:             hflagPlainUI,
 							GenerateMappingFile: flagGenerateMappingFile,
+							HCLOnly:             flagHCLOnly,
 						},
 						ResourceGroupName:   rg,
 						ResourceNamePattern: flagPattern,
@@ -379,6 +396,7 @@ func main() {
 							Parallelism:         flagParallelism,
 							PlainUI:             hflagPlainUI,
 							GenerateMappingFile: flagGenerateMappingFile,
+							HCLOnly:             flagHCLOnly,
 						},
 						ARGPredicate:        predicate,
 						ResourceNamePattern: flagPattern,
@@ -422,6 +440,7 @@ func main() {
 							Parallelism:         flagParallelism,
 							PlainUI:             hflagPlainUI,
 							GenerateMappingFile: flagGenerateMappingFile,
+							HCLOnly:             flagHCLOnly,
 						},
 						MappingFile: mapFile,
 					}

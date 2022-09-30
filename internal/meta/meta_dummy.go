@@ -71,3 +71,8 @@ func (m MetaGroupDummy) ExportSkippedResources(l ImportList) error {
 	time.Sleep(500 * time.Millisecond)
 	return nil
 }
+
+func (m MetaGroupDummy) CleanUpWorkspace() error {
+	time.Sleep(500 * time.Millisecond)
+	return nil
+}

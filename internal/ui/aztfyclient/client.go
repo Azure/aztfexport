@@ -46,6 +46,8 @@ type ExportSkippedResourcesDoneMsg struct {
 
 type GenerateCfgDoneMsg struct{}
 
+type WorkspaceCleanupDoneMsg struct{}
+
 type QuitMsg struct{}
 
 type CleanTFStateMsg struct {
@@ -114,6 +116,15 @@ func GenerateCfg(c meta.Meta, l meta.ImportList) tea.Cmd {
 			return ErrMsg(err)
 		}
 		return GenerateCfgDoneMsg{}
+	}
+}
+
+func CleanUpWorkspace(c meta.Meta) tea.Cmd {
+	return func() tea.Msg {
+		if err := c.CleanUpWorkspace(); err != nil {
+			return ErrMsg(err)
+		}
+		return WorkspaceCleanupDoneMsg{}
 	}
 }
 
