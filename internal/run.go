@@ -12,7 +12,7 @@ import (
 	"github.com/magodo/spinner"
 )
 
-func BatchImport(cfg config.Config, continueOnError bool) error {
+func BatchImport(cfg config.Config) error {
 	c, err := meta.NewMeta(cfg)
 	if err != nil {
 		return err
@@ -56,7 +56,7 @@ func BatchImport(cfg config.Config, continueOnError bool) error {
 			c.Import(&list[i])
 			if err := list[i].ImportError; err != nil {
 				msg := fmt.Sprintf("Failed to import %s as %s: %v", list[i].TFResourceId, list[i].TFAddr, err)
-				if !continueOnError {
+				if !cfg.ContinueOnError {
 					return fmt.Errorf(msg)
 				}
 				errors = append(errors, msg)
