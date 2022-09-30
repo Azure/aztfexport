@@ -24,6 +24,12 @@ go install github.com/Azure/aztfy@latest
 
 ### From Package Manager
 
+#### Windows
+
+```bash
+winget install Microsoft.AzureAztfy
+```
+
 #### Homebrew (Linux/macOS)
 
 ```bash
