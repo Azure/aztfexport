@@ -27,7 +27,7 @@ go install github.com/Azure/aztfy@latest
 #### Windows
 
 ```bash
-winget install Microsoft.AzureAztfy
+winget install aztfy
 ```
 
 #### Homebrew (Linux/macOS)
