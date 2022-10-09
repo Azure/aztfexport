@@ -371,6 +371,15 @@ stages:
               SessionTimeout: "60"
               MaxConcurrency: "50"
               MaxRetryAttempts: "5"
+          - script: |
+                  git config user.name "azure-terraform-bot"
+                  git config user.email "azure-terraform@microsoft.com"
+                  git tags -a "${VERSION}" -m "${VERSION}"
+                  git push https://${PAT}@github.com/Azure/aztfy.git --tags
+            displayName: "Create and Push a Git Release"
+            env:
+              VERSION: ${{ parameters.version }}
+              PAT: $(AZURE_TERRAFORM_BOT_PAT)
           - task: GitHubRelease@1
             displayName: "Draft Github Release"
             inputs:
