@@ -372,10 +372,11 @@ stages:
               MaxConcurrency: "50"
               MaxRetryAttempts: "5"
           - script: |
-                  git config user.name "azure-terraform-bot"
-                  git config user.email "azure-terraform@microsoft.com"
-                  git tag -a "${VERSION}" -m "${VERSION}"
-                  git push https://${PAT}@github.com/Azure/aztfy.git --tags
+              set -e
+              git config user.name "azure-terraform-bot"
+              git config user.email "azure-terraform@microsoft.com"
+              git tag -a "${VERSION}" -m "${VERSION}"
+              git push https://${PAT}@github.com/Azure/aztfy.git --tags
             displayName: "Create and Push a Git Release"
             env:
               VERSION: ${{ parameters.version }}
@@ -630,3 +631,43 @@ stages:
 
   # - stage: publish_windows_setup
   #   displayName: "Publish Windows Setup"
+
+  - stage: pr_to_homebrew
+    displayName: "PR to homebrew"
+    pool:
+      name: pool-ubuntu-2004
+    jobs:
+      - job: pr
+        displayName: "PR to homebrew"
+        steps:
+          - script: |
+              set -e
+              gh_version=2.17.0
+              wget -O /tmp/gh.deb https://github.com/cli/cli/releases/download/v${gh_version}/gh_${version}_linux_amd64.deb
+              dpkg -i /tmp/gh.deb
+            displayName: "Install gh"
+          - script: |
+              set -e
+
+              # Install brew
+              export NONINTERACTIVE=1
+              /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+              export PATH=$PATH:/home/linuxbrew/.linuxbrew/bin
+
+              # Bump formula
+              cd "$(brew --repository homebrew/core)"
+              git checkout -b aztfy_${VERSION}
+              brew bump-formula-pr --version=${VERSION:1} aztfy
+
+              # Git commit and pr
+              git config user.name "azure-terraform-bot"
+              git config user.email "azure-terraform@microsoft.com"
+              git add -A
+              git commit -m "Bump aztfy version to ${VERSION}"
+              git push https://${PAT}@github.com/azure-terraform-bot/homebrew-core.git -u HEAD
+              gh auth login --with-token <<< "${PAT}"
+              gh pr create --title "Bump aztfy version to ${VERSION}" --body "Bump aztfy version to ${VERSION}"
+            displayName: "Create PR"
+            env:
+              VERSION: ${{ parameters.version }}
+              PAT: $(AZURE_TERRAFORM_BOT_PAT)
