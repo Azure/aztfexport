@@ -8,14 +8,21 @@ import (
 	"github.com/hashicorp/hcl/v2/hclwrite"
 )
 
-func hclBlockAppendDependency(body *hclwrite.Body, azids []string, cfgset map[string]ConfigInfo) error {
+// hclBlockAppendDependency adds the depends_on instructions in the given hcl body.
+// cfgset is a map keyed by azure resource id.
+func hclBlockAppendDependency(body *hclwrite.Body, deps []Dependency, cfgset map[string]ConfigInfo) error {
 	dependencies := []string{}
-	for _, id := range azids {
-		cfg, ok := cfgset[id]
-		if !ok {
-			dependencies = append(dependencies, fmt.Sprintf("# Depending on %q, which is not imported by Terraform.", id))
+	for _, dep := range deps {
+		if len(dep.Candidates) > 1 {
+			var candidateIds []string
+			for _, id := range dep.Candidates {
+				cfg := cfgset[id]
+				candidateIds = append(candidateIds, cfg.TFAddr.String())
+			}
+			dependencies = append(dependencies, fmt.Sprintf("# One of %s (can't auto-resolve as their ids are identical)", strings.Join(candidateIds, ",")))
 			continue
 		}
+		cfg := cfgset[dep.Candidates[0]]
 		dependencies = append(dependencies, cfg.TFAddr.String()+",")
 	}
 	if len(dependencies) > 0 {
