@@ -642,12 +642,6 @@ stages:
         steps:
           - script: |
               set -e
-              gh_version=2.17.0
-              wget -O /tmp/gh.deb https://github.com/cli/cli/releases/download/v${gh_version}/gh_${gh_version}_linux_amd64.deb
-              sudo dpkg -i /tmp/gh.deb
-            displayName: "Install gh"
-          - script: |
-              set -e
 
               # Install brew
               export NONINTERACTIVE=1
@@ -656,17 +650,9 @@ stages:
 
               # Bump formula
               cd "$(brew --repository homebrew/core)"
-              git checkout -b aztfy_${VERSION}
-              brew bump-formula-pr --version=${VERSION:1} aztfy
-
-              # Git commit and pr
               git config user.name "azure-terraform-bot"
               git config user.email "azure-terraform@microsoft.com"
-              git add -A
-              git commit -m "Bump aztfy version to ${VERSION}"
-              git push https://${PAT}@github.com/azure-terraform-bot/homebrew-core.git -u HEAD
-              gh auth login --with-token <<< "${PAT}"
-              gh pr create --title "Bump aztfy version to ${VERSION}" --body "Bump aztfy version to ${VERSION}"
+              OMEBREW_GITHUB_API_TOKEN=${PAT} brew bump-formula-pr --version=${VERSION:1} --no-browse --force aztfy
             displayName: "Create PR"
             env:
               VERSION: ${{ parameters.version }}
