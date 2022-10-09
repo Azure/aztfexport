@@ -652,7 +652,7 @@ stages:
               cd "$(brew --repository homebrew/core)"
               git config user.name "azure-terraform-bot"
               git config user.email "azure-terraform@microsoft.com"
-              OMEBREW_GITHUB_API_TOKEN=${PAT} brew bump-formula-pr --version=${VERSION:1} --no-browse --force aztfy
+              HOMEBREW_GITHUB_API_TOKEN=${PAT} brew bump-formula-pr --version=${VERSION:1} --no-browse --force aztfy
             displayName: "Create PR"
             env:
               VERSION: ${{ parameters.version }}
