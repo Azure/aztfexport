@@ -374,7 +374,7 @@ stages:
           - script: |
                   git config user.name "azure-terraform-bot"
                   git config user.email "azure-terraform@microsoft.com"
-                  git tags -a "${VERSION}" -m "${VERSION}"
+                  git tag -a "${VERSION}" -m "${VERSION}"
                   git push https://${PAT}@github.com/Azure/aztfy.git --tags
             displayName: "Create and Push a Git Release"
             env:
