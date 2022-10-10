@@ -647,10 +647,12 @@ stages:
               $pathZip = Join-Path -Path $([System.IO.Path]::GetTempPath()) -ChildPath $(Split-Path -Path $downloadUri -Leaf)
               Invoke-WebRequest -Uri $downloadUri -Out $pathZip
               Add-AppProvisionedPackage -Online -SkipLicense -PackagePath $pathZip
-              $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+              cd
+              ls .\AppData\Local\Microsoft\WindowsApps\
+              echo $env:PATH
 
-              winget install wingetcreate
-              winget install git
+              winget.exe install wingetcreate
+              winget.exe install git
               cd
               git clone https://github.com/microsoft/winget-pkgs.git
               cd winget-pkgs
