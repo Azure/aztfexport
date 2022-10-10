@@ -639,6 +639,15 @@ stages:
         steps:
           - pwsh: |
               $ErrorActionPreference = "Stop"
+
+              # Install winget
+              $releasesUri = "https://api.github.com/repos/microsoft/winget-cli/releases/latest“
+              $filenamePattern = "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
+              $downloadUri = ((Invoke-RestMethod -Method GET -Uri $releasesUri)[0].assets | Where-Object name -like $filenamePattern).browser_download_url
+              $pathZip = Join-Path -Path $([System.IO.Path]::GetTempPath()) -ChildPath $(Split-Path -Path $downloadUri -Leaf)
+              Invoke-WebRequest -Uri $downloadUri -Out $pathZip
+              Add-AppProvisionedPackage -Online -SkipLicense -PackagePath $pathZip
+
               winget install wingetcreate
               winget install git
               cd
