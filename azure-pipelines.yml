@@ -637,7 +637,7 @@ stages:
       - job: pr
         displayName: "PR to winget"
         steps:
-          - script: |
+          - pwsh: |
               $ErrorActionPreference = "Stop"
               winget install wingetcreate
               winget install git
@@ -658,7 +658,7 @@ stages:
       - job: pr
         displayName: "PR to homebrew"
         steps:
-          - pwsh: |
+          - script: |
               set -e
 
               # Install brew
