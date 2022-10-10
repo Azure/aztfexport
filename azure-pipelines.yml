@@ -658,7 +658,7 @@ stages:
       - job: pr
         displayName: "PR to homebrew"
         steps:
-          - script: |
+          - pwsh: |
               set -e
 
               # Install brew
