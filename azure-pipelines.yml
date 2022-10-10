@@ -648,7 +648,8 @@ stages:
               Invoke-WebRequest -Uri $downloadUri -Out $pathZip
               Add-AppProvisionedPackage -Online -SkipLicense -PackagePath $pathZip
               cd
-              ls .\AppData\Local\Microsoft\WindowsApps\
+              pwd
+              ls AppData\Local\Microsoft\WindowsApps
               echo $env:PATH
 
               winget.exe install wingetcreate
