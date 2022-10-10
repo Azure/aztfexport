@@ -647,6 +647,7 @@ stages:
               $pathZip = Join-Path -Path $([System.IO.Path]::GetTempPath()) -ChildPath $(Split-Path -Path $downloadUri -Leaf)
               Invoke-WebRequest -Uri $downloadUri -Out $pathZip
               Add-AppProvisionedPackage -Online -SkipLicense -PackagePath $pathZip
+              $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine")
 
               winget install wingetcreate
               winget install git
