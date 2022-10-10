@@ -644,7 +644,7 @@ stages:
               iwr https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
               git clone https://github.com/microsoft/winget-pkgs.git
               cd winget-pkgs
-              ..\wingetcreate.exe update --urls https://github.com/Azure/aztfy/releases/download/$env:VERSION/aztfy_$($env:VERSION)_x64.msi --version $env:VERSION --submit --token $env:PAT Microsoft.AzureAztfy
+              ..\wingetcreate.exe update --urls https://github.com/Azure/aztfy/releases/download/$env:VERSION/aztfy_$($env:VERSION)_x64.msi --version $env:VERSION.Substring(1) --submit --token $env:PAT Microsoft.AzureAztfy
             displayName: "Create PR"
             env:
               VERSION: ${{ parameters.version }}
