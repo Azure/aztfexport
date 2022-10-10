@@ -629,8 +629,26 @@ stages:
               REPO_RELEASE: $(REPO_RELEASE)
               VERSION: ${{ parameters.version }}
 
-  # - stage: publish_windows_setup
-  #   displayName: "Publish Windows Setup"
+  - stage: publish_windows_setup
+    displayName: "Publish Windows Setup"
+    pool:
+      name: pool-windows-2019
+    jobs:
+      - job: pr
+        displayName: "PR to winget"
+        steps:
+          - script: |
+              $ErrorActionPreference = "Stop"
+              winget install wingetcreate
+              winget install git
+              cd
+              git clone https://github.com/microsoft/winget-pkgs.git
+              cd winget-pkgs
+              wingetcreate update --urls https://github.com/Azure/aztfy/releases/download/$env:VERSION/aztfy_$($env:VERSION)_x64.msi --version $env:VERSION --submit --token $env:PAT Microsoft.AzureAztfy
+            displayName: "Create PR"
+            env:
+              VERSION: ${{ parameters.version }}
+              PAT: $(AZURE_TERRAFORM_BOT_PAT)
 
   - stage: pr_to_homebrew
     displayName: "PR to homebrew"
