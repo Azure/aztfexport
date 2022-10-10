@@ -640,24 +640,11 @@ stages:
           - pwsh: |
               $ErrorActionPreference = "Stop"
 
-              # Install winget
-              $releasesUri = "https://api.github.com/repos/microsoft/winget-cli/releases/latest“
-              $filenamePattern = "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle"
-              $downloadUri = ((Invoke-RestMethod -Method GET -Uri $releasesUri)[0].assets | Where-Object name -like $filenamePattern).browser_download_url
-              $pathZip = Join-Path -Path $([System.IO.Path]::GetTempPath()) -ChildPath $(Split-Path -Path $downloadUri -Leaf)
-              Invoke-WebRequest -Uri $downloadUri -Out $pathZip
-              Add-AppProvisionedPackage -Online -SkipLicense -PackagePath $pathZip
               cd
-              pwd
-              ls AppData\Local\Microsoft\WindowsApps
-              echo $env:PATH
-
-              winget.exe install wingetcreate
-              winget.exe install git
-              cd
+              iwr https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
               git clone https://github.com/microsoft/winget-pkgs.git
               cd winget-pkgs
-              wingetcreate update --urls https://github.com/Azure/aztfy/releases/download/$env:VERSION/aztfy_$($env:VERSION)_x64.msi --version $env:VERSION --submit --token $env:PAT Microsoft.AzureAztfy
+              ..\wingetcreate.exe update --urls https://github.com/Azure/aztfy/releases/download/$env:VERSION/aztfy_$($env:VERSION)_x64.msi --version $env:VERSION --submit --token $env:PAT Microsoft.AzureAztfy
             displayName: "Create PR"
             env:
               VERSION: ${{ parameters.version }}
