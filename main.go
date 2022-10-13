@@ -37,6 +37,7 @@ func main() {
 		flagNonInteractive      bool
 		flagGenerateMappingFile bool
 		flagHCLOnly             bool
+		flagParallelImport      bool
 
 		// common flags (hidden)
 		hflagMockClient bool
@@ -166,7 +167,7 @@ func main() {
 		&cli.IntFlag{
 			Name:        "parallelism",
 			EnvVars:     []string{"AZTFY_PARALLELISM"},
-			Usage:       "Limit the number of parallel operations (e.g. resource discovery)",
+			Usage:       "Limit the number of parallel operations, e.g., resource discovery, import (when `--parallel-import` is specified)",
 			Value:       10,
 			Destination: &flagParallelism,
 		},
@@ -196,6 +197,12 @@ func main() {
 			EnvVars:     []string{"AZTFY_HCL_ONLY"},
 			Usage:       "Only generate HCL code, but not the files for resource management (e.g. the state file)",
 			Destination: &flagHCLOnly,
+		},
+		&cli.BoolFlag{
+			Name:        "parallel-import",
+			EnvVars:     []string{"AZTFY_PARALLEL_IMPORT"},
+			Usage:       "Opt in parallel importing, use `--parallelism` to limit the number of parallel operations",
+			Destination: &flagParallelImport,
 		},
 
 		// Hidden flags
@@ -308,6 +315,7 @@ func main() {
 							PlainUI:             hflagPlainUI,
 							GenerateMappingFile: flagGenerateMappingFile,
 							HCLOnly:             flagHCLOnly,
+							ParallelImport:      flagParallelImport,
 						},
 						ResourceId:     resId,
 						TFResourceName: flagResName,
@@ -353,6 +361,7 @@ func main() {
 							PlainUI:             hflagPlainUI,
 							GenerateMappingFile: flagGenerateMappingFile,
 							HCLOnly:             flagHCLOnly,
+							ParallelImport:      flagParallelImport,
 						},
 						ResourceGroupName:   rg,
 						ResourceNamePattern: flagPattern,
@@ -397,6 +406,7 @@ func main() {
 							PlainUI:             hflagPlainUI,
 							GenerateMappingFile: flagGenerateMappingFile,
 							HCLOnly:             flagHCLOnly,
+							ParallelImport:      flagParallelImport,
 						},
 						ARGPredicate:        predicate,
 						ResourceNamePattern: flagPattern,
@@ -441,6 +451,7 @@ func main() {
 							PlainUI:             hflagPlainUI,
 							GenerateMappingFile: flagGenerateMappingFile,
 							HCLOnly:             flagHCLOnly,
+							ParallelImport:      flagParallelImport,
 						},
 						MappingFile: mapFile,
 					}

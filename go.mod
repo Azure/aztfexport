@@ -14,15 +14,18 @@ require (
 	github.com/hashicorp/hc-install v0.4.0
 	github.com/hashicorp/hcl/v2 v2.13.0
 	github.com/hashicorp/terraform-exec v0.17.2
+	github.com/hexops/gotextdiff v1.0.3
 	github.com/magodo/armid v0.0.0-20220923023118-aec41eaf7370
 	github.com/magodo/azlist v0.0.0-20220923015326-17b16cc9b805
 	github.com/magodo/aztft v0.3.1-0.20221008074601-f274891aeb8f
 	github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
 	github.com/magodo/tfadd v0.10.1-0.20221008072754-94691857af3e
+	github.com/magodo/tfmerge v0.0.0-20221013065654-ba642eeb309a
+	github.com/magodo/workerpool v0.0.0-20211124060943-1c48f3e5a514
 	github.com/mitchellh/go-wordwrap v1.0.0
 	github.com/muesli/reflow v0.3.0
-	github.com/stretchr/testify v1.7.5
+	github.com/stretchr/testify v1.8.0
 	github.com/tidwall/gjson v1.14.1
 	github.com/urfave/cli/v2 v2.16.3
 	github.com/zclconf/go-cty v1.11.0
@@ -82,7 +85,6 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/magodo/tfpluginschema v0.0.0-20220905090502-2d6a05ebaefd // indirect
 	github.com/magodo/tfstate v0.0.0-20220409052014-9b9568dda918 // indirect
-	github.com/magodo/workerpool v0.0.0-20211124060943-1c48f3e5a514 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/muesli/ansi v0.0.0-20211018074035-2e021307bc4b // indirect

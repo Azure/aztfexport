@@ -57,6 +57,16 @@ func (m MetaGroupDummy) Import(item *ImportItem) {
 	return
 }
 
+func (m MetaGroupDummy) MultipleImport(items []*ImportItem) {
+	time.Sleep(time.Second)
+	return
+}
+
+func (m MetaGroupDummy) PushState() error {
+	time.Sleep(time.Second)
+	return nil
+}
+
 func (m MetaGroupDummy) GenerateCfg(l ImportList) error {
 	time.Sleep(500 * time.Millisecond)
 	return nil
