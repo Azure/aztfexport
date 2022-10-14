@@ -203,6 +203,10 @@ func (meta *baseMeta) Init() error {
 		return err
 	}
 
+	if err := meta.initProvider(ctx); err != nil {
+		return err
+	}
+
 	if meta.parallelImport {
 		baseState, err := meta.tf.StatePull(ctx)
 		if err != nil {
@@ -210,10 +214,6 @@ func (meta *baseMeta) Init() error {
 		}
 		meta.baseState = []byte(baseState)
 		meta.originBaseState = []byte(baseState)
-	}
-
-	if err := meta.initProvider(ctx); err != nil {
-		return err
 	}
 
 	return nil
