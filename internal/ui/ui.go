@@ -39,6 +39,7 @@ const (
 	statusImportErrorMsg
 	statusGeneratingCfg
 	statusCleaningUpWorkspaceCfg
+	statusPushState
 	statusExportResourceMapping
 	statusExportSkippedResources
 	statusSummary
@@ -55,6 +56,7 @@ func (s status) String() string {
 		"import error message",
 		"generating Terraform configuration",
 		"cleaning up output directory",
+		"pushing state",
 		"exporting resource mapping file",
 		"exporting skipped resources file",
 		"summary",
@@ -161,16 +163,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, cmd
 			}
 		}
-
 		if m.parallelImport {
-			if err := m.meta.PushState(); err != nil {
-				m.status = statusError
-				m.err = err
-				cmd := func() tea.Msg { return m.winsize }
-				return m, cmd
-			}
+			m.status = statusPushState
+			return m, aztfyclient.PushState(m.meta, msg.List)
 		}
-
+		m.status = statusExportResourceMapping
+		return m, aztfyclient.ExportResourceMapping(m.meta, msg.List)
+	case aztfyclient.PushStateDoneMsg:
 		m.status = statusExportResourceMapping
 		return m, aztfyclient.ExportResourceMapping(m.meta, msg.List)
 	case aztfyclient.ExportResourceMappingDoneMsg:
@@ -238,6 +237,8 @@ func (m model) View() string {
 		s += importErrorView(m)
 	case statusImporting:
 		s += m.spinner.View() + m.progress.View()
+	case statusPushState:
+		s += m.spinner.View() + " Pushing Terraform Status..."
 	case statusExportResourceMapping:
 		s += m.spinner.View() + " Exporting Resource Mapping..."
 	case statusExportSkippedResources:

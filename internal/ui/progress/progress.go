@@ -88,15 +88,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.results = append(m.results[1:], res)
 		}
 
-		// Update progress bar
-		cmds = append(cmds, m.progress.SetPercent(float64(m.idx+1)/float64(len(m.l))))
-
-		// Import the next
 		m.idx += m.parallelism
+
 		if m.iterationDone() {
+			cmds = append(cmds, m.progress.SetPercent(1))
 			cmds = append(cmds, aztfyclient.FinishImport(m.l))
 			return m, tea.Batch(cmds...)
 		}
+
+		cmds = append(cmds, m.progress.SetPercent(float64(m.idx)/float64(len(m.l))))
 
 		n := m.parallelism
 		if m.idx+m.parallelism > len(m.l) {
@@ -121,11 +121,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 		m.results = append(m.results[1:], res)
 
-		// Update progress bar
-		cmds = append(cmds, m.progress.SetPercent(float64(m.idx+1)/float64(len(m.l))))
+		m.idx++
+
+		cmds = append(cmds, m.progress.SetPercent(float64(m.idx)/float64(len(m.l))))
 
 		// Import the next
-		m.idx++
 		if m.iterationDone() {
 			cmds = append(cmds, aztfyclient.FinishImport(m.l))
 			return m, tea.Batch(cmds...)

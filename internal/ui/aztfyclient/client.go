@@ -40,6 +40,10 @@ type ImportDoneMsg struct {
 	List meta.ImportList
 }
 
+type PushStateDoneMsg struct {
+	List meta.ImportList
+}
+
 type ExportResourceMappingDoneMsg struct {
 	List meta.ImportList
 }
@@ -143,6 +147,15 @@ func CleanUpWorkspace(c meta.Meta) tea.Cmd {
 			return ErrMsg(err)
 		}
 		return WorkspaceCleanupDoneMsg{}
+	}
+}
+
+func PushState(c meta.Meta, l meta.ImportList) tea.Cmd {
+	return func() tea.Msg {
+		if err := c.PushState(); err != nil {
+			return ErrMsg(err)
+		}
+		return PushStateDoneMsg{List: l}
 	}
 }
 
