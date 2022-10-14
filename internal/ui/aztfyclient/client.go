@@ -32,6 +32,10 @@ type ImportOneItemDoneMsg struct {
 	Item meta.ImportItem
 }
 
+type ImportItemsDoneMsg struct {
+	Items []meta.ImportItem
+}
+
 type ImportDoneMsg struct {
 	List meta.ImportList
 }
@@ -101,6 +105,20 @@ func ImportOneItem(c meta.Meta, item meta.ImportItem) tea.Cmd {
 			time.Sleep(100 * time.Millisecond)
 		}
 		return ImportOneItemDoneMsg{Item: item}
+	}
+}
+
+func ImportItems(c meta.Meta, items []meta.ImportItem) tea.Cmd {
+	return func() tea.Msg {
+		var l []*meta.ImportItem
+		for i := range items {
+			if items[i].Skip() || items[i].Imported {
+				continue
+			}
+			l = append(l, &items[i])
+		}
+		c.ParallelImport(l)
+		return ImportItemsDoneMsg{Items: items}
 	}
 }
 

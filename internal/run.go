@@ -52,6 +52,7 @@ func BatchImport(cfg config.Config) error {
 		if !cfg.ParallelImport {
 			for i := range list {
 				if list[i].Skip() {
+					msg.SetStatus(fmt.Sprintf("(%d/%d) Skipping %s", i+1, len(list), list[i].TFResourceId))
 					continue
 				}
 				msg.SetStatus(fmt.Sprintf("(%d/%d) Importing %s as %s", i+1, len(list), list[i].TFResourceId, list[i].TFAddr))
@@ -77,6 +78,7 @@ func BatchImport(cfg config.Config) error {
 				for j := 0; j < n; j++ {
 					idx := i + j
 					if list[idx].Skip() {
+						messages = append(messages, fmt.Sprintf("(%d/%d) Skipping %s", idx+1, len(list), list[idx].TFResourceId))
 						continue
 					}
 					messages = append(messages, fmt.Sprintf("(%d/%d) Importing %s as %s", idx+1, len(list), list[idx].TFResourceId, list[idx].TFAddr))
@@ -84,7 +86,7 @@ func BatchImport(cfg config.Config) error {
 				}
 
 				msg.SetStatus(strings.Join(messages, "\n"))
-				c.MultipleImport(importList)
+				c.ParallelImport(importList)
 
 				var thisErrors []string
 				for j := 0; j < n; j++ {

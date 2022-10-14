@@ -64,7 +64,10 @@ func (s status) String() string {
 }
 
 type model struct {
-	meta   meta.Meta
+	meta           meta.Meta
+	parallelImport bool
+	parallelism    int
+
 	status status
 	err    error
 
@@ -81,15 +84,18 @@ func newModel(cfg config.Config) (*model, error) {
 	s := spinner.NewModel()
 	s.Spinner = common.Spinner
 
-	m := &model{
-		status:  statusInit,
-		spinner: s,
-	}
 	meta, err := meta.NewMeta(cfg)
 	if err != nil {
 		return nil, err
 	}
-	m.meta = meta
+
+	m := &model{
+		meta:           meta,
+		parallelImport: cfg.ParallelImport,
+		parallelism:    cfg.Parallelism,
+		status:         statusInit,
+		spinner:        s,
+	}
 
 	return m, nil
 }
@@ -140,7 +146,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case aztfyclient.StartImportMsg:
 		m.status = statusImporting
-		m.progress = progress.NewModel(m.meta, msg.List)
+		m.progress = progress.NewModel(m.meta, m.parallelImport, m.parallelism, msg.List)
 		return m, tea.Batch(
 			m.progress.Init(),
 			// Resize the progress bar
@@ -155,6 +161,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, cmd
 			}
 		}
+
+		if m.parallelImport {
+			if err := m.meta.PushState(); err != nil {
+				m.status = statusError
+				m.err = err
+				cmd := func() tea.Msg { return m.winsize }
+				return m, cmd
+			}
+		}
+
 		m.status = statusExportResourceMapping
 		return m, aztfyclient.ExportResourceMapping(m.meta, msg.List)
 	case aztfyclient.ExportResourceMappingDoneMsg:

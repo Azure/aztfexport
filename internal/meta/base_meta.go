@@ -36,7 +36,7 @@ type BaseMeta interface {
 	Init() error
 	Workspace() string
 	Import(item *ImportItem)
-	MultipleImport(items []*ImportItem)
+	ParallelImport(items []*ImportItem)
 	PushState() error
 	CleanTFState(addr string)
 	GenerateCfg(ImportList) error
@@ -243,15 +243,20 @@ func (meta baseMeta) Import(item *ImportItem) {
 	item.Imported = err == nil
 }
 
-// Import multiple items at the same time. Note that the length of items is less or equal than the parallelism.
-func (meta *baseMeta) MultipleImport(items []*ImportItem) {
+// Import multiple items in parallel. Note that the length of items have to be less or equal than the parallelism.
+func (meta *baseMeta) ParallelImport(items []*ImportItem) {
 	ctx := context.TODO()
 
 	wp := workerpool.NewWorkPool(meta.parallelism)
 
 	wp.Run(func(i interface{}) error {
 		idx := i.(int)
-		newState, err := tfmerge.Merge(ctx, meta.tf, meta.baseState, filepath.Join(meta.importDirs[idx], "terraform.tfstate"))
+		stateFile := filepath.Join(meta.importDirs[idx], "terraform.tfstate")
+
+		// Ensure the state file is removed after this round import, preparing for the next round.
+		defer os.Remove(stateFile)
+
+		newState, err := tfmerge.Merge(ctx, meta.tf, meta.baseState, stateFile)
 		if err != nil {
 			items[idx].ImportError = fmt.Errorf("failed to merge state file: %v", err)
 			return nil
@@ -266,9 +271,6 @@ func (meta *baseMeta) MultipleImport(items []*ImportItem) {
 			item := items[i]
 			dir := meta.importDirs[i]
 			tf := meta.importTFs[i]
-
-			// Clean up the state file at the begining
-			os.Remove(filepath.Join(dir, "terraform.tfstate"))
 
 			// Construct the cfg file for importing
 			cfgFile := filepath.Join(dir, meta.filenameTmpCfg())
@@ -304,16 +306,15 @@ func (meta baseMeta) PushState() error {
 		return fmt.Errorf("there is out-of-band changes on the state file during running aztfy:\n%s", changes)
 	}
 
-	// Create a temporary state file to hold the merged states
+	// Create a temporary state file to hold the merged states, then push the state to the output directory.
 	f, err := os.CreateTemp("", "")
 	if err != nil {
 		return fmt.Errorf("creating a temporary state file: %v", err)
 	}
-	if _, err := f.Write(meta.baseState); err != nil {
+	f.Close()
+	if err := utils.WriteFileSync(f.Name(), meta.baseState, 0644); err != nil {
 		return fmt.Errorf("writing to the temporary state file: %v", err)
 	}
-	f.Close()
-	f.Sync()
 
 	defer os.Remove(f.Name())
 

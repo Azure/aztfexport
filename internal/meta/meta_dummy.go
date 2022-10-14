@@ -57,7 +57,7 @@ func (m MetaGroupDummy) Import(item *ImportItem) {
 	return
 }
 
-func (m MetaGroupDummy) MultipleImport(items []*ImportItem) {
+func (m MetaGroupDummy) ParallelImport(items []*ImportItem) {
 	time.Sleep(time.Second)
 	return
 }
