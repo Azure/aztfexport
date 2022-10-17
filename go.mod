@@ -16,11 +16,11 @@ require (
 	github.com/hashicorp/terraform-exec v0.17.2
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/magodo/armid v0.0.0-20220923023118-aec41eaf7370
-	github.com/magodo/azlist v0.0.0-20220923015326-17b16cc9b805
-	github.com/magodo/aztft v0.3.1-0.20221008074601-f274891aeb8f
+	github.com/magodo/azlist v0.0.0-20221012021422-efffc8a52108
+	github.com/magodo/aztft v0.3.1-0.20221017015920-d2015d081573
 	github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
-	github.com/magodo/tfadd v0.10.1-0.20221008072754-94691857af3e
+	github.com/magodo/tfadd v0.10.1-0.20221017020852-86d1667721a6
 	github.com/magodo/tfmerge v0.0.0-20221013065654-ba642eeb309a
 	github.com/magodo/workerpool v0.0.0-20211124060943-1c48f3e5a514
 	github.com/mitchellh/go-wordwrap v1.0.0
