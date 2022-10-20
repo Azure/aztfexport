@@ -167,7 +167,7 @@ func main() {
 		&cli.IntFlag{
 			Name:        "parallelism",
 			EnvVars:     []string{"AZTFY_PARALLELISM"},
-			Usage:       "Limit the number of parallel operations, e.g., resource discovery, import (when `--parallel-import` is specified)",
+			Usage:       "Limit the number of parallel operations, e.g., resource discovery, import",
 			Value:       10,
 			Destination: &flagParallelism,
 		},
@@ -201,7 +201,7 @@ func main() {
 		&cli.BoolFlag{
 			Name:        "parallel-import",
 			EnvVars:     []string{"AZTFY_PARALLEL_IMPORT"},
-			Usage:       "Opt in parallel importing, use `--parallelism` to limit the number of parallel operations",
+			Usage:       "Opt in parallel importing",
 			Destination: &flagParallelImport,
 		},
 
