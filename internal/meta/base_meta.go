@@ -394,10 +394,10 @@ func (meta baseMeta) CleanUpWorkspace() error {
 		tmpMainCfg := filepath.Join(tmpDir, meta.filenameMainCfg())
 		tmpProviderCfg := filepath.Join(tmpDir, meta.filenameProviderSetting())
 
-		if err := os.Rename(filepath.Join(meta.Workspace(), meta.filenameMainCfg()), tmpMainCfg); err != nil {
+		if err := utils.CopyFile(filepath.Join(meta.Workspace(), meta.filenameMainCfg()), tmpMainCfg); err != nil {
 			return err
 		}
-		if err := os.Rename(filepath.Join(meta.Workspace(), meta.filenameProviderSetting()), tmpProviderCfg); err != nil {
+		if err := utils.CopyFile(filepath.Join(meta.Workspace(), meta.filenameProviderSetting()), tmpProviderCfg); err != nil {
 			return err
 		}
 
@@ -405,10 +405,10 @@ func (meta baseMeta) CleanUpWorkspace() error {
 			return err
 		}
 
-		if err := os.Rename(tmpMainCfg, filepath.Join(meta.Workspace(), meta.filenameMainCfg())); err != nil {
+		if err := utils.CopyFile(tmpMainCfg, filepath.Join(meta.Workspace(), meta.filenameMainCfg())); err != nil {
 			return err
 		}
-		if err := os.Rename(tmpProviderCfg, filepath.Join(meta.Workspace(), meta.filenameProviderSetting())); err != nil {
+		if err := utils.CopyFile(tmpProviderCfg, filepath.Join(meta.Workspace(), meta.filenameProviderSetting())); err != nil {
 			return err
 		}
 	}

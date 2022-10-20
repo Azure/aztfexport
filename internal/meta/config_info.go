@@ -175,7 +175,9 @@ func (cfgs ConfigInfos) addReferenceDependency() error {
 				}
 				dependingResourceIdsWithoutSelf = append(dependingResourceIdsWithoutSelf, id)
 			}
-			cfg.DependsOn = append(cfg.DependsOn, Dependency{Candidates: dependingResourceIdsWithoutSelf})
+			if len(dependingResourceIdsWithoutSelf) != 0 {
+				cfg.DependsOn = append(cfg.DependsOn, Dependency{Candidates: dependingResourceIdsWithoutSelf})
+			}
 			return nil
 		})
 		cfgs[i] = cfg
