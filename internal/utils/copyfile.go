@@ -10,6 +10,7 @@ func CopyFile(src, dst string) error {
 	if err != nil {
 		return fmt.Errorf("stating source file %s: %v", src, err)
 	}
+	// #nosec G304
 	b, err := os.ReadFile(src)
 	if err != nil {
 		return fmt.Errorf("reading from %s: %v", src, err)
