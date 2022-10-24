@@ -8,6 +8,7 @@ func WriteFileSync(name string, data []byte, perm os.FileMode) error {
 	if err != nil {
 		return err
 	}
+	// #nosec G307
 	defer f.Close()
 	if _, err = f.Write(data); err != nil {
 		return err
