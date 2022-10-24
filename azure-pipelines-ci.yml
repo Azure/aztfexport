@@ -1,0 +1,10 @@
+trigger:
+- main
+
+pool:
+  vmImage: pool-ubuntu-2004
+
+steps:
+  - task: CredScan@2
+    inputs:
+      toolMajorVersion: 'V2'
