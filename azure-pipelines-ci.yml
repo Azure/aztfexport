@@ -5,8 +5,5 @@ pool:
   name: pool-windows-2004
 
 steps:
-  - task: CredScan@3
+  - task: ms-codeanalysis.vss-microsoft-security-code-analysis-devops.build-task-credscan.CredScan@3
     displayName: 'Run Credential Scanner'
-    inputs:
-      outputFormat: sarif
-      debugMode: false
