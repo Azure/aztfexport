@@ -2,9 +2,11 @@ trigger:
 - main
 
 pool:
-  name: pool-ubuntu-2004
+  name: pool-windows-2004
 
 steps:
-  - task: securedevelopmentteam.vss-secure-development-tools.build-task-credscan.CredScan@2
+  - task: CredScan@3
+    displayName: 'Run Credential Scanner'
     inputs:
-      toolMajorVersion: 'V2'
+      outputFormat: sarif
+      debugMode: false
