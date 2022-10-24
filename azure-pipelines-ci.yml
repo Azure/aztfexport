@@ -5,6 +5,6 @@ pool:
   name: pool-ubuntu-2004
 
 steps:
-  - task: ms-codeanalysis.vss-microsoft-security-code-analysis-devops.build-task-credscan.CredScan@2
+  - task: securedevelopmentteam.vss-secure-development-tools.build-task-credscan.CredScan@2
     inputs:
       toolMajorVersion: 'V2'
