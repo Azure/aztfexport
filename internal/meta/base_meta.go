@@ -84,7 +84,8 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		return nil, fmt.Errorf("error finding the user cache directory: %w", err)
 	}
 	rootdir := filepath.Join(cachedir, "aztfy")
-	if err := os.MkdirAll(rootdir, 0755); err != nil {
+	// #nosec G301
+	if err := os.MkdirAll(rootdir, 0750); err != nil {
 		return nil, fmt.Errorf("creating rootdir %q: %w", rootdir, err)
 	}
 
@@ -127,6 +128,7 @@ The output directory is not empty. Please choose one of actions below:
 
 > `)
 				var ans string
+				// #nosec G104
 				fmt.Scanf("%s", &ans)
 				switch strings.ToLower(ans) {
 				case "y":
@@ -166,10 +168,13 @@ The output directory is not empty. Please choose one of actions below:
 	}
 
 	// AzureRM provider will honor env.var "AZURE_HTTP_USER_AGENT" when constructing for HTTP "User-Agent" header.
+	// #nosec G104
 	os.Setenv("AZURE_HTTP_USER_AGENT", "aztfy")
 
 	// Avoid the AzureRM provider to call the expensive RP listing API, repeatedly.
+	// #nosec G104
 	os.Setenv("ARM_PROVIDER_ENHANCED_VALIDATION", "false")
+	// #nosec G104
 	os.Setenv("ARM_SKIP_PROVIDER_REGISTRATION", "true")
 
 	meta := &baseMeta{
@@ -221,6 +226,7 @@ func (meta *baseMeta) Init() error {
 
 func (meta *baseMeta) CleanTFState(addr string) {
 	ctx := context.TODO()
+	// #nosec G104
 	meta.tf.StateRm(ctx, addr)
 }
 
@@ -289,6 +295,7 @@ func (meta *baseMeta) ParallelImport(items []*ImportItem) {
 		})
 	}
 
+	// #nosec G104
 	wp.Done()
 }
 
@@ -311,7 +318,9 @@ func (meta baseMeta) PushState() error {
 	if err != nil {
 		return fmt.Errorf("creating a temporary state file: %v", err)
 	}
-	f.Close()
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("closing the temporary state file %s: %v", f.Name(), err)
+	}
 	if err := utils.WriteFileSync(f.Name(), meta.baseState, 0644); err != nil {
 		return fmt.Errorf("writing to the temporary state file: %v", err)
 	}
@@ -346,7 +355,7 @@ func (meta baseMeta) ExportResourceMapping(l ImportList) error {
 	if err != nil {
 		return fmt.Errorf("JSON marshalling the resource mapping: %v", err)
 	}
-	if err := os.WriteFile(output, b, 0644); err != nil {
+	if err := os.WriteFile(output, b, 0600); err != nil {
 		return fmt.Errorf("writing the resource mapping to %s: %v", output, err)
 	}
 	return nil
@@ -367,7 +376,7 @@ func (meta baseMeta) ExportSkippedResources(l ImportList) error {
 	if err := os.WriteFile(output, []byte(fmt.Sprintf(`Following resources are marked to be skipped:
 
 %s
-`, strings.Join(sl, "\n"))), 0644); err != nil {
+`, strings.Join(sl, "\n"))), 0600); err != nil {
 		return fmt.Errorf("writing the skipped resources to %s: %v", output, err)
 	}
 	return nil
@@ -377,6 +386,7 @@ func (meta baseMeta) CleanUpWorkspace() error {
 	// Clean up the temporary workspaces for parallel import
 	if meta.parallelImport {
 		for _, dir := range meta.importDirs {
+			// #nosec G104
 			os.RemoveAll(dir)
 		}
 	}
@@ -388,6 +398,7 @@ func (meta baseMeta) CleanUpWorkspace() error {
 			return err
 		}
 		defer func() {
+			// #nosec G104
 			os.RemoveAll(tmpDir)
 		}()
 
@@ -479,7 +490,8 @@ func (meta baseMeta) filenameTmpCfg() string {
 
 func (meta *baseMeta) initTF(ctx context.Context) error {
 	tfDir := filepath.Join(meta.rootdir, "terraform")
-	if err := os.MkdirAll(tfDir, 0755); err != nil {
+	// #nosec G301
+	if err := os.MkdirAll(tfDir, 0750); err != nil {
 		return fmt.Errorf("creating terraform cache dir %q: %w", meta.rootdir, err)
 	}
 	execPath, err := FindTerraform(ctx, tfDir)
@@ -493,9 +505,11 @@ func (meta *baseMeta) initTF(ctx context.Context) error {
 			return nil, fmt.Errorf("error running NewTerraform: %w", err)
 		}
 		if v, ok := os.LookupEnv("TF_LOG_PATH"); ok {
+			// #nosec G104
 			tf.SetLogPath(v)
 		}
 		if v, ok := os.LookupEnv("TF_LOG"); ok {
+			// #nosec G104
 			tf.SetLog(v)
 		}
 		return tf, nil
@@ -683,6 +697,7 @@ func (meta baseMeta) addDependency(configs ConfigInfos) (ConfigInfos, error) {
 }
 
 func removeEverythingUnder(path string) error {
+	// #nosec G304
 	dir, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("failed to read directory %s: %v", path, err)
@@ -693,7 +708,9 @@ func removeEverythingUnder(path string) error {
 			return fmt.Errorf("failed to remove %s: %v", entry, err)
 		}
 	}
-	dir.Close()
+	if err := dir.Close(); err != nil {
+		return fmt.Errorf("closing dir %s: %v", path, err)
+	}
 	return nil
 }
 
@@ -705,6 +722,7 @@ func dirIsEmpty(path string) (bool, error) {
 	if !stat.IsDir() {
 		return false, fmt.Errorf("the path %q is not a directory", path)
 	}
+	// #nosec G304
 	dir, err := os.Open(path)
 	if err != nil {
 		return false, err
@@ -712,12 +730,16 @@ func dirIsEmpty(path string) (bool, error) {
 	_, err = dir.Readdirnames(1)
 	if err != nil {
 		if err == io.EOF {
-			dir.Close()
+			if err := dir.Close(); err != nil {
+				return false, fmt.Errorf("closing dir %s: %v", path, err)
+			}
 			return true, nil
 		}
 		return false, err
 	}
-	dir.Close()
+	if err := dir.Close(); err != nil {
+		return false, fmt.Errorf("closing dir %s: %v", path, err)
+	}
 	return false, nil
 }
 
@@ -729,10 +751,12 @@ func dirContainsProviderSetting(path string) (bool, error) {
 	if !stat.IsDir() {
 		return false, fmt.Errorf("the path %q is not a directory", path)
 	}
+	// #nosec G304
 	dir, err := os.Open(path)
 	if err != nil {
 		return false, err
 	}
+	// #nosec G307
 	defer dir.Close()
 
 	fnames, err := dir.Readdirnames(0)
@@ -743,11 +767,10 @@ func dirContainsProviderSetting(path string) (bool, error) {
 	// Ideally, we shall use hclgrep for a perfect match. But as the provider setting is simple enough, we do a text matching here.
 	p := regexp.MustCompile(`^\s*provider\s+"azurerm"\s*{\s*$`)
 	for _, fname := range fnames {
-		// fmt.Println(fname)
-		// fmt.Println(filepath.Ext(fname))
 		if filepath.Ext(fname) != ".tf" {
 			continue
 		}
+		// #nosec G304
 		f, err := os.Open(filepath.Join(path, fname))
 		if err != nil {
 			return false, fmt.Errorf("opening %s: %v", fname, err)
@@ -755,25 +778,30 @@ func dirContainsProviderSetting(path string) (bool, error) {
 		scanner := bufio.NewScanner(f)
 		for scanner.Scan() {
 			if p.MatchString(scanner.Text()) {
-				f.Close()
+				_ = f.Close()
 				return true, nil
 			}
 		}
 		if err := scanner.Err(); err != nil {
-			f.Close()
+			_ = f.Close()
 			return false, fmt.Errorf("reading file %s: %v", fname, err)
 		}
-		f.Close()
+		if err := f.Close(); err != nil {
+			return false, fmt.Errorf("closing file %s: %v", fname, err)
+		}
 	}
 	return false, nil
 }
 
 func appendToFile(path, content string) error {
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	// #nosec G304
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return err
 	}
+	// #nosec G307
 	defer f.Close()
+
 	_, err = f.WriteString(content)
 	return err
 }

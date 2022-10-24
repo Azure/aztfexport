@@ -46,6 +46,7 @@ func randStringFromCharSet(strlen int, charSet string) string {
 }
 
 func randIntRange(min int, max int) int {
+	// #nosec G404 -- This is fine for testing
 	return rand.Intn(max-min) + min
 }
 

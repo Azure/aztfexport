@@ -474,14 +474,15 @@ func initLog(path string) error {
 	log.SetOutput(io.Discard)
 	if path != "" {
 		log.SetPrefix("[aztfy] ")
-		f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+		// #nosec G304
+		f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
 		if err != nil {
 			return fmt.Errorf("creating log file %s: %v", path, err)
 		}
 		log.SetOutput(f)
 
 		// Enable the logging for the Azure SDK
-		os.Setenv("AZURE_SDK_GO_LOGGING", "all")
+		os.Setenv("AZURE_SDK_GO_LOGGING", "all") // #nosec G104
 		azlog.SetListener(func(cls azlog.Event, msg string) {
 			log.Printf("[SDK] %s: %s\n", cls, msg)
 		})

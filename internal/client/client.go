@@ -39,15 +39,19 @@ func NewClientBuilder() (*ClientBuilder, error) {
 
 	// Maps the auth related environment variables used in the provider to what azidentity honors.
 	if v, ok := os.LookupEnv("ARM_TENANT_ID"); ok {
+		// #nosec G104
 		os.Setenv("AZURE_TENANT_ID", v)
 	}
 	if v, ok := os.LookupEnv("ARM_CLIENT_ID"); ok {
+		// #nosec G104
 		os.Setenv("AZURE_CLIENT_ID", v)
 	}
 	if v, ok := os.LookupEnv("ARM_CLIENT_SECRET"); ok {
+		// #nosec G104
 		os.Setenv("AZURE_CLIENT_SECRET", v)
 	}
 	if v, ok := os.LookupEnv("ARM_CLIENT_CERTIFICATE_PATH"); ok {
+		// #nosec G104
 		os.Setenv("AZURE_CLIENT_CERTIFICATE_PATH", v)
 	}
 
