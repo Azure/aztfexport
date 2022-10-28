@@ -28,6 +28,7 @@ func BatchImport(cfg config.Config) error {
 
 		defer func() {
 			msg.SetStatus("DeInitializing...")
+			// #nosec G104
 			c.DeInit()
 		}()
 
