@@ -19,6 +19,11 @@ func (m MetaGroupDummy) Init() error {
 	return nil
 }
 
+func (m MetaGroupDummy) DeInit() error {
+	time.Sleep(500 * time.Millisecond)
+	return nil
+}
+
 func (m MetaGroupDummy) ScopeName() string {
 	return m.rg
 }

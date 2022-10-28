@@ -118,7 +118,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC:
-			return m, aztfyclient.Quit()
+			m.status = statusQuitting
+			return m, aztfyclient.Quit(m.meta)
 		}
 	case spinner.TickMsg:
 		var cmd tea.Cmd
@@ -178,7 +179,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.status = statusSummary
 		return m, nil
 	case aztfyclient.QuitMsg:
-		m.status = statusQuitting
 		return m, tea.Quit
 	case aztfyclient.CleanTFStateMsg:
 		m.meta.CleanTFState(msg.Addr)
@@ -211,7 +211,8 @@ func updateChildren(msg tea.Msg, m model) (model, tea.Cmd) {
 	case statusSummary:
 		switch msg.(type) {
 		case tea.KeyMsg:
-			return m, aztfyclient.Quit()
+			m.status = statusQuitting
+			return m, aztfyclient.Quit(m.meta)
 		}
 	}
 	return m, nil

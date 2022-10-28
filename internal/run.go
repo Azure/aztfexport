@@ -26,6 +26,11 @@ func BatchImport(cfg config.Config) error {
 			return err
 		}
 
+		defer func() {
+			msg.SetStatus("DeInitializing...")
+			c.DeInit()
+		}()
+
 		msg.SetStatus("Listing resources...")
 		list, err := c.ListResource()
 		if err != nil {
@@ -97,7 +102,7 @@ func BatchImport(cfg config.Config) error {
 
 		msg.SetStatus("Cleaning up...")
 		if err := c.CleanUpWorkspace(); err != nil {
-			return fmt.Errorf("cleaning up: %v", err)
+			return fmt.Errorf("cleaning up main workspace: %v", err)
 		}
 
 		return nil

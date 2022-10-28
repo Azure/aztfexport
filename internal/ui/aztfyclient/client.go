@@ -165,8 +165,11 @@ func CleanTFState(addr string) tea.Cmd {
 	}
 }
 
-func Quit() tea.Cmd {
+func Quit(c meta.Meta) tea.Cmd {
 	return func() tea.Msg {
+		if err := c.DeInit(); err != nil {
+			return ErrMsg(err)
+		}
 		return QuitMsg{}
 	}
 }

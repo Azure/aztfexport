@@ -34,6 +34,7 @@ const SkippedResourcesFileName = "aztfySkippedResources.txt"
 
 type BaseMeta interface {
 	Init() error
+	DeInit() error
 	Workspace() string
 	ParallelImport(items []*ImportItem)
 	PushState() error
@@ -221,6 +222,15 @@ func (meta *baseMeta) Init() error {
 	return nil
 }
 
+func (meta baseMeta) DeInit() error {
+	// Clean up the temporary workspaces for parallel import
+	for _, dir := range meta.importDirs {
+		// #nosec G104
+		os.RemoveAll(dir)
+	}
+	return nil
+}
+
 func (meta *baseMeta) CleanTFState(addr string) {
 	ctx := context.TODO()
 	// #nosec G104
@@ -361,12 +371,6 @@ func (meta baseMeta) ExportSkippedResources(l ImportList) error {
 }
 
 func (meta baseMeta) CleanUpWorkspace() error {
-	// Clean up the temporary workspaces for parallel import
-	for _, dir := range meta.importDirs {
-		// #nosec G104
-		os.RemoveAll(dir)
-	}
-
 	// Clean up everything under the output directory, except for the TF code.
 	if meta.hclOnly {
 		tmpDir, err := os.MkdirTemp("", "")
