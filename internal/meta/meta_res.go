@@ -1,6 +1,8 @@
 package meta
 
 import (
+	"fmt"
+
 	"github.com/Azure/aztfy/internal/config"
 	"github.com/Azure/aztfy/internal/resourceset"
 	"github.com/Azure/aztfy/internal/tfaddr"
@@ -47,14 +49,25 @@ func (meta *MetaResource) ListResource() (ImportList, error) {
 		},
 	}
 	rl := resourceSet.ToTFResources()
+
+	// This is to record known resource types. In case there is a known resource type and there comes another same typed resource,
+	// then we need to modify the resource name. Otherwise, there will be a resource address conflict.
+	// See https://github.com/Azure/aztfy/issues/275 for an example.
+	rtCnt := map[string]int{}
+
 	var l ImportList
 	for _, res := range rl {
+		name := meta.ResourceName
+		rtCnt[res.TFType]++
+		if rtCnt[res.TFType] > 1 {
+			name += fmt.Sprintf("-%d", rtCnt[res.TFType]-1)
+		}
 		item := ImportItem{
 			AzureResourceID: res.AzureId,
 			TFResourceId:    res.TFId, // this might be empty if have multiple matches in aztft
 			TFAddr: tfaddr.TFAddr{
 				Type: res.TFType, //this might be empty if have multiple matches in aztft
-				Name: meta.ResourceName,
+				Name: name,
 			},
 		}
 
