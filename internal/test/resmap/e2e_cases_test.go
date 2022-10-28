@@ -73,6 +73,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 			BackendType:    "local",
 			DevProvider:    true,
 			PlainUI:        true,
+			Parallelism:    1,
 		},
 		MappingFile: mapFile,
 	}

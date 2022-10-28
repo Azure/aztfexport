@@ -1,8 +1,6 @@
 package aztfyclient
 
 import (
-	"time"
-
 	"github.com/Azure/aztfy/internal/meta"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -26,10 +24,6 @@ type ShowImportErrorMsg struct {
 
 type StartImportMsg struct {
 	List meta.ImportList
-}
-
-type ImportOneItemDoneMsg struct {
-	Item meta.ImportItem
 }
 
 type ImportItemsDoneMsg struct {
@@ -97,18 +91,6 @@ func ShowImportError(item meta.ImportItem, idx int, l meta.ImportList) tea.Cmd {
 func StartImport(c meta.Meta, l meta.ImportList) tea.Cmd {
 	return func() tea.Msg {
 		return StartImportMsg{List: l}
-	}
-}
-
-func ImportOneItem(c meta.Meta, item meta.ImportItem) tea.Cmd {
-	return func() tea.Msg {
-		if !item.Skip() && !item.Imported {
-			c.Import(&item)
-		} else {
-			// This explicit minor delay is for the sake of a visual effect of the progress bar.
-			time.Sleep(100 * time.Millisecond)
-		}
-		return ImportOneItemDoneMsg{Item: item}
 	}
 }
 

@@ -62,6 +62,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 			BackendType:    "local",
 			DevProvider:    true,
 			PlainUI:        true,
+			Parallelism:    10,
 		},
 		ResourceGroupName:   d.RandomRgName(),
 		ResourceNamePattern: "res-",

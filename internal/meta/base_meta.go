@@ -35,7 +35,6 @@ const SkippedResourcesFileName = "aztfySkippedResources.txt"
 type BaseMeta interface {
 	Init() error
 	Workspace() string
-	Import(item *ImportItem)
 	ParallelImport(items []*ImportItem)
 	PushState() error
 	CleanTFState(addr string)
@@ -61,8 +60,7 @@ type baseMeta struct {
 	hclOnly        bool
 
 	// Parallel import supports
-	parallelImport bool
-	importDirs     []string
+	importDirs []string
 	// The original base state, which is retrieved prior to the import, and is compared with the actual base state prior to the mutated state is pushed,
 	// to ensure the base state has no out of band changes during the importing.
 	originBaseState []byte
@@ -78,6 +76,10 @@ type baseMeta struct {
 }
 
 func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
+	if cfg.Parallelism == 0 {
+		return nil, fmt.Errorf("Parallelism not set in the config")
+	}
+
 	// Initialize the rootdir
 	cachedir, err := os.UserCacheDir()
 	if err != nil {
@@ -147,14 +149,12 @@ The output directory is not empty. Please choose one of actions below:
 
 	// Create the import directories
 	var importDirs []string
-	if cfg.ParallelImport {
-		for i := 0; i < cfg.Parallelism; i++ {
-			dir, err := os.MkdirTemp("", "aztfy-")
-			if err != nil {
-				return nil, fmt.Errorf("creating import directory: %v", err)
-			}
-			importDirs = append(importDirs, dir)
+	for i := 0; i < cfg.Parallelism; i++ {
+		dir, err := os.MkdirTemp("", "aztfy-")
+		if err != nil {
+			return nil, fmt.Errorf("creating import directory: %v", err)
 		}
+		importDirs = append(importDirs, dir)
 	}
 
 	// Construct client builder
@@ -190,7 +190,6 @@ The output directory is not empty. Please choose one of actions below:
 		useSafeFilename: cfg.Append,
 		empty:           empty,
 		hclOnly:         cfg.HCLOnly,
-		parallelImport:  cfg.ParallelImport,
 		importDirs:      importDirs,
 	}
 
@@ -212,14 +211,12 @@ func (meta *baseMeta) Init() error {
 		return err
 	}
 
-	if meta.parallelImport {
-		baseState, err := meta.tf.StatePull(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to pull state: %v", err)
-		}
-		meta.baseState = []byte(baseState)
-		meta.originBaseState = []byte(baseState)
+	baseState, err := meta.tf.StatePull(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to pull state: %v", err)
 	}
+	meta.baseState = []byte(baseState)
+	meta.originBaseState = []byte(baseState)
 
 	return nil
 }
@@ -228,25 +225,6 @@ func (meta *baseMeta) CleanTFState(addr string) {
 	ctx := context.TODO()
 	// #nosec G104
 	meta.tf.StateRm(ctx, addr)
-}
-
-func (meta baseMeta) Import(item *ImportItem) {
-	ctx := context.TODO()
-
-	// Generate a temp Terraform config to include the empty template for each resource.
-	// This is required for the following importing.
-	cfgFile := filepath.Join(meta.outdir, meta.filenameTmpCfg())
-	tpl := fmt.Sprintf(`resource "%s" "%s" {}`, item.TFAddr.Type, item.TFAddr.Name)
-	if err := utils.WriteFileSync(cfgFile, []byte(tpl), 0644); err != nil {
-		item.ImportError = fmt.Errorf("generating resource template file: %w", err)
-		return
-	}
-	defer os.Remove(cfgFile)
-
-	// Import resources
-	err := meta.tf.Import(ctx, item.TFAddr.String(), item.TFResourceId)
-	item.ImportError = err
-	item.Imported = err == nil
 }
 
 // Import multiple items in parallel. Note that the length of items have to be less or equal than the parallelism.
@@ -384,11 +362,9 @@ func (meta baseMeta) ExportSkippedResources(l ImportList) error {
 
 func (meta baseMeta) CleanUpWorkspace() error {
 	// Clean up the temporary workspaces for parallel import
-	if meta.parallelImport {
-		for _, dir := range meta.importDirs {
-			// #nosec G104
-			os.RemoveAll(dir)
-		}
+	for _, dir := range meta.importDirs {
+		// #nosec G104
+		os.RemoveAll(dir)
 	}
 
 	// Clean up everything under the output directory, except for the TF code.

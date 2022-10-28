@@ -66,9 +66,8 @@ func (s status) String() string {
 }
 
 type model struct {
-	meta           meta.Meta
-	parallelImport bool
-	parallelism    int
+	meta        meta.Meta
+	parallelism int
 
 	status status
 	err    error
@@ -92,11 +91,10 @@ func newModel(cfg config.Config) (*model, error) {
 	}
 
 	m := &model{
-		meta:           meta,
-		parallelImport: cfg.ParallelImport,
-		parallelism:    cfg.Parallelism,
-		status:         statusInit,
-		spinner:        s,
+		meta:        meta,
+		parallelism: cfg.Parallelism,
+		status:      statusInit,
+		spinner:     s,
 	}
 
 	return m, nil
@@ -120,8 +118,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC:
-			m.status = statusQuitting
-			return m, tea.Quit
+			return m, aztfyclient.Quit()
 		}
 	case spinner.TickMsg:
 		var cmd tea.Cmd
@@ -148,7 +145,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case aztfyclient.StartImportMsg:
 		m.status = statusImporting
-		m.progress = progress.NewModel(m.meta, m.parallelImport, m.parallelism, msg.List)
+		m.progress = progress.NewModel(m.meta, m.parallelism, msg.List)
 		return m, tea.Batch(
 			m.progress.Init(),
 			// Resize the progress bar
@@ -163,12 +160,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, cmd
 			}
 		}
-		if m.parallelImport {
-			m.status = statusPushState
-			return m, aztfyclient.PushState(m.meta, msg.List)
-		}
-		m.status = statusExportResourceMapping
-		return m, aztfyclient.ExportResourceMapping(m.meta, msg.List)
+		m.status = statusPushState
+		return m, aztfyclient.PushState(m.meta, msg.List)
 	case aztfyclient.PushStateDoneMsg:
 		m.status = statusExportResourceMapping
 		return m, aztfyclient.ExportResourceMapping(m.meta, msg.List)
@@ -185,6 +178,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.status = statusSummary
 		return m, nil
 	case aztfyclient.QuitMsg:
+		m.status = statusQuitting
 		return m, tea.Quit
 	case aztfyclient.CleanTFStateMsg:
 		m.meta.CleanTFState(msg.Addr)

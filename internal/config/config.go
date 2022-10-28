@@ -16,7 +16,6 @@ type CommonConfig struct {
 	PlainUI             bool
 	GenerateMappingFile bool
 	HCLOnly             bool
-	ParallelImport      bool
 }
 
 type Config struct {

@@ -52,11 +52,6 @@ func (m MetaGroupDummy) CleanTFState(_ string) {
 	return
 }
 
-func (m MetaGroupDummy) Import(item *ImportItem) {
-	time.Sleep(time.Second)
-	return
-}
-
 func (m MetaGroupDummy) ParallelImport(items []*ImportItem) {
 	time.Sleep(time.Second)
 	return

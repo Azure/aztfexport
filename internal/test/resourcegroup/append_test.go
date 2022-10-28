@@ -82,6 +82,7 @@ resource "azurerm_resource_group" "test3" {
 			BackendType:    "local",
 			DevProvider:    true,
 			PlainUI:        true,
+			Parallelism:    1,
 		},
 		ResourceNamePattern: "t1",
 	}
