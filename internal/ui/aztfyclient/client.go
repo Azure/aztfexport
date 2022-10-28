@@ -1,8 +1,6 @@
 package aztfyclient
 
 import (
-	"time"
-
 	"github.com/Azure/aztfy/internal/meta"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -28,11 +26,15 @@ type StartImportMsg struct {
 	List meta.ImportList
 }
 
-type ImportOneItemDoneMsg struct {
-	Item meta.ImportItem
+type ImportItemsDoneMsg struct {
+	Items []meta.ImportItem
 }
 
 type ImportDoneMsg struct {
+	List meta.ImportList
+}
+
+type PushStateDoneMsg struct {
 	List meta.ImportList
 }
 
@@ -92,15 +94,17 @@ func StartImport(c meta.Meta, l meta.ImportList) tea.Cmd {
 	}
 }
 
-func ImportOneItem(c meta.Meta, item meta.ImportItem) tea.Cmd {
+func ImportItems(c meta.Meta, items []meta.ImportItem) tea.Cmd {
 	return func() tea.Msg {
-		if !item.Skip() && !item.Imported {
-			c.Import(&item)
-		} else {
-			// This explicit minor delay is for the sake of a visual effect of the progress bar.
-			time.Sleep(100 * time.Millisecond)
+		var l []*meta.ImportItem
+		for i := range items {
+			if items[i].Skip() || items[i].Imported {
+				continue
+			}
+			l = append(l, &items[i])
 		}
-		return ImportOneItemDoneMsg{Item: item}
+		c.ParallelImport(l)
+		return ImportItemsDoneMsg{Items: items}
 	}
 }
 
@@ -128,6 +132,15 @@ func CleanUpWorkspace(c meta.Meta) tea.Cmd {
 	}
 }
 
+func PushState(c meta.Meta, l meta.ImportList) tea.Cmd {
+	return func() tea.Msg {
+		if err := c.PushState(); err != nil {
+			return ErrMsg(err)
+		}
+		return PushStateDoneMsg{List: l}
+	}
+}
+
 func ExportResourceMapping(c meta.Meta, l meta.ImportList) tea.Cmd {
 	return func() tea.Msg {
 		if err := c.ExportResourceMapping(l); err != nil {
@@ -152,8 +165,11 @@ func CleanTFState(addr string) tea.Cmd {
 	}
 }
 
-func Quit() tea.Cmd {
+func Quit(c meta.Meta) tea.Cmd {
 	return func() tea.Msg {
+		if err := c.DeInit(); err != nil {
+			return ErrMsg(err)
+		}
 		return QuitMsg{}
 	}
 }

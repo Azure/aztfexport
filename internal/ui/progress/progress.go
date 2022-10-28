@@ -16,20 +16,24 @@ type result struct {
 }
 
 type Model struct {
-	c        meta.Meta
-	l        meta.ImportList
-	idx      int
+	c meta.Meta
+	l meta.ImportList
+
+	idx         int
+	parallelism int
+
 	results  []result
 	progress prog.Model
 }
 
-func NewModel(c meta.Meta, l meta.ImportList) Model {
+func NewModel(c meta.Meta, parallelism int, l meta.ImportList) Model {
 	return Model{
-		c:        c,
-		l:        l,
-		idx:      0,
-		results:  make([]result, common.ProgressShowLastResults),
-		progress: prog.NewModel(prog.WithDefaultGradient()),
+		c:           c,
+		l:           l,
+		idx:         0,
+		parallelism: parallelism,
+		results:     make([]result, common.ProgressShowLastResults),
+		progress:    prog.NewModel(prog.WithDefaultGradient()),
 	}
 }
 
@@ -38,8 +42,12 @@ func (m Model) Init() tea.Cmd {
 		return aztfyclient.FinishImport(m.l)
 	}
 
+	n := m.parallelism
+	if m.idx+m.parallelism > len(m.l) {
+		n = len(m.l) - m.idx
+	}
 	return tea.Batch(
-		aztfyclient.ImportOneItem(m.c, m.l[m.idx]),
+		aztfyclient.ImportItems(m.c, m.l[m.idx:m.idx+n]),
 	)
 }
 
@@ -53,36 +61,43 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		progressModel, cmd := m.progress.Update(msg)
 		m.progress = progressModel.(prog.Model)
 		return m, cmd
-	case aztfyclient.ImportOneItemDoneMsg:
+
+	case aztfyclient.ImportItemsDoneMsg:
 		var cmds []tea.Cmd
-		var cmd tea.Cmd
 
 		// Update results
-		item := msg.Item
-		m.l[m.idx] = item
-		res := result{
-			item: msg.Item,
-		}
-		if item.ImportError != nil {
-			res.emoji = common.WarningEmoji
-		} else {
-			res.emoji = common.RandomHappyEmoji()
-		}
-		m.results = append(m.results[1:], res)
+		items := msg.Items
+		for i := range items {
+			m.l[m.idx+i] = items[i]
 
-		// Update progress bar
-		cmd = m.progress.SetPercent(float64(m.idx+1) / float64(len(m.l)))
-		cmds = append(cmds, cmd)
+			emoji := common.RandomHappyEmoji()
+			if items[i].ImportError != nil {
+				emoji = common.WarningEmoji
+			}
+			res := result{
+				item:  items[i],
+				emoji: emoji,
+			}
+			m.results = append(m.results[1:], res)
+		}
 
-		m.idx++
+		m.idx += m.parallelism
+
 		if m.iterationDone() {
-			cmd = aztfyclient.FinishImport(m.l)
-			cmds = append(cmds, cmd)
+			cmds = append(cmds, m.progress.SetPercent(1))
+			cmds = append(cmds, aztfyclient.FinishImport(m.l))
 			return m, tea.Batch(cmds...)
 		}
-		cmd = aztfyclient.ImportOneItem(m.c, m.l[m.idx])
-		cmds = append(cmds, cmd)
+
+		cmds = append(cmds, m.progress.SetPercent(float64(m.idx)/float64(len(m.l))))
+
+		n := m.parallelism
+		if m.idx+m.parallelism > len(m.l) {
+			n = len(m.l) - m.idx
+		}
+		cmds = append(cmds, aztfyclient.ImportItems(m.c, m.l[m.idx:m.idx+n]))
 		return m, tea.Batch(cmds...)
+
 	default:
 		return m, nil
 	}
@@ -124,5 +139,5 @@ func (m Model) View() string {
 }
 
 func (m Model) iterationDone() bool {
-	return len(m.l) == m.idx
+	return m.idx >= len(m.l)
 }

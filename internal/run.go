@@ -26,6 +26,12 @@ func BatchImport(cfg config.Config) error {
 			return err
 		}
 
+		defer func() {
+			msg.SetStatus("DeInitializing...")
+			// #nosec G104
+			c.DeInit()
+		}()
+
 		msg.SetStatus("Listing resources...")
 		list, err := c.ListResource()
 		if err != nil {
@@ -47,20 +53,47 @@ func BatchImport(cfg config.Config) error {
 			return nil
 		}
 
-		msg.SetStatus("Importing resources...")
-		for i := range list {
-			if list[i].Skip() {
-				continue
+		for i := 0; i < len(list); i += cfg.Parallelism {
+			n := cfg.Parallelism
+			if i+cfg.Parallelism > len(list) {
+				n = len(list) - i
 			}
-			msg.SetStatus(fmt.Sprintf("(%d/%d) Importing %s as %s", i+1, len(list), list[i].TFResourceId, list[i].TFAddr))
-			c.Import(&list[i])
-			if err := list[i].ImportError; err != nil {
-				msg := fmt.Sprintf("Failed to import %s as %s: %v", list[i].TFResourceId, list[i].TFAddr, err)
-				if !cfg.ContinueOnError {
-					return fmt.Errorf(msg)
+
+			var importList []*meta.ImportItem
+			messages := []string{"Importing resources..."}
+
+			for j := 0; j < n; j++ {
+				idx := i + j
+				if list[idx].Skip() {
+					messages = append(messages, fmt.Sprintf("(%d/%d) Skipping %s", idx+1, len(list), list[idx].TFResourceId))
+					continue
 				}
-				errors = append(errors, msg)
+				messages = append(messages, fmt.Sprintf("(%d/%d) Importing %s as %s", idx+1, len(list), list[idx].TFResourceId, list[idx].TFAddr))
+				importList = append(importList, &list[idx])
 			}
+
+			msg.SetStatus(strings.Join(messages, "\n"))
+			c.ParallelImport(importList)
+
+			var thisErrors []string
+			for j := 0; j < n; j++ {
+				idx := i + j
+				item := list[idx]
+				if err := item.ImportError; err != nil {
+					msg := fmt.Sprintf("Failed to import %s as %s: %v", item.TFResourceId, item.TFAddr, err)
+					thisErrors = append(thisErrors, msg)
+				}
+			}
+			if len(thisErrors) != 0 {
+				errors = append(errors, thisErrors...)
+				if !cfg.ContinueOnError {
+					return fmt.Errorf(strings.Join(thisErrors, "\n"))
+				}
+			}
+		}
+
+		if err := c.PushState(); err != nil {
+			return fmt.Errorf("failed to push state: %v", err)
 		}
 
 		msg.SetStatus("Generating Terraform configurations...")
@@ -68,9 +101,9 @@ func BatchImport(cfg config.Config) error {
 			return fmt.Errorf("generating Terraform configuration: %v", err)
 		}
 
-		msg.SetStatus("Cleaning up the output directory to only keep the .tf files...")
+		msg.SetStatus("Cleaning up...")
 		if err := c.CleanUpWorkspace(); err != nil {
-			return fmt.Errorf("cleaning up the output directory to only keep the .tf files: %v", err)
+			return fmt.Errorf("cleaning up main workspace: %v", err)
 		}
 
 		return nil

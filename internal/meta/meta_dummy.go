@@ -19,6 +19,11 @@ func (m MetaGroupDummy) Init() error {
 	return nil
 }
 
+func (m MetaGroupDummy) DeInit() error {
+	time.Sleep(500 * time.Millisecond)
+	return nil
+}
+
 func (m MetaGroupDummy) ScopeName() string {
 	return m.rg
 }
@@ -52,9 +57,14 @@ func (m MetaGroupDummy) CleanTFState(_ string) {
 	return
 }
 
-func (m MetaGroupDummy) Import(item *ImportItem) {
+func (m MetaGroupDummy) ParallelImport(items []*ImportItem) {
 	time.Sleep(time.Second)
 	return
+}
+
+func (m MetaGroupDummy) PushState() error {
+	time.Sleep(time.Second)
+	return nil
 }
 
 func (m MetaGroupDummy) GenerateCfg(l ImportList) error {
