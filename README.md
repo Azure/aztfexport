@@ -229,7 +229,7 @@ This means if the output directory has an active Terraform workspace, i.e. there
 
 ## Demo
 
-[![asciicast](https://asciinema.org/a/475516.svg)](https://asciinema.org/a/475516)
+[![asciicast](https://asciinema.org/a/xUnzCWXY0WYpC9nbBbMMhwb5L.svg)](https://asciinema.org/a/xUnzCWXY0WYpC9nbBbMMhwb5L)
 
 ## Limitation
 
