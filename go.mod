@@ -7,7 +7,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.1.0
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/keyvault/armkeyvault v1.0.0
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources v1.0.0
-	github.com/charmbracelet/bubbles v0.10.4-0.20220412141214-292a1dd7ba97
+	github.com/charmbracelet/bubbles v0.14.0
 	github.com/charmbracelet/bubbletea v0.22.1
 	github.com/charmbracelet/lipgloss v0.5.0
 	github.com/hashicorp/go-version v1.6.0
@@ -65,7 +65,7 @@ require (
 	github.com/agext/levenshtein v1.2.2 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
-	github.com/charmbracelet/harmonica v0.1.0 // indirect
+	github.com/charmbracelet/harmonica v0.2.0 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
