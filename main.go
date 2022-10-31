@@ -166,7 +166,7 @@ func main() {
 		&cli.IntFlag{
 			Name:        "parallelism",
 			EnvVars:     []string{"AZTFY_PARALLELISM"},
-			Usage:       "Limit the number of parallel operations (e.g. resource discovery)",
+			Usage:       "Limit the number of parallel operations, i.e., resource discovery, import",
 			Value:       10,
 			Destination: &flagParallelism,
 		},

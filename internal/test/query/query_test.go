@@ -91,6 +91,7 @@ resource "azurerm_subnet" "test" {
 			DevProvider:    true,
 			PlainUI:        true,
 			Overwrite:      true,
+			Parallelism:    1,
 		},
 		ResourceNamePattern: "res-",
 		ARGPredicate:        fmt.Sprintf(`resourceGroup =~ "%s" and type =~ "microsoft.network/virtualnetworks"`, d.RandomRgName()),

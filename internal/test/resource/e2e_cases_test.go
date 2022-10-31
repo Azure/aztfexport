@@ -69,6 +69,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 				DevProvider:    true,
 				PlainUI:        true,
 				Overwrite:      true,
+				Parallelism:    1,
 			},
 			ResourceId:     rctx.AzureId,
 			TFResourceName: fmt.Sprintf("res-%d", idx),

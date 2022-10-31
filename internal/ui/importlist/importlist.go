@@ -163,6 +163,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			} else {
 				m.list.NewStatusMessage(common.ErrorMsgStyle.Render(err.Error()))
 			}
+		case key.Matches(msg, m.list.KeyMap.Quit):
+			return m, aztfyclient.Quit(m.c)
 		}
 	case tea.WindowSizeMsg:
 		// The height here minus the height occupied by the title

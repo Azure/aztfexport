@@ -39,6 +39,7 @@ const (
 	statusImportErrorMsg
 	statusGeneratingCfg
 	statusCleaningUpWorkspaceCfg
+	statusPushState
 	statusExportResourceMapping
 	statusExportSkippedResources
 	statusSummary
@@ -55,6 +56,7 @@ func (s status) String() string {
 		"import error message",
 		"generating Terraform configuration",
 		"cleaning up output directory",
+		"pushing state",
 		"exporting resource mapping file",
 		"exporting skipped resources file",
 		"summary",
@@ -64,7 +66,9 @@ func (s status) String() string {
 }
 
 type model struct {
-	meta   meta.Meta
+	meta        meta.Meta
+	parallelism int
+
 	status status
 	err    error
 
@@ -81,15 +85,17 @@ func newModel(cfg config.Config) (*model, error) {
 	s := spinner.NewModel()
 	s.Spinner = common.Spinner
 
-	m := &model{
-		status:  statusInit,
-		spinner: s,
-	}
 	meta, err := meta.NewMeta(cfg)
 	if err != nil {
 		return nil, err
 	}
-	m.meta = meta
+
+	m := &model{
+		meta:        meta,
+		parallelism: cfg.Parallelism,
+		status:      statusInit,
+		spinner:     s,
+	}
 
 	return m, nil
 }
@@ -113,7 +119,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyCtrlC:
 			m.status = statusQuitting
-			return m, tea.Quit
+			return m, aztfyclient.Quit(m.meta)
 		}
 	case spinner.TickMsg:
 		var cmd tea.Cmd
@@ -140,7 +146,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case aztfyclient.StartImportMsg:
 		m.status = statusImporting
-		m.progress = progress.NewModel(m.meta, msg.List)
+		m.progress = progress.NewModel(m.meta, m.parallelism, msg.List)
 		return m, tea.Batch(
 			m.progress.Init(),
 			// Resize the progress bar
@@ -155,6 +161,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, cmd
 			}
 		}
+		m.status = statusPushState
+		return m, aztfyclient.PushState(m.meta, msg.List)
+	case aztfyclient.PushStateDoneMsg:
 		m.status = statusExportResourceMapping
 		return m, aztfyclient.ExportResourceMapping(m.meta, msg.List)
 	case aztfyclient.ExportResourceMappingDoneMsg:
@@ -202,7 +211,8 @@ func updateChildren(msg tea.Msg, m model) (model, tea.Cmd) {
 	case statusSummary:
 		switch msg.(type) {
 		case tea.KeyMsg:
-			return m, aztfyclient.Quit()
+			m.status = statusQuitting
+			return m, aztfyclient.Quit(m.meta)
 		}
 	}
 	return m, nil
@@ -222,6 +232,8 @@ func (m model) View() string {
 		s += importErrorView(m)
 	case statusImporting:
 		s += m.spinner.View() + m.progress.View()
+	case statusPushState:
+		s += m.spinner.View() + " Pushing Terraform Status..."
 	case statusExportResourceMapping:
 		s += m.spinner.View() + " Exporting Resource Mapping..."
 	case statusExportSkippedResources:
