@@ -245,6 +245,12 @@ func (meta *baseMeta) ParallelImport(items []*ImportItem) {
 
 	wp.Run(func(i interface{}) error {
 		idx := i.(int)
+
+		// Don't merge state if import error hit
+		if items[idx].ImportError != nil {
+			return nil
+		}
+
 		stateFile := filepath.Join(meta.importDirs[idx], "terraform.tfstate")
 
 		// Ensure the state file is removed after this round import, preparing for the next round.
