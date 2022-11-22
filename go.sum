@@ -189,8 +189,8 @@ github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6 h1:CElHO4hPXC+Eivy8
 github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6/go.mod h1:Cn4fFwFH/Ddw9sjWPeSS72bNaxbM+FRXf7pkGEDReq8=
 github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0 h1:aNtr4iNv/tex2t8W1u3scAoNHEnFlTKhNNHOpYStqbs=
 github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0/go.mod h1:MqYhNP+PC386Bjsx5piZe7T4vDm5QIPv8b1RU0prVnU=
-github.com/magodo/tfadd v0.10.1-0.20221114082310-e3d631f1d149 h1:d9gML8wywAZmxCrR4xxkufJUGBcuuRjY5olwUBSJXRU=
-github.com/magodo/tfadd v0.10.1-0.20221114082310-e3d631f1d149/go.mod h1:DbJnYhmAkyjNnVt819cytTfJMtv5DpqV9MkHuUbyv3c=
+github.com/magodo/tfadd v0.10.1-0.20221122021123-d976bdb3b03d h1:kjsQqFKfpNA1riUjjVcIyzTbiW2hLlhw3NOmWrEuuy8=
+github.com/magodo/tfadd v0.10.1-0.20221122021123-d976bdb3b03d/go.mod h1:DbJnYhmAkyjNnVt819cytTfJMtv5DpqV9MkHuUbyv3c=
 github.com/magodo/tfmerge v0.0.0-20221013065654-ba642eeb309a h1:3ldVIfIeVk4ipPwmG54MXr5IEjRNenv4ltxvMprKQF4=
 github.com/magodo/tfmerge v0.0.0-20221013065654-ba642eeb309a/go.mod h1:ssV++b4DH33rsD592bvpS4Peng3ZfdGNZbFgCDkCfj8=
 github.com/magodo/tfpluginschema v0.0.0-20220905090502-2d6a05ebaefd h1:L0kTduNwpx60EdBPYOVF9oUY7jdfZHIncvQN490qWd4=
