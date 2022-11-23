@@ -90,13 +90,15 @@ resource "azurerm_subnet" "test" {
 			BackendType:    "local",
 			DevProvider:    true,
 			PlainUI:        true,
-			Overwrite:      true,
 			Parallelism:    1,
 		},
 		ResourceNamePattern: "res-",
 		ARGPredicate:        fmt.Sprintf(`resourceGroup =~ "%s" and type =~ "microsoft.network/virtualnetworks"`, d.RandomRgName()),
 	}
 	t.Log("Importing in non-recursive mode")
+	if err := utils.RemoveEverythingUnder(cfg.OutputDir); err != nil {
+		t.Fatalf("failed to clean up the output directory: %v", err)
+	}
 	if err := internal.BatchImport(cfg); err != nil {
 		t.Fatalf("failed to run batch import non-recursively: %v", err)
 	}
@@ -104,9 +106,10 @@ resource "azurerm_subnet" "test" {
 
 	// Import in recursive mode
 	t.Log("Importing in recursive mode")
-	// aztfyDir = t.TempDir()
-	// cfg.CommonConfig.OutputDir = aztfyDir
 	cfg.RecursiveQuery = true
+	if err := utils.RemoveEverythingUnder(cfg.OutputDir); err != nil {
+		t.Fatalf("failed to clean up the output directory: %v", err)
+	}
 	if err := internal.BatchImport(cfg); err != nil {
 		t.Fatalf("failed to run batch import recursively: %v", err)
 	}

@@ -68,13 +68,15 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 				BackendType:    "local",
 				DevProvider:    true,
 				PlainUI:        true,
-				Overwrite:      true,
 				Parallelism:    1,
 			},
 			ResourceId:     rctx.AzureId,
 			TFResourceName: fmt.Sprintf("res-%d", idx),
 		}
 		t.Logf("Resource importing %s\n", rctx.AzureId)
+		if err := utils.RemoveEverythingUnder(cfg.OutputDir); err != nil {
+			t.Fatalf("failed to clean up the output directory: %v", err)
+		}
 		if err := internal.BatchImport(cfg); err != nil {
 			t.Fatalf("failed to run resource import: %v", err)
 		}

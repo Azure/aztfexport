@@ -4,7 +4,6 @@ type CommonConfig struct {
 	LogPath             string
 	SubscriptionId      string
 	OutputDir           string
-	Overwrite           bool
 	Append              bool
 	DevProvider         bool
 	Batch               bool

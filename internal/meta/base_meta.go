@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -72,8 +71,6 @@ type baseMeta struct {
 	// Use a safer name which is less likely to conflicts with users' existing files.
 	// This is mainly used for the --append option.
 	useSafeFilename bool
-
-	empty bool
 }
 
 func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
@@ -90,62 +87,6 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	// #nosec G301
 	if err := os.MkdirAll(rootdir, 0750); err != nil {
 		return nil, fmt.Errorf("creating rootdir %q: %w", rootdir, err)
-	}
-
-	// Initialize the output directory
-	var outdir string
-	if cfg.OutputDir == "" {
-		outdir, err = os.Getwd()
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		outdir, err = filepath.Abs(cfg.OutputDir)
-		if err != nil {
-			return nil, err
-		}
-	}
-	empty, err := dirIsEmpty(outdir)
-	if err != nil {
-		return nil, err
-	}
-	if !empty {
-		if !cfg.Append {
-			if cfg.Overwrite {
-				if err := removeEverythingUnder(outdir); err != nil {
-					return nil, err
-				}
-				empty = true
-			} else {
-				if cfg.Batch {
-					return nil, fmt.Errorf("the output directory %q is not empty", outdir)
-				}
-
-				// Interactive mode
-				fmt.Printf(`
-The output directory is not empty. Please choose one of actions below:
-
-* Press "Y" to overwrite the existing directory with new files
-* Press "N" to append new files and add to the existing state instead
-* Press other keys to quit
-
-> `)
-				var ans string
-				// #nosec G104
-				fmt.Scanf("%s", &ans)
-				switch strings.ToLower(ans) {
-				case "y":
-					if err := removeEverythingUnder(outdir); err != nil {
-						return nil, err
-					}
-					empty = true
-				case "n":
-					cfg.Append = true
-				default:
-					return nil, fmt.Errorf("the output directory %q is not empty", outdir)
-				}
-			}
-		}
 	}
 
 	// Create the import directories
@@ -181,7 +122,7 @@ The output directory is not empty. Please choose one of actions below:
 	meta := &baseMeta{
 		subscriptionId:  cfg.SubscriptionId,
 		rootdir:         rootdir,
-		outdir:          outdir,
+		outdir:          cfg.OutputDir,
 		resourceClient:  resClient,
 		devProvider:     cfg.DevProvider,
 		backendType:     cfg.BackendType,
@@ -189,7 +130,6 @@ The output directory is not empty. Please choose one of actions below:
 		fullConfig:      cfg.FullConfig,
 		parallelism:     cfg.Parallelism,
 		useSafeFilename: cfg.Append,
-		empty:           empty,
 		hclOnly:         cfg.HCLOnly,
 		importDirs:      importDirs,
 	}
@@ -398,7 +338,7 @@ func (meta baseMeta) CleanUpWorkspace() error {
 			return err
 		}
 
-		if err := removeEverythingUnder(meta.Workspace()); err != nil {
+		if err := utils.RemoveEverythingUnder(meta.Workspace()); err != nil {
 			return err
 		}
 
@@ -519,11 +459,11 @@ func (meta *baseMeta) initTF(ctx context.Context) error {
 }
 
 func (meta *baseMeta) initProvider(ctx context.Context) error {
-	// If the directory is empty, generate the full config as the output directory is empty.
-	// Otherwise:
-	// - If the output directory already exists the `azurerm` provider setting, then do nothing
-	// - Otherwise, just generate the `azurerm` provider setting (as it is only for local backend)
-	if meta.empty {
+	exists, err := dirContainsProviderSetting(meta.outdir)
+	if err != nil {
+		return err
+	}
+	if !exists {
 		cfgFile := filepath.Join(meta.outdir, meta.filenameProviderSetting())
 		if err := utils.WriteFileSync(cfgFile, []byte(meta.providerConfig(meta.backendType)), 0644); err != nil {
 			return fmt.Errorf("error creating provider config: %w", err)
@@ -535,19 +475,6 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 		}
 		if err := meta.tf.Init(ctx, opts...); err != nil {
 			return fmt.Errorf("error running terraform init: %s", err)
-		}
-	} else {
-		exists, err := dirContainsProviderSetting(meta.outdir)
-		if err != nil {
-			return err
-		}
-		if !exists {
-			if err := appendToFile(meta.filenameProviderSetting(), `provider "azurerm" {
-  features {}
-}
-`); err != nil {
-				return fmt.Errorf("error creating provider config: %w", err)
-			}
 		}
 	}
 
@@ -680,53 +607,6 @@ func (meta baseMeta) addDependency(configs ConfigInfos) (ConfigInfos, error) {
 	}
 
 	return out, nil
-}
-
-func removeEverythingUnder(path string) error {
-	// #nosec G304
-	dir, err := os.Open(path)
-	if err != nil {
-		return fmt.Errorf("failed to read directory %s: %v", path, err)
-	}
-	entries, _ := dir.Readdirnames(0)
-	for _, entry := range entries {
-		if err := os.RemoveAll(filepath.Join(path, entry)); err != nil {
-			return fmt.Errorf("failed to remove %s: %v", entry, err)
-		}
-	}
-	if err := dir.Close(); err != nil {
-		return fmt.Errorf("closing dir %s: %v", path, err)
-	}
-	return nil
-}
-
-func dirIsEmpty(path string) (bool, error) {
-	stat, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		return false, fmt.Errorf("the path %q doesn't exist", path)
-	}
-	if !stat.IsDir() {
-		return false, fmt.Errorf("the path %q is not a directory", path)
-	}
-	// #nosec G304
-	dir, err := os.Open(path)
-	if err != nil {
-		return false, err
-	}
-	_, err = dir.Readdirnames(1)
-	if err != nil {
-		if err == io.EOF {
-			if err := dir.Close(); err != nil {
-				return false, fmt.Errorf("closing dir %s: %v", path, err)
-			}
-			return true, nil
-		}
-		return false, err
-	}
-	if err := dir.Close(); err != nil {
-		return false, fmt.Errorf("closing dir %s: %v", path, err)
-	}
-	return false, nil
 }
 
 func dirContainsProviderSetting(path string) (bool, error) {
