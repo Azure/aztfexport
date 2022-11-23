@@ -17,6 +17,7 @@ import (
 	"github.com/Azure/aztfy/internal"
 	"github.com/Azure/aztfy/internal/config"
 	"github.com/Azure/aztfy/internal/ui"
+	"github.com/Azure/aztfy/internal/utils"
 	azlog "github.com/Azure/azure-sdk-for-go/sdk/azcore/log"
 	"github.com/urfave/cli/v2"
 )
@@ -85,6 +86,49 @@ func main() {
 			}
 			if flagAppend {
 				return fmt.Errorf("`--appned` conflicts with `--hcl-only`")
+			}
+		}
+
+		// Initialize output directory
+		empty, err := utils.DirIsEmpty(flagOutputDir)
+		if err != nil {
+			return fmt.Errorf("failed to check emptiness of output directory %q: %v", flagOutputDir, err)
+		}
+		if !empty {
+			switch {
+			case flagOverwrite:
+				if err := utils.RemoveEverythingUnder(flagOutputDir); err != nil {
+					return fmt.Errorf("failed to clean up output directory %q: %v", flagOutputDir, err)
+				}
+			case flagAppend:
+				// do nothing
+			default:
+				if flagNonInteractive {
+					return fmt.Errorf("the output directory %q is not empty", flagOutputDir)
+				}
+
+				// Interactive mode
+				fmt.Printf(`
+The output directory is not empty. Please choose one of actions below:
+
+* Press "Y" to overwrite the existing directory with new files
+* Press "N" to append new files and add to the existing state instead
+* Press other keys to quit
+
+> `)
+				var ans string
+				// #nosec G104
+				fmt.Scanf("%s", &ans)
+				switch strings.ToLower(ans) {
+				case "y":
+					if err := utils.RemoveEverythingUnder(flagOutputDir); err != nil {
+						return err
+					}
+				case "n":
+					flagAppend = true
+				default:
+					return fmt.Errorf("the output directory %q is not empty", flagOutputDir)
+				}
 			}
 		}
 
@@ -296,7 +340,6 @@ func main() {
 							LogPath:             hflagLogPath,
 							SubscriptionId:      flagSubscriptionId,
 							OutputDir:           flagOutputDir,
-							Overwrite:           flagOverwrite,
 							Append:              flagAppend,
 							DevProvider:         flagDevProvider,
 							Batch:               flagNonInteractive,
@@ -341,7 +384,6 @@ func main() {
 							LogPath:             hflagLogPath,
 							SubscriptionId:      flagSubscriptionId,
 							OutputDir:           flagOutputDir,
-							Overwrite:           flagOverwrite,
 							Append:              flagAppend,
 							DevProvider:         flagDevProvider,
 							Batch:               flagNonInteractive,
@@ -385,7 +427,6 @@ func main() {
 							LogPath:             hflagLogPath,
 							SubscriptionId:      flagSubscriptionId,
 							OutputDir:           flagOutputDir,
-							Overwrite:           flagOverwrite,
 							Append:              flagAppend,
 							DevProvider:         flagDevProvider,
 							Batch:               flagNonInteractive,
@@ -429,7 +470,6 @@ func main() {
 						CommonConfig: config.CommonConfig{
 							SubscriptionId:      flagSubscriptionId,
 							OutputDir:           flagOutputDir,
-							Overwrite:           flagOverwrite,
 							Append:              flagAppend,
 							DevProvider:         flagDevProvider,
 							Batch:               flagNonInteractive,

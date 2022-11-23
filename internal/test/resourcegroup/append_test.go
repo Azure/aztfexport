@@ -89,6 +89,9 @@ resource "azurerm_resource_group" "test3" {
 	cfg.ResourceGroupName = d.RandomRgName() + "1"
 	cfg.ResourceNamePattern = "round1_"
 	t.Log("Batch importing the 1st rg")
+	if err := utils.RemoveEverythingUnder(cfg.OutputDir); err != nil {
+		t.Fatalf("failed to clean up the output directory: %v", err)
+	}
 	if err := internal.BatchImport(cfg); err != nil {
 		t.Fatalf("failed to run first batch import: %v", err)
 	}
