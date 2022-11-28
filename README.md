@@ -75,7 +75,7 @@ Supported versions:
     sudo sh -c 'curl -sSL https://packages.microsoft.com/keys/microsoft.asc > /etc/apt/trusted.gpg.d/microsoft.asc'
     ```
 
-2. Add appropriate version of `packages-microsoft-com-prod` repository (either 20.04 or 22.04, script below retrieves Ubuntu version from lsb-release file:
+2. Add appropriate version of `packages-microsoft-com-prod` repository (either 20.04 or 22.04, script below retrieves Ubuntu version from lsb-release file and sets variable accordingly):
 
     ```Bash
     # ver value 20.04 or 22.04 gets retrieved from lsb-release file
