@@ -74,6 +74,10 @@ Supported versions:
     ```
     curl -sSL https://packages.microsoft.com/keys/microsoft.asc > /etc/apt/trusted.gpg.d/microsoft.asc
     ```
+    If you get permission denied when executing command above you can run it with sudo as shown below:
+    ```Bash
+    sudo sh -c 'curl -sSL https://packages.microsoft.com/keys/microsoft.asc > /etc/apt/trusted.gpg.d/microsoft.asc'
+    ```
 
 2. Add `packages-microsoft-com-prod` repository:
 
