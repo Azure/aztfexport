@@ -72,17 +72,14 @@ Supported versions:
 1. Import the Microsoft repository key:
 
     ```Bash
-    curl -sSL https://packages.microsoft.com/keys/microsoft.asc > /etc/apt/trusted.gpg.d/microsoft.asc
-    ```
-    If you get permission denied when executing command above you can run it with sudo as shown below:
-    ```Bash
     sudo sh -c 'curl -sSL https://packages.microsoft.com/keys/microsoft.asc > /etc/apt/trusted.gpg.d/microsoft.asc'
     ```
 
-2. Add `packages-microsoft-com-prod` repository:
+2. Add appropriate version of `packages-microsoft-com-prod` repository (either 20.04 or 22.04, script below retrieves Ubuntu version from lsb-release file:
 
-    ```
-    ver=20.04 # or 22.04
+    ```Bash
+    # ver value 20.04 or 22.04 gets retrieved from lsb-release file
+    ver=$(grep "DISTRIB_RELEASE=" /etc/lsb-release | grep -E [0-9]{2}.[0-9]{2} -o)
     apt-add-repository https://packages.microsoft.com/ubuntu/${ver}/prod
     ```
 
