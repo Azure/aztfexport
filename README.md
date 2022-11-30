@@ -86,7 +86,7 @@ Supported versions:
 3. Install:
 
     ```
-    apt-get install aztfy
+    sudo apt-get install aztfy
     ```
 
 #### AUR (Linux)
