@@ -80,7 +80,7 @@ Supported versions:
     ```Bash
     # ver value 20.04 or 22.04 gets retrieved from lsb-release file
     ver=$(grep "DISTRIB_RELEASE=" /etc/lsb-release | grep -E [0-9]{2}.[0-9]{2} -o)
-    apt-add-repository https://packages.microsoft.com/ubuntu/${ver}/prod
+    sudo apt-add-repository https://packages.microsoft.com/ubuntu/${ver}/prod
     ```
 
 3. Install:
