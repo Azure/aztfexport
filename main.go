@@ -522,7 +522,7 @@ func initLog(path string) error {
 func subscriptionIdFromCLI() (string, error) {
 	var stderr bytes.Buffer
 	var stdout bytes.Buffer
-	cmd := exec.Command("az", "account", "show", "--query", "id")
+	cmd := exec.Command("az", "account", "show", "--output", "json", "--query", "id")
 	cmd.Stderr = &stderr
 	cmd.Stdout = &stdout
 	if err := cmd.Run(); err != nil {
