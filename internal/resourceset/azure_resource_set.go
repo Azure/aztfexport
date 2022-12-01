@@ -28,7 +28,7 @@ func (rset AzureResourceSet) ToTFResources() []TFResource {
 		azureId := res.Id.String()
 		tftypes, tfids, exact, err := aztft.QueryTypeAndId(azureId, true)
 		if err != nil {
-			log.Printf("WARNING: Failed to query resource type for %s: %v\n", azureId, err)
+			log.Printf("[WARN] Failed to query resource type for %s: %v\n", azureId, err)
 			// Still put this unresolved resource in the resource set, so that users can later specify the expected TF resource type.
 			tfresources = append(tfresources, TFResource{
 				AzureId: res.Id,
@@ -38,7 +38,7 @@ func (rset AzureResourceSet) ToTFResources() []TFResource {
 		} else {
 			if !exact {
 				// It is not possible to return multiple result when API is used.
-				log.Printf("WARNING: No query result for resource type and TF id for %s\n", azureId)
+				log.Printf("[WARN] No query result for resource type and TF id for %s\n", azureId)
 				// Still put this unresolved resource in the resource set, so that users can later specify the expected TF resource type.
 				tfresources = append(tfresources, TFResource{
 					AzureId: res.Id,

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Azure/aztfy/internal/config"
+	"github.com/Azure/aztfy/internal/log"
 	"github.com/Azure/aztfy/internal/resourceset"
 	"github.com/Azure/aztfy/internal/tfaddr"
 	"github.com/magodo/azlist/azlist"
@@ -21,6 +22,7 @@ type MetaQuery struct {
 }
 
 func newMetaQuery(cfg config.Config) (Meta, error) {
+	log.Printf("[INFO] New query meta")
 	baseMeta, err := NewBaseMeta(cfg.CommonConfig)
 	if err != nil {
 		return nil, err

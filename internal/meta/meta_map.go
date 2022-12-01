@@ -7,6 +7,7 @@ import (
 	"sort"
 
 	"github.com/Azure/aztfy/internal/config"
+	"github.com/Azure/aztfy/internal/log"
 	"github.com/Azure/aztfy/internal/resmap"
 	"github.com/Azure/aztfy/internal/tfaddr"
 	"github.com/magodo/armid"
@@ -20,6 +21,7 @@ type MetaMap struct {
 }
 
 func newMetaMap(cfg config.Config) (Meta, error) {
+	log.Printf("[INFO] New map meta")
 	baseMeta, err := NewBaseMeta(cfg.CommonConfig)
 	if err != nil {
 		return nil, err
