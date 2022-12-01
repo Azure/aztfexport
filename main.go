@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/magodo/armid"
+	"github.com/magodo/azlist/azlist"
 	"github.com/magodo/tfadd/providers/azurerm"
 
 	"github.com/Azure/aztfy/internal"
@@ -547,9 +548,13 @@ func initLog(path string, level hclog.Level) error {
 			InferLevels: true,
 		})
 
+		// Enable log for aztfy
 		log.SetLogger(logger)
 
-		// Enable the logging for the Azure SDK
+		// Enable log for azlist
+		azlist.SetLogger(logger)
+
+		// Enable log for azure sdk
 		os.Setenv("AZURE_SDK_GO_LOGGING", "all") // #nosec G104
 		azlog.SetListener(func(cls azlog.Event, msg string) {
 			logger.Printf("[DEBUG] %s: %s\n", cls, msg)

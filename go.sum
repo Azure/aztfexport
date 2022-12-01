@@ -143,8 +143,8 @@ github.com/hashicorp/go-checkpoint v0.5.0/go.mod h1:7nfLNL10NsxqO4iWuW6tWW0HjZuD
 github.com/hashicorp/go-cleanhttp v0.5.0/go.mod h1:JpRdi6/HCYpAwUzNwuwqhbovhLtngrth3wmdIIUrZ80=
 github.com/hashicorp/go-cleanhttp v0.5.2 h1:035FKYIWjmULyFRBKPs8TBQoi0x6d9G4xc9neXJWAZQ=
 github.com/hashicorp/go-cleanhttp v0.5.2/go.mod h1:kO/YDlP8L1346E6Sodw+PrpBSV4/SoxCXGY6BqNFT48=
-github.com/hashicorp/go-hclog v1.2.1 h1:YQsLlGDJgwhXFpucSPyVbCBviQtjlHv3jLTlp8YmtEw=
-github.com/hashicorp/go-hclog v1.2.1/go.mod h1:W4Qnvbt70Wk/zYJryRzDRU/4r0kIg0PVHBcfoyhpF5M=
+github.com/hashicorp/go-hclog v1.3.1 h1:vDwF1DFNZhntP4DAjuTpOw3uEgMUpXh1pB5fW9DqHpo=
+github.com/hashicorp/go-hclog v1.3.1/go.mod h1:W4Qnvbt70Wk/zYJryRzDRU/4r0kIg0PVHBcfoyhpF5M=
 github.com/hashicorp/go-multierror v1.1.1 h1:H5DkEtf6CXdFp0N0Em5UCwQpXMWke8IA0+lD48awMYo=
 github.com/hashicorp/go-multierror v1.1.1/go.mod h1:iw975J/qwKPdAO1clOe2L8331t/9/fmwbPZ6JB6eMoM=
 github.com/hashicorp/go-uuid v1.0.0/go.mod h1:6SBZvOh/SIDV7/2o3Jml5SYk/TvGqwFJ/bN7x4byOro=
@@ -185,8 +185,8 @@ github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69
 github.com/lucasb-eyer/go-colorful v1.2.0/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
 github.com/magodo/armid v0.0.0-20220923023118-aec41eaf7370 h1:n8RrB7jcZ9lQE7tyF2a7AEJ3Ux/E6E6FTeZLfgadPmg=
 github.com/magodo/armid v0.0.0-20220923023118-aec41eaf7370/go.mod h1:rR8E7zfGMbmfnSQvrkFiWYdhrfTqsVSltelnZB09BwA=
-github.com/magodo/azlist v0.0.0-20221028090226-002373d16e12 h1:sy3mo2oXhPIqgH8mdhBEOCpc4EcY9QghrSmn/VlCj4U=
-github.com/magodo/azlist v0.0.0-20221028090226-002373d16e12/go.mod h1:Zke5PFfagiNep06RgNgMXgpLVW4LafSWJJqSQKQAd80=
+github.com/magodo/azlist v0.0.0-20221201100009-664a9dd10ef3 h1:edFobje+hvzs8Vx2Lb8qRZLGN2OOtWoXuUQGH9BdAec=
+github.com/magodo/azlist v0.0.0-20221201100009-664a9dd10ef3/go.mod h1:r1a269lM5tSby3J7PaEUZQCKWgCLKz9KSWgs7u6fR/M=
 github.com/magodo/aztft v0.3.1-0.20221128054002-943ad3127ad0 h1:cyPS+rRd0OZUzpH8CtDNzrKUTmAa/Sz93Cd4j/SC9LM=
 github.com/magodo/aztft v0.3.1-0.20221128054002-943ad3127ad0/go.mod h1:tk3eGjxk+d+Y3fcenXT2fWMLGZqzHww4mdxYuvcrfLU=
 github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6 h1:CElHO4hPXC+Eivy8sUC/WrnH3jmQzdF2x0lEXBEYul8=
