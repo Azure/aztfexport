@@ -1,7 +1,9 @@
 package config
 
+import "github.com/hashicorp/go-hclog"
+
 type CommonConfig struct {
-	LogPath             string
+	LogLevel            hclog.Level
 	SubscriptionId      string
 	OutputDir           string
 	Append              bool

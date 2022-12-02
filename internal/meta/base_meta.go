@@ -13,6 +13,7 @@ import (
 
 	"github.com/Azure/aztfy/internal/client"
 	"github.com/Azure/aztfy/internal/config"
+	"github.com/Azure/aztfy/internal/log"
 	"github.com/Azure/aztfy/internal/resmap"
 	"github.com/Azure/aztfy/internal/utils"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
@@ -196,6 +197,7 @@ func (meta *baseMeta) ParallelImport(items []*ImportItem) {
 		// Ensure the state file is removed after this round import, preparing for the next round.
 		defer os.Remove(stateFile)
 
+		log.Printf("[DEBUG] Merging terraform state file %s", stateFile)
 		newState, err := tfmerge.Merge(ctx, meta.tf, meta.baseState, stateFile)
 		if err != nil {
 			items[idx].ImportError = fmt.Errorf("failed to merge state file: %v", err)
@@ -222,6 +224,7 @@ func (meta *baseMeta) ParallelImport(items []*ImportItem) {
 			defer os.Remove(cfgFile)
 
 			// Import resources
+			log.Printf("[INFO] Importing %s as %s", item.TFResourceId, item.TFAddr.String())
 			err := tf.Import(ctx, item.TFAddr.String(), item.TFResourceId)
 			item.ImportError = err
 			item.Imported = err == nil
@@ -415,6 +418,7 @@ func (meta baseMeta) filenameTmpCfg() string {
 }
 
 func (meta *baseMeta) initTF(ctx context.Context) error {
+	log.Printf("[INFO] Init Terraform")
 	tfDir := filepath.Join(meta.rootdir, "terraform")
 	// #nosec G301
 	if err := os.MkdirAll(tfDir, 0750); err != nil {
@@ -424,6 +428,7 @@ func (meta *baseMeta) initTF(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("error finding a terraform exectuable: %w", err)
 	}
+	log.Printf("[INFO] Find terraform binary at %s", execPath)
 
 	newTF := func(dir string) (*tfexec.Terraform, error) {
 		tf, err := tfexec.NewTerraform(dir, execPath)
@@ -459,10 +464,12 @@ func (meta *baseMeta) initTF(ctx context.Context) error {
 }
 
 func (meta *baseMeta) initProvider(ctx context.Context) error {
+	log.Printf("[INFO] Init provider")
 	exists, err := dirContainsProviderSetting(meta.outdir)
 	if err != nil {
 		return err
 	}
+	log.Printf("[INFO] Output directory contains provider setting: %t", exists)
 	if !exists {
 		cfgFile := filepath.Join(meta.outdir, meta.filenameProviderSetting())
 		if err := utils.WriteFileSync(cfgFile, []byte(meta.providerConfig(meta.backendType)), 0644); err != nil {

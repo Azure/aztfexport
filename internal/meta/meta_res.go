@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Azure/aztfy/internal/config"
+	"github.com/Azure/aztfy/internal/log"
 	"github.com/Azure/aztfy/internal/resourceset"
 	"github.com/Azure/aztfy/internal/tfaddr"
 	"github.com/magodo/armid"
@@ -18,6 +19,7 @@ type MetaResource struct {
 }
 
 func newMetaResource(cfg config.Config) (Meta, error) {
+	log.Printf("[INFO] New resource meta")
 	baseMeta, err := NewBaseMeta(cfg.CommonConfig)
 	if err != nil {
 		return nil, err

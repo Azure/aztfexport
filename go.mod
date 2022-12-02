@@ -10,13 +10,14 @@ require (
 	github.com/charmbracelet/bubbles v0.14.0
 	github.com/charmbracelet/bubbletea v0.22.1
 	github.com/charmbracelet/lipgloss v0.5.0
+	github.com/hashicorp/go-hclog v1.3.1
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/hc-install v0.4.0
 	github.com/hashicorp/hcl/v2 v2.13.0
 	github.com/hashicorp/terraform-exec v0.17.2
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/magodo/armid v0.0.0-20220923023118-aec41eaf7370
-	github.com/magodo/azlist v0.0.0-20221028090226-002373d16e12
+	github.com/magodo/azlist v0.0.0-20221201100009-664a9dd10ef3
 	github.com/magodo/aztft v0.3.1-0.20221128054002-943ad3127ad0
 	github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
@@ -72,6 +73,7 @@ require (
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/fatih/color v1.13.0 // indirect
 	github.com/golang-jwt/jwt v3.2.1+incompatible // indirect
 	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/google/uuid v1.1.2 // indirect
@@ -85,6 +87,7 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/magodo/tfpluginschema v0.0.0-20220905090502-2d6a05ebaefd // indirect
 	github.com/magodo/tfstate v0.0.0-20220409052014-9b9568dda918 // indirect
+	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect

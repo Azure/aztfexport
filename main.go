@@ -4,22 +4,30 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
+	golog "log"
 	"os"
 	"os/exec"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/magodo/armid"
+	"github.com/magodo/azlist/azlist"
 	"github.com/magodo/tfadd/providers/azurerm"
 
 	"github.com/Azure/aztfy/internal"
 	"github.com/Azure/aztfy/internal/config"
+	"github.com/Azure/aztfy/internal/log"
 	"github.com/Azure/aztfy/internal/ui"
 	"github.com/Azure/aztfy/internal/utils"
 	azlog "github.com/Azure/azure-sdk-for-go/sdk/azcore/log"
 	"github.com/urfave/cli/v2"
+)
+
+var (
+	flagLogPath  string
+	flagLogLevel string
 )
 
 func main() {
@@ -41,7 +49,6 @@ func main() {
 
 		// common flags (hidden)
 		hflagMockClient bool
-		hflagLogPath    string
 		hflagPlainUI    bool
 
 		// Subcommand specific flags
@@ -86,6 +93,11 @@ func main() {
 			}
 			if flagAppend {
 				return fmt.Errorf("`--appned` conflicts with `--hcl-only`")
+			}
+		}
+		if flagLogLevel != "" {
+			if _, err := logLevel(flagLogLevel); err != nil {
+				return err
 			}
 		}
 
@@ -253,9 +265,16 @@ The output directory is not empty. Please choose one of actions below:
 		&cli.StringFlag{
 			Name:        "log-path",
 			EnvVars:     []string{"AZTFY_LOG_PATH"},
-			Usage:       "The path to store the log",
-			Hidden:      true,
-			Destination: &hflagLogPath,
+			Usage:       "The file path to store the log",
+			Destination: &flagLogPath,
+		},
+
+		&cli.StringFlag{
+			Name:        "log-level",
+			EnvVars:     []string{"AZTFY_LOG_LEVEL"},
+			Usage:       `Log level, can be one of "ERROR", "WARN", "INFO", "DEBUG"`,
+			Destination: &flagLogLevel,
+			Value:       "INFO",
 		},
 
 		&cli.BoolFlag{
@@ -337,7 +356,6 @@ The output directory is not empty. Please choose one of actions below:
 					cfg := config.Config{
 						MockClient: hflagMockClient,
 						CommonConfig: config.CommonConfig{
-							LogPath:             hflagLogPath,
 							SubscriptionId:      flagSubscriptionId,
 							OutputDir:           flagOutputDir,
 							Append:              flagAppend,
@@ -381,7 +399,6 @@ The output directory is not empty. Please choose one of actions below:
 					cfg := config.Config{
 						MockClient: hflagMockClient,
 						CommonConfig: config.CommonConfig{
-							LogPath:             hflagLogPath,
 							SubscriptionId:      flagSubscriptionId,
 							OutputDir:           flagOutputDir,
 							Append:              flagAppend,
@@ -424,7 +441,6 @@ The output directory is not empty. Please choose one of actions below:
 					cfg := config.Config{
 						MockClient: hflagMockClient,
 						CommonConfig: config.CommonConfig{
-							LogPath:             hflagLogPath,
 							SubscriptionId:      flagSubscriptionId,
 							OutputDir:           flagOutputDir,
 							Append:              flagAppend,
@@ -499,21 +515,49 @@ The output directory is not empty. Please choose one of actions below:
 	}
 }
 
-func initLog(path string) error {
-	log.SetOutput(io.Discard)
+func logLevel(level string) (hclog.Level, error) {
+	switch level {
+	case "ERROR":
+		return hclog.Error, nil
+	case "WARN":
+		return hclog.Warn, nil
+	case "INFO":
+		return hclog.Info, nil
+	case "DEBUG":
+		return hclog.Debug, nil
+	default:
+		return hclog.NoLevel, fmt.Errorf("unknown log level: %s", level)
+	}
+}
+
+func initLog(path string, level hclog.Level) error {
+	golog.SetOutput(io.Discard)
+
 	if path != "" {
-		log.SetPrefix("[aztfy] ")
 		// #nosec G304
 		f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
 		if err != nil {
 			return fmt.Errorf("creating log file %s: %v", path, err)
 		}
-		log.SetOutput(f)
 
-		// Enable the logging for the Azure SDK
+		logger := hclog.New(&hclog.LoggerOptions{
+			Name:   "aztfy",
+			Level:  level,
+			Output: f,
+		}).StandardLogger(&hclog.StandardLoggerOptions{
+			InferLevels: true,
+		})
+
+		// Enable log for aztfy
+		log.SetLogger(logger)
+
+		// Enable log for azlist
+		azlist.SetLogger(logger)
+
+		// Enable log for azure sdk
 		os.Setenv("AZURE_SDK_GO_LOGGING", "all") // #nosec G104
 		azlog.SetListener(func(cls azlog.Event, msg string) {
-			log.Printf("[SDK] %s: %s\n", cls, msg)
+			logger.Printf("[DEBUG] %s: %s\n", cls, msg)
 		})
 	}
 	return nil
@@ -538,16 +582,33 @@ func subscriptionIdFromCLI() (string, error) {
 	return strconv.Unquote(strings.TrimSpace(stdout.String()))
 }
 
-func realMain(cfg config.Config) error {
+func realMain(cfg config.Config) (result error) {
 	// Initialize log
-	if err := initLog(cfg.LogPath); err != nil {
-		return err
+	logLevel, err := logLevel(flagLogLevel)
+	if err != nil {
+		result = err
+		return
 	}
+	if err := initLog(flagLogPath, logLevel); err != nil {
+		result = err
+		return
+	}
+
+	defer func() {
+		if result == nil {
+			log.Printf("[INFO] aztfy ends")
+		} else {
+			log.Printf("[ERROR] aztfy ends with error: %v", result)
+		}
+	}()
+
+	log.Printf("[INFO] aztfy starts with config: %#v", cfg)
 
 	// Run in non-interactive mode
 	if cfg.Batch {
 		if err := internal.BatchImport(cfg); err != nil {
-			return err
+			result = err
+			return
 		}
 		return nil
 	}
@@ -555,10 +616,12 @@ func realMain(cfg config.Config) error {
 	// Run in interactive mode
 	prog, err := ui.NewProgram(cfg)
 	if err != nil {
-		return err
+		result = err
+		return
 	}
 	if err := prog.Start(); err != nil {
-		return err
+		result = err
+		return
 	}
 	return nil
 }
