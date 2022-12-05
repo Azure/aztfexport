@@ -124,7 +124,7 @@ aztfy resource /subscriptions/0000/resourceGroups/rg1/providers/Microsoft.Comput
 
 The command will automatically identify the Terraform resource type (e.g. correctly identifies above resource as `azurerm_linux_virtual_machine`), and import it into state file and generate the Terraform configuration.
 
-> ❗For data plane only or property-like resources, the Azure resource ID is using a pesudo format, as is defined [here](https://github.com/magodo/aztft#pesudo-resource-id).
+> ❗ For data plane only or property-like resources, the Azure resource ID is using a pesudo format, as is defined [here](https://github.com/magodo/aztft#pesudo-resource-id).
 
 ### Terrafy a Resource Group
 
@@ -132,7 +132,7 @@ The command will automatically identify the Terraform resource type (e.g. correc
 
 ### Terrafy a Customized Set of Resources
 
-`aztfy query [option] <arg where predicate>` terrafies a set of resources (and its including resources with `--recursive`) by an Azure Resource Graph [`where` predicate](https://learn.microsoft.com/en-us/azure/data-explorer/kusto/query/whereoperator).
+`aztfy query [option] <arg where predicate>` terrafies a set of resources (and its including resources with `--recursive`) by an Azure Resource Graph [`where` predicate](https://learn.microsoft.com/en-us/azure/data-explorer/kusto/query/whereoperator). Note that you can combine multiple conditions in one `where` predicate, e.g.  `resourceGroup =~ "my-rg" and type =~ "microsoft.network/virtualnetworks"`.
 
 > 💡 Resource group mode is the same as running `aztfy query --recursive "resourceGroup =~ 'my-rg'"`, except it also add on the resource group itself.
 
