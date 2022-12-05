@@ -18,10 +18,10 @@ require (
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/magodo/armid v0.0.0-20220923023118-aec41eaf7370
 	github.com/magodo/azlist v0.0.0-20221201100009-664a9dd10ef3
-	github.com/magodo/aztft v0.3.1-0.20221128054002-943ad3127ad0
+	github.com/magodo/aztft v0.3.1-0.20221205074532-42e6f100ddd1
 	github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
-	github.com/magodo/tfadd v0.10.1-0.20221128055019-a85848b5f334
+	github.com/magodo/tfadd v0.10.1-0.20221205074159-df91bc761c76
 	github.com/magodo/tfmerge v0.0.0-20221013065654-ba642eeb309a
 	github.com/magodo/workerpool v0.0.0-20211124060943-1c48f3e5a514
 	github.com/mitchellh/go-wordwrap v1.0.0
