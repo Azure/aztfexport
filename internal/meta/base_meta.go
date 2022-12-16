@@ -151,7 +151,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		mdir := dir
 		for _, moduleName := range modulePaths {
 			fpath := filepath.Join(mdir, "main.tf")
-			if err := os.WriteFile(fpath, []byte(fmt.Sprintf(`module "%s" {
+			if err := utils.WriteFileSync(fpath, []byte(fmt.Sprintf(`module "%s" {
   source = "./%s"
 }
 `, moduleName, moduleName)), 0644); err != nil {
@@ -159,7 +159,8 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 			}
 
 			mdir = path.Join(mdir, moduleName)
-			if err := os.Mkdir(mdir, 0755); err != nil {
+			// #nosec G301
+			if err := os.Mkdir(mdir, 0750); err != nil {
 				return nil, fmt.Errorf("creating module dir %s: %v", mdir, err)
 			}
 		}
