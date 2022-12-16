@@ -65,11 +65,11 @@ type baseMeta struct {
 	moduleAddr string
 	// The module directory in the fs where the terraform config should be generated to. This does not necessarily have the same structure as moduleAddr.
 	// This is the same as the outdir if module path is not specified.
-	moduleDir   string
-	modulePaths []string
+	moduleDir string
 
 	// Parallel import supports
-	importDirs []string
+	importBaseDirs   []string
+	importModuleDirs []string
 	// The original base state, which is retrieved prior to the import, and is compared with the actual base state prior to the mutated state is pushed,
 	// to ensure the base state has no out of band changes during the importing.
 	originBaseState []byte
@@ -138,7 +138,8 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	}
 
 	// Create the import directories
-	var importDirs []string
+	var importBaseDirs []string
+	var importModuleDirs []string
 	for i := 0; i < cfg.Parallelism; i++ {
 		dir, err := os.MkdirTemp("", "aztfy-")
 		if err != nil {
@@ -147,9 +148,9 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 
 		// Creating the module hierarchy if module path is specified.
 		// The hierarchy used here is not necessarily to be the same as is defined. What we need to guarantee here is the module address in TF is as specified.
-		moduleDir := dir
+		mdir := dir
 		for _, moduleName := range modulePaths {
-			fpath := filepath.Join(moduleDir, "main.tf")
+			fpath := filepath.Join(mdir, "main.tf")
 			if err := os.WriteFile(fpath, []byte(fmt.Sprintf(`module "%s" {
   source = "./%s"
 }
@@ -157,13 +158,14 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 				return nil, fmt.Errorf("creating %s: %v", fpath, err)
 			}
 
-			moduleDir = path.Join(moduleDir, moduleName)
-			if err := os.Mkdir(moduleDir, 0755); err != nil {
-				return nil, fmt.Errorf("creating module dir %s: %v", moduleDir, err)
+			mdir = path.Join(mdir, moduleName)
+			if err := os.Mkdir(mdir, 0755); err != nil {
+				return nil, fmt.Errorf("creating module dir %s: %v", mdir, err)
 			}
 		}
 
-		importDirs = append(importDirs, dir)
+		importModuleDirs = append(importModuleDirs, mdir)
+		importBaseDirs = append(importBaseDirs, dir)
 	}
 
 	// Construct client builder
@@ -187,22 +189,22 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	os.Setenv("ARM_SKIP_PROVIDER_REGISTRATION", "true")
 
 	meta := &baseMeta{
-		subscriptionId:  cfg.SubscriptionId,
-		rootdir:         rootdir,
-		outdir:          cfg.OutputDir,
-		resourceClient:  resClient,
-		devProvider:     cfg.DevProvider,
-		backendType:     cfg.BackendType,
-		backendConfig:   cfg.BackendConfig,
-		fullConfig:      cfg.FullConfig,
-		parallelism:     cfg.Parallelism,
-		useSafeFilename: cfg.Append,
-		hclOnly:         cfg.HCLOnly,
-		importDirs:      importDirs,
+		subscriptionId:   cfg.SubscriptionId,
+		rootdir:          rootdir,
+		outdir:           cfg.OutputDir,
+		resourceClient:   resClient,
+		devProvider:      cfg.DevProvider,
+		backendType:      cfg.BackendType,
+		backendConfig:    cfg.BackendConfig,
+		fullConfig:       cfg.FullConfig,
+		parallelism:      cfg.Parallelism,
+		useSafeFilename:  cfg.Append,
+		hclOnly:          cfg.HCLOnly,
+		importBaseDirs:   importBaseDirs,
+		importModuleDirs: importModuleDirs,
 
-		moduleAddr:  moduleAddr,
-		moduleDir:   moduleDir,
-		modulePaths: modulePaths,
+		moduleAddr: moduleAddr,
+		moduleDir:  moduleDir,
 	}
 
 	return meta, nil
@@ -235,7 +237,7 @@ func (meta *baseMeta) Init() error {
 
 func (meta baseMeta) DeInit() error {
 	// Clean up the temporary workspaces for parallel import
-	for _, dir := range meta.importDirs {
+	for _, dir := range meta.importBaseDirs {
 		// #nosec G104
 		os.RemoveAll(dir)
 	}
@@ -262,7 +264,7 @@ func (meta *baseMeta) ParallelImport(items []*ImportItem) {
 			return nil
 		}
 
-		stateFile := filepath.Join(meta.importDirs[idx], "terraform.tfstate")
+		stateFile := filepath.Join(meta.importBaseDirs[idx], "terraform.tfstate")
 
 		// Ensure the state file is removed after this round import, preparing for the next round.
 		defer os.Remove(stateFile)
@@ -281,11 +283,11 @@ func (meta *baseMeta) ParallelImport(items []*ImportItem) {
 		i := i
 		wp.AddTask(func() (interface{}, error) {
 			item := items[i]
-			dir := meta.importDirs[i]
+			moduleDir := meta.importModuleDirs[i]
 			tf := meta.importTFs[i]
 
 			// Construct the empty cfg file for importing
-			cfgFile := filepath.Join(dir, filepath.Join(meta.modulePaths...), meta.filenameTmpCfg())
+			cfgFile := filepath.Join(moduleDir, meta.filenameTmpCfg())
 			tpl := fmt.Sprintf(`resource "%s" "%s" {}`, item.TFAddr.Type, item.TFAddr.Name)
 			if err := utils.WriteFileSync(cfgFile, []byte(tpl), 0644); err != nil {
 				item.ImportError = fmt.Errorf("generating resource template file: %w", err)
@@ -532,7 +534,7 @@ func (meta *baseMeta) initTF(ctx context.Context) error {
 	}
 	meta.tf = tf
 
-	for _, importDir := range meta.importDirs {
+	for _, importDir := range meta.importBaseDirs {
 		tf, err := newTF(importDir)
 		if err != nil {
 			return fmt.Errorf("failed to init terraform: %w", err)
@@ -577,12 +579,12 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 	}
 
 	// Initialize provider for the import directories.
-	for i := range meta.importDirs {
-		providerFile := filepath.Join(meta.importDirs[i], "provider.tf")
+	for i := range meta.importBaseDirs {
+		providerFile := filepath.Join(meta.importBaseDirs[i], "provider.tf")
 		if err := utils.WriteFileSync(providerFile, []byte(meta.providerConfig()), 0644); err != nil {
 			return fmt.Errorf("error creating provider config: %w", err)
 		}
-		terraformFile := filepath.Join(meta.importDirs[i], "terraform.tf")
+		terraformFile := filepath.Join(meta.importBaseDirs[i], "terraform.tf")
 		if err := utils.WriteFileSync(terraformFile, []byte(meta.terraformConfig("local")), 0644); err != nil {
 			return fmt.Errorf("error creating terraform config: %w", err)
 		}
