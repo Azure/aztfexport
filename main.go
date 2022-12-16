@@ -46,6 +46,7 @@ func main() {
 		flagNonInteractive      bool
 		flagGenerateMappingFile bool
 		flagHCLOnly             bool
+		flagModulePath          string
 
 		// common flags (hidden)
 		hflagMockClient bool
@@ -94,7 +95,16 @@ func main() {
 			if flagAppend {
 				return fmt.Errorf("`--appned` conflicts with `--hcl-only`")
 			}
+			if flagModulePath != "" {
+				return fmt.Errorf("`--module-path` conflicts with `--hcl-only`")
+			}
 		}
+		if flagModulePath != "" {
+			if !flagAppend {
+				return fmt.Errorf("`--module-path` must be used together with `--append`")
+			}
+		}
+
 		if flagLogLevel != "" {
 			if _, err := logLevel(flagLogLevel); err != nil {
 				return err
@@ -253,6 +263,25 @@ The output directory is not empty. Please choose one of actions below:
 			Usage:       "Only generate HCL code, but not the files for resource management (e.g. the state file)",
 			Destination: &flagHCLOnly,
 		},
+		&cli.StringFlag{
+			Name:        "module-path",
+			EnvVars:     []string{"AZTFY_MODULE_PATH"},
+			Usage:       `The path of the module (e.g. "module1.module2") where the resources will be imported and config generated. Note that only modules whose "source" is local path is supported. By default, it is the root module.`,
+			Destination: &flagModulePath,
+		},
+		&cli.StringFlag{
+			Name:        "log-path",
+			EnvVars:     []string{"AZTFY_LOG_PATH"},
+			Usage:       "The file path to store the log",
+			Destination: &flagLogPath,
+		},
+		&cli.StringFlag{
+			Name:        "log-level",
+			EnvVars:     []string{"AZTFY_LOG_LEVEL"},
+			Usage:       `Log level, can be one of "ERROR", "WARN", "INFO", "DEBUG"`,
+			Destination: &flagLogLevel,
+			Value:       "INFO",
+		},
 
 		// Hidden flags
 		&cli.BoolFlag{
@@ -262,21 +291,6 @@ The output directory is not empty. Please choose one of actions below:
 			Hidden:      true,
 			Destination: &hflagMockClient,
 		},
-		&cli.StringFlag{
-			Name:        "log-path",
-			EnvVars:     []string{"AZTFY_LOG_PATH"},
-			Usage:       "The file path to store the log",
-			Destination: &flagLogPath,
-		},
-
-		&cli.StringFlag{
-			Name:        "log-level",
-			EnvVars:     []string{"AZTFY_LOG_LEVEL"},
-			Usage:       `Log level, can be one of "ERROR", "WARN", "INFO", "DEBUG"`,
-			Destination: &flagLogLevel,
-			Value:       "INFO",
-		},
-
 		&cli.BoolFlag{
 			Name:        "plain-ui",
 			EnvVars:     []string{"AZTFY_PLAIN_UI"},
@@ -369,6 +383,7 @@ The output directory is not empty. Please choose one of actions below:
 							PlainUI:             hflagPlainUI,
 							GenerateMappingFile: flagGenerateMappingFile,
 							HCLOnly:             flagHCLOnly,
+							ModulePath:          flagModulePath,
 						},
 						ResourceId:     resId,
 						TFResourceName: flagResName,
@@ -412,6 +427,7 @@ The output directory is not empty. Please choose one of actions below:
 							PlainUI:             hflagPlainUI,
 							GenerateMappingFile: flagGenerateMappingFile,
 							HCLOnly:             flagHCLOnly,
+							ModulePath:          flagModulePath,
 						},
 						ResourceGroupName:   rg,
 						ResourceNamePattern: flagPattern,
@@ -454,6 +470,7 @@ The output directory is not empty. Please choose one of actions below:
 							PlainUI:             hflagPlainUI,
 							GenerateMappingFile: flagGenerateMappingFile,
 							HCLOnly:             flagHCLOnly,
+							ModulePath:          flagModulePath,
 						},
 						ARGPredicate:        predicate,
 						ResourceNamePattern: flagPattern,
@@ -497,6 +514,7 @@ The output directory is not empty. Please choose one of actions below:
 							PlainUI:             hflagPlainUI,
 							GenerateMappingFile: flagGenerateMappingFile,
 							HCLOnly:             flagHCLOnly,
+							ModulePath:          flagModulePath,
 						},
 						MappingFile: mapFile,
 					}
