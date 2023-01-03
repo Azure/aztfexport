@@ -71,10 +71,15 @@ func (meta *MetaQuery) ListResource() (ImportList, error) {
 				Type: "",
 				Name: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, i, meta.resourceNameSuffix),
 			},
+			TFAddrCache: tfaddr.TFAddr{
+				Type: "",
+				Name: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, i, meta.resourceNameSuffix),
+			},
 		}
 		if res.TFType != "" {
 			item.Recommendations = []string{res.TFType}
 			item.TFAddr.Type = res.TFType
+			item.TFAddrCache.Type = res.TFType
 			item.IsRecommended = true
 		}
 

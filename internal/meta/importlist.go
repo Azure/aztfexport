@@ -24,6 +24,9 @@ type ImportItem struct {
 	// The terraform resource
 	TFAddr tfaddr.TFAddr
 
+	// The cached terraform resource addr (this is only used by the interactive mode when reverting skipping this import item)
+	TFAddrCache tfaddr.TFAddr
+
 	// Whether this TF resource type is from recommendation
 	IsRecommended bool
 

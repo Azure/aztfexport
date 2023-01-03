@@ -104,6 +104,7 @@ func NewImportItemDelegate() list.ItemDelegate {
 
 				selItem.v.ValidateError = nil
 				selItem.v.TFAddr = *addr
+				selItem.v.TFAddrCache = *addr
 				return
 			}
 		}

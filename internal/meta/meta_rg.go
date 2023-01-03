@@ -59,17 +59,20 @@ func (meta *MetaResourceGroup) ListResource() (ImportList, error) {
 
 	var l ImportList
 	for i, res := range rl {
+		tfAddr := tfaddr.TFAddr{
+			Type: "",
+			Name: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, i, meta.resourceNameSuffix),
+		}
 		item := ImportItem{
 			AzureResourceID: res.AzureId,
 			TFResourceId:    res.TFId,
-			TFAddr: tfaddr.TFAddr{
-				Type: "",
-				Name: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, i, meta.resourceNameSuffix),
-			},
+			TFAddr:          tfAddr,
+			TFAddrCache:     tfAddr,
 		}
 		if res.TFType != "" {
 			item.Recommendations = []string{res.TFType}
 			item.TFAddr.Type = res.TFType
+			item.TFAddrCache.Type = res.TFType
 			item.IsRecommended = true
 		}
 

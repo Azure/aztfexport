@@ -130,8 +130,15 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				return m, nil
 			}
 			selItem := sel.(Item)
-			selItem.v.TFAddr = tfaddr.TFAddr{}
-			selItem.textinput.Model.SetValue("")
+
+			if !selItem.v.Skip() {
+				selItem.v.TFAddr = tfaddr.TFAddr{}
+				selItem.textinput.Model.SetValue("")
+			} else {
+				selItem.v.TFAddr = selItem.v.TFAddrCache
+				selItem.textinput.Model.SetValue(selItem.v.TFAddr.String())
+			}
+
 			m.list.SetItem(selItem.idx, selItem)
 			return m, nil
 		case key.Matches(msg, m.listkeys.error):
