@@ -239,6 +239,11 @@ func (meta *baseMeta) ParallelImport(items []*ImportItem) {
 func (meta baseMeta) PushState() error {
 	ctx := context.TODO()
 
+	// Don't push state if there is no state to push. This might happen when all the resources failed to import with "--continue".
+	if len(meta.baseState) == 0 {
+		return nil
+	}
+
 	// Ensure there is no out of band change on the base state
 	baseState, err := meta.tf.StatePull(ctx)
 	if err != nil {
