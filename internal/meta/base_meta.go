@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -158,7 +157,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 				return nil, fmt.Errorf("creating %s: %v", fpath, err)
 			}
 
-			mdir = path.Join(mdir, moduleName)
+			mdir = filepath.Join(mdir, moduleName)
 			// #nosec G301
 			if err := os.Mkdir(mdir, 0750); err != nil {
 				return nil, fmt.Errorf("creating module dir %s: %v", mdir, err)
