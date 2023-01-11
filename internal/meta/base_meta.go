@@ -1,14 +1,12 @@
 package meta
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/Azure/aztfy/internal/client"
@@ -19,6 +17,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
+	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/hexops/gotextdiff"
 	"github.com/hexops/gotextdiff/myers"
@@ -60,8 +59,16 @@ type baseMeta struct {
 	parallelism    int
 	hclOnly        bool
 
+	// The module address prefix in the resource addr. E.g. module.mod1.module.mod2.azurerm_resource_group.test.
+	// This is an empty string if module path is not specified.
+	moduleAddr string
+	// The module directory in the fs where the terraform config should be generated to. This does not necessarily have the same structure as moduleAddr.
+	// This is the same as the outdir if module path is not specified.
+	moduleDir string
+
 	// Parallel import supports
-	importDirs []string
+	importBaseDirs   []string
+	importModuleDirs []string
 	// The original base state, which is retrieved prior to the import, and is compared with the actual base state prior to the mutated state is pushed,
 	// to ensure the base state has no out of band changes during the importing.
 	originBaseState []byte
@@ -90,14 +97,75 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		return nil, fmt.Errorf("creating rootdir %q: %w", rootdir, err)
 	}
 
+	var (
+		modulePaths []string
+		moduleAddr  string
+		moduleDir   = cfg.OutputDir
+	)
+	if cfg.ModulePath != "" {
+		modulePaths = strings.Split(cfg.ModulePath, ".")
+
+		var segs []string
+		for _, moduleName := range modulePaths {
+			segs = append(segs, "module."+moduleName)
+		}
+		moduleAddr = strings.Join(segs, ".")
+
+		// Ensure the module path is something called by the main module
+		// We are following the module source and recursively call the LoadModule below. This is valid since we only support local path modules.
+		// (remote sources are not supported since we will end up generating config to that module, it only makes sense for local path modules)
+		module, err := tfconfig.LoadModule(moduleDir)
+		if err != nil {
+			return nil, fmt.Errorf("loading main module: %v", err)
+		}
+
+		for i, moduleName := range modulePaths {
+			mc := module.ModuleCalls[moduleName]
+			if mc == nil {
+				return nil, fmt.Errorf("no module %q invoked by the root module", strings.Join(modulePaths[:i+1], "."))
+			}
+			// See https://developer.hashicorp.com/terraform/language/modules/sources#local-paths
+			if !strings.HasPrefix(mc.Source, "./") && !strings.HasPrefix(mc.Source, "../") {
+				return nil, fmt.Errorf("the source of module %q is not a local path", strings.Join(modulePaths[:i+1], "."))
+			}
+			moduleDir = filepath.Join(moduleDir, mc.Source)
+			module, err = tfconfig.LoadModule(moduleDir)
+			if err != nil {
+				return nil, fmt.Errorf("loading module %q: %v", strings.Join(modulePaths[:i+1], "."), err)
+			}
+		}
+	}
+
 	// Create the import directories
-	var importDirs []string
+	var importBaseDirs []string
+	var importModuleDirs []string
 	for i := 0; i < cfg.Parallelism; i++ {
 		dir, err := os.MkdirTemp("", "aztfy-")
 		if err != nil {
 			return nil, fmt.Errorf("creating import directory: %v", err)
 		}
-		importDirs = append(importDirs, dir)
+
+		// Creating the module hierarchy if module path is specified.
+		// The hierarchy used here is not necessarily to be the same as is defined. What we need to guarantee here is the module address in TF is as specified.
+		mdir := dir
+		for _, moduleName := range modulePaths {
+			fpath := filepath.Join(mdir, "main.tf")
+			if err := utils.WriteFileSync(fpath, []byte(fmt.Sprintf(`module "%s" {
+  source = "./%s"
+}
+`, moduleName, moduleName)), 0644); err != nil {
+				return nil, fmt.Errorf("creating %s: %v", fpath, err)
+			}
+
+			mdir = filepath.Join(mdir, moduleName)
+			// #nosec G301
+			if err := os.Mkdir(mdir, 0750); err != nil {
+				return nil, fmt.Errorf("creating module dir %s: %v", mdir, err)
+			}
+		}
+
+		importModuleDirs = append(importModuleDirs, mdir)
+		importBaseDirs = append(importBaseDirs, dir)
 	}
 
 	// Construct client builder
@@ -121,18 +189,22 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	os.Setenv("ARM_SKIP_PROVIDER_REGISTRATION", "true")
 
 	meta := &baseMeta{
-		subscriptionId:  cfg.SubscriptionId,
-		rootdir:         rootdir,
-		outdir:          cfg.OutputDir,
-		resourceClient:  resClient,
-		devProvider:     cfg.DevProvider,
-		backendType:     cfg.BackendType,
-		backendConfig:   cfg.BackendConfig,
-		fullConfig:      cfg.FullConfig,
-		parallelism:     cfg.Parallelism,
-		useSafeFilename: cfg.Append,
-		hclOnly:         cfg.HCLOnly,
-		importDirs:      importDirs,
+		subscriptionId:   cfg.SubscriptionId,
+		rootdir:          rootdir,
+		outdir:           cfg.OutputDir,
+		resourceClient:   resClient,
+		devProvider:      cfg.DevProvider,
+		backendType:      cfg.BackendType,
+		backendConfig:    cfg.BackendConfig,
+		fullConfig:       cfg.FullConfig,
+		parallelism:      cfg.Parallelism,
+		useSafeFilename:  cfg.Append,
+		hclOnly:          cfg.HCLOnly,
+		importBaseDirs:   importBaseDirs,
+		importModuleDirs: importModuleDirs,
+
+		moduleAddr: moduleAddr,
+		moduleDir:  moduleDir,
 	}
 
 	return meta, nil
@@ -165,7 +237,7 @@ func (meta *baseMeta) Init() error {
 
 func (meta baseMeta) DeInit() error {
 	// Clean up the temporary workspaces for parallel import
-	for _, dir := range meta.importDirs {
+	for _, dir := range meta.importBaseDirs {
 		// #nosec G104
 		os.RemoveAll(dir)
 	}
@@ -192,7 +264,7 @@ func (meta *baseMeta) ParallelImport(items []*ImportItem) {
 			return nil
 		}
 
-		stateFile := filepath.Join(meta.importDirs[idx], "terraform.tfstate")
+		stateFile := filepath.Join(meta.importBaseDirs[idx], "terraform.tfstate")
 
 		// Ensure the state file is removed after this round import, preparing for the next round.
 		defer os.Remove(stateFile)
@@ -211,11 +283,11 @@ func (meta *baseMeta) ParallelImport(items []*ImportItem) {
 		i := i
 		wp.AddTask(func() (interface{}, error) {
 			item := items[i]
-			dir := meta.importDirs[i]
+			moduleDir := meta.importModuleDirs[i]
 			tf := meta.importTFs[i]
 
-			// Construct the cfg file for importing
-			cfgFile := filepath.Join(dir, meta.filenameTmpCfg())
+			// Construct the empty cfg file for importing
+			cfgFile := filepath.Join(moduleDir, meta.filenameTmpCfg())
 			tpl := fmt.Sprintf(`resource "%s" "%s" {}`, item.TFAddr.Type, item.TFAddr.Name)
 			if err := utils.WriteFileSync(cfgFile, []byte(tpl), 0644); err != nil {
 				item.ImportError = fmt.Errorf("generating resource template file: %w", err)
@@ -224,8 +296,12 @@ func (meta *baseMeta) ParallelImport(items []*ImportItem) {
 			defer os.Remove(cfgFile)
 
 			// Import resources
-			log.Printf("[INFO] Importing %s as %s", item.TFResourceId, item.TFAddr.String())
-			err := tf.Import(ctx, item.TFAddr.String(), item.TFResourceId)
+			addr := item.TFAddr.String()
+			if meta.moduleAddr != "" {
+				addr = meta.moduleAddr + "." + addr
+			}
+			log.Printf("[INFO] Importing %s as %s", item.TFResourceId, addr)
+			err := tf.Import(ctx, addr, item.TFResourceId)
 			item.ImportError = err
 			item.Imported = err == nil
 			return i, nil
@@ -292,7 +368,7 @@ func (meta baseMeta) ExportResourceMapping(l ImportList) error {
 			ResourceName: item.TFAddr.Name,
 		}
 	}
-	output := filepath.Join(meta.Workspace(), ResourceMappingFileName)
+	output := filepath.Join(meta.outdir, ResourceMappingFileName)
 	b, err := json.MarshalIndent(m, "", "\t")
 	if err != nil {
 		return fmt.Errorf("JSON marshalling the resource mapping: %v", err)
@@ -314,7 +390,7 @@ func (meta baseMeta) ExportSkippedResources(l ImportList) error {
 		return nil
 	}
 
-	output := filepath.Join(meta.Workspace(), SkippedResourcesFileName)
+	output := filepath.Join(meta.outdir, SkippedResourcesFileName)
 	if err := os.WriteFile(output, []byte(fmt.Sprintf(`Following resources are marked to be skipped:
 
 %s
@@ -339,21 +415,21 @@ func (meta baseMeta) CleanUpWorkspace() error {
 		tmpMainCfg := filepath.Join(tmpDir, meta.filenameMainCfg())
 		tmpProviderCfg := filepath.Join(tmpDir, meta.filenameProviderSetting())
 
-		if err := utils.CopyFile(filepath.Join(meta.Workspace(), meta.filenameMainCfg()), tmpMainCfg); err != nil {
+		if err := utils.CopyFile(filepath.Join(meta.outdir, meta.filenameMainCfg()), tmpMainCfg); err != nil {
 			return err
 		}
-		if err := utils.CopyFile(filepath.Join(meta.Workspace(), meta.filenameProviderSetting()), tmpProviderCfg); err != nil {
-			return err
-		}
-
-		if err := utils.RemoveEverythingUnder(meta.Workspace()); err != nil {
+		if err := utils.CopyFile(filepath.Join(meta.outdir, meta.filenameProviderSetting()), tmpProviderCfg); err != nil {
 			return err
 		}
 
-		if err := utils.CopyFile(tmpMainCfg, filepath.Join(meta.Workspace(), meta.filenameMainCfg())); err != nil {
+		if err := utils.RemoveEverythingUnder(meta.outdir); err != nil {
 			return err
 		}
-		if err := utils.CopyFile(tmpProviderCfg, filepath.Join(meta.Workspace(), meta.filenameProviderSetting())); err != nil {
+
+		if err := utils.CopyFile(tmpMainCfg, filepath.Join(meta.outdir, meta.filenameMainCfg())); err != nil {
+			return err
+		}
+		if err := utils.CopyFile(tmpProviderCfg, filepath.Join(meta.outdir, meta.filenameProviderSetting())); err != nil {
 			return err
 		}
 	}
@@ -376,14 +452,10 @@ func (meta baseMeta) generateCfg(l ImportList, cfgTrans ...TFConfigTransformer) 
 	return meta.generateConfig(cfginfos)
 }
 
-func (meta *baseMeta) providerConfig(backendType string) string {
+func (meta *baseMeta) terraformConfig(backendType string) string {
 	if meta.devProvider {
 		return fmt.Sprintf(`terraform {
   backend %q {}
-}
-
-provider "azurerm" {
-  features {}
 }
 `, backendType)
 	}
@@ -397,11 +469,21 @@ provider "azurerm" {
     }
   }
 }
+`, backendType, azurerm.ProviderSchemaInfo.Version)
+}
 
-provider "azurerm" {
+func (meta *baseMeta) providerConfig() string {
+	return fmt.Sprintf(`provider "azurerm" {
   features {}
 }
-`, backendType, azurerm.ProviderSchemaInfo.Version)
+`)
+}
+
+func (meta baseMeta) filenameTerraformSetting() string {
+	if meta.useSafeFilename {
+		return "terraform.aztfy.tf"
+	}
+	return "terraform.tf"
 }
 
 func (meta baseMeta) filenameProviderSetting() string {
@@ -457,7 +539,7 @@ func (meta *baseMeta) initTF(ctx context.Context) error {
 	}
 	meta.tf = tf
 
-	for _, importDir := range meta.importDirs {
+	for _, importDir := range meta.importBaseDirs {
 		tf, err := newTF(importDir)
 		if err != nil {
 			return fmt.Errorf("failed to init terraform: %w", err)
@@ -470,31 +552,46 @@ func (meta *baseMeta) initTF(ctx context.Context) error {
 
 func (meta *baseMeta) initProvider(ctx context.Context) error {
 	log.Printf("[INFO] Init provider")
-	exists, err := dirContainsProviderSetting(meta.outdir)
+
+	module, err := tfconfig.LoadModule(meta.outdir)
 	if err != nil {
 		return err
 	}
-	log.Printf("[INFO] Output directory contains provider setting: %t", exists)
-	if !exists {
-		cfgFile := filepath.Join(meta.outdir, meta.filenameProviderSetting())
-		if err := utils.WriteFileSync(cfgFile, []byte(meta.providerConfig(meta.backendType)), 0644); err != nil {
-			return fmt.Errorf("error creating provider config: %w", err)
-		}
 
-		var opts []tfexec.InitOption
-		for _, opt := range meta.backendConfig {
-			opts = append(opts, tfexec.BackendConfig(opt))
-		}
-		if err := meta.tf.Init(ctx, opts...); err != nil {
-			return fmt.Errorf("error running terraform init: %s", err)
+	if module.ProviderConfigs["azurerm"] == nil {
+		log.Printf("[INFO] Output directory doesn't contain provider setting, create one then")
+		cfgFile := filepath.Join(meta.outdir, meta.filenameProviderSetting())
+		if err := utils.WriteFileSync(cfgFile, []byte(meta.providerConfig()), 0644); err != nil {
+			return fmt.Errorf("error creating provider config: %w", err)
 		}
 	}
 
+	if len(module.ProviderConfigs) == 0 {
+		log.Printf("[INFO] Output directory doesn't contain terraform required provider setting, create one then")
+		cfgFile := filepath.Join(meta.outdir, meta.filenameTerraformSetting())
+		if err := utils.WriteFileSync(cfgFile, []byte(meta.terraformConfig(meta.backendType)), 0644); err != nil {
+			return fmt.Errorf("error creating terraform config: %w", err)
+		}
+	}
+
+	// Initialize provider for the output directory.
+	var opts []tfexec.InitOption
+	for _, opt := range meta.backendConfig {
+		opts = append(opts, tfexec.BackendConfig(opt))
+	}
+	if err := meta.tf.Init(ctx, opts...); err != nil {
+		return fmt.Errorf("error running terraform init: %s", err)
+	}
+
 	// Initialize provider for the import directories.
-	for i := range meta.importDirs {
-		cfgFile := filepath.Join(meta.importDirs[i], "provider.tf")
-		if err := utils.WriteFileSync(cfgFile, []byte(meta.providerConfig("local")), 0644); err != nil {
+	for i := range meta.importBaseDirs {
+		providerFile := filepath.Join(meta.importBaseDirs[i], "provider.tf")
+		if err := utils.WriteFileSync(providerFile, []byte(meta.providerConfig()), 0644); err != nil {
 			return fmt.Errorf("error creating provider config: %w", err)
+		}
+		terraformFile := filepath.Join(meta.importBaseDirs[i], "terraform.tf")
+		if err := utils.WriteFileSync(terraformFile, []byte(meta.terraformConfig("local")), 0644); err != nil {
+			return fmt.Errorf("error creating terraform config: %w", err)
 		}
 		if err := meta.importTFs[i].Init(ctx); err != nil {
 			return fmt.Errorf("error running terraform init: %s", err)
@@ -522,7 +619,11 @@ func (meta baseMeta) stateToConfig(ctx context.Context, list ImportList) (Config
 	for idx, item := range list.Imported() {
 		idx, item := idx, item
 		wp.AddTask(func() (interface{}, error) {
-			b, err := tfadd.State(ctx, meta.tf, tfadd.Target(item.TFAddr.String()), tfadd.Full(meta.fullConfig))
+			addr := item.TFAddr.String()
+			if meta.moduleAddr != "" {
+				addr = meta.moduleAddr + "." + addr
+			}
+			b, err := tfadd.State(ctx, meta.tf, tfadd.Target(addr), tfadd.Full(meta.fullConfig))
 			if err != nil {
 				return nil, fmt.Errorf("converting terraform state to config for resource %s: %w", item.TFAddr, err)
 			}
@@ -559,7 +660,7 @@ func (meta baseMeta) terraformMetaHook(configs ConfigInfos, cfgTrans ...TFConfig
 }
 
 func (meta baseMeta) generateConfig(cfgs ConfigInfos) error {
-	cfgFile := filepath.Join(meta.outdir, meta.filenameMainCfg())
+	cfgFile := filepath.Join(meta.moduleDir, meta.filenameMainCfg())
 	buf := bytes.NewBuffer([]byte{})
 	for _, cfg := range cfgs {
 		if _, err := cfg.DumpHCL(buf); err != nil {
@@ -627,56 +728,6 @@ func (meta baseMeta) addDependency(configs ConfigInfos) (ConfigInfos, error) {
 	}
 
 	return out, nil
-}
-
-func dirContainsProviderSetting(path string) (bool, error) {
-	stat, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		return false, fmt.Errorf("the path %q doesn't exist", path)
-	}
-	if !stat.IsDir() {
-		return false, fmt.Errorf("the path %q is not a directory", path)
-	}
-	// #nosec G304
-	dir, err := os.Open(path)
-	if err != nil {
-		return false, err
-	}
-	// #nosec G307
-	defer dir.Close()
-
-	fnames, err := dir.Readdirnames(0)
-	if err != nil {
-		return false, err
-	}
-
-	// Ideally, we shall use hclgrep for a perfect match. But as the provider setting is simple enough, we do a text matching here.
-	p := regexp.MustCompile(`^\s*provider\s+"azurerm"\s*{\s*$`)
-	for _, fname := range fnames {
-		if filepath.Ext(fname) != ".tf" {
-			continue
-		}
-		// #nosec G304
-		f, err := os.Open(filepath.Join(path, fname))
-		if err != nil {
-			return false, fmt.Errorf("opening %s: %v", fname, err)
-		}
-		scanner := bufio.NewScanner(f)
-		for scanner.Scan() {
-			if p.MatchString(scanner.Text()) {
-				_ = f.Close()
-				return true, nil
-			}
-		}
-		if err := scanner.Err(); err != nil {
-			_ = f.Close()
-			return false, fmt.Errorf("reading file %s: %v", fname, err)
-		}
-		if err := f.Close(); err != nil {
-			return false, fmt.Errorf("closing file %s: %v", fname, err)
-		}
-	}
-	return false, nil
 }
 
 func appendToFile(path, content string) error {

@@ -17,6 +17,7 @@ type CommonConfig struct {
 	PlainUI             bool
 	GenerateMappingFile bool
 	HCLOnly             bool
+	ModulePath          string
 }
 
 type Config struct {
