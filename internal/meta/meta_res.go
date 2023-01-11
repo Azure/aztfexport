@@ -64,13 +64,15 @@ func (meta *MetaResource) ListResource() (ImportList, error) {
 		if rtCnt[res.TFType] > 1 {
 			name += fmt.Sprintf("-%d", rtCnt[res.TFType]-1)
 		}
+		tfAddr := tfaddr.TFAddr{
+			Type: res.TFType, //this might be empty if have multiple matches in aztft
+			Name: name,
+		}
 		item := ImportItem{
 			AzureResourceID: res.AzureId,
 			TFResourceId:    res.TFId, // this might be empty if have multiple matches in aztft
-			TFAddr: tfaddr.TFAddr{
-				Type: res.TFType, //this might be empty if have multiple matches in aztft
-				Name: name,
-			},
+			TFAddr:          tfAddr,
+			TFAddrCache:     tfAddr,
 		}
 
 		// Some special Azure resource is missing the essential property that is used by aztft to detect their TF resource type.
@@ -83,6 +85,7 @@ func (meta *MetaResource) ListResource() (ImportList, error) {
 				}
 				item.TFResourceId = tfid
 				item.TFAddr.Type = meta.ResourceType
+				item.TFAddrCache.Type = meta.ResourceType
 			}
 		}
 

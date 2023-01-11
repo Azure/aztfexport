@@ -64,6 +64,12 @@ stages:
               OS: $(OS)
               ARCH: $(ARCH)
               VERSION: ${{ parameters.version }}
+          - task: UseDotNet@2
+            displayName: 'Install .NET SDK (Windows Only)'
+            condition: eq(variables.OS, 'windows')
+            inputs:
+              packageType: 'sdk'
+              version: '3.x'
           - task: EsrpCodeSigning@1
             displayName: "Sign Binary (Windows Only)"
             condition: eq(variables.OS, 'windows')
@@ -150,6 +156,11 @@ stages:
               VERSION: ${{ parameters.version }}
               ARCH: $(ARCH)
             displayName: "Build"
+          - task: UseDotNet@2
+            displayName: 'Install .NET SDK'
+            inputs:
+              packageType: 'sdk'
+              version: '3.x'
           - task: EsrpCodeSigning@1
             displayName: "Sign MSI"
             inputs:
@@ -269,6 +280,11 @@ stages:
             env:
               VERSION: ${{ parameters.version }}
               WORKDIR: $(system.defaultWorkingDirectory)
+          - task: UseDotNet@2
+            displayName: 'Install .NET SDK'
+            inputs:
+              packageType: 'sdk'
+              version: '3.x'
           - task: EsrpCodeSigning@1
             displayName: "Sign Package"
             inputs:
@@ -351,6 +367,11 @@ stages:
             displayName: "Prepare Binary Archives & Digests"
             env:
               VERSION: ${{ parameters.version }}
+          - task: UseDotNet@2
+            displayName: 'Install .NET SDK'
+            inputs:
+              packageType: 'sdk'
+              version: '3.x'
           - task: EsrpCodeSigning@1
             displayName: "Sign Binary Archive Digests"
             inputs:

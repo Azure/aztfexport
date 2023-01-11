@@ -56,13 +56,15 @@ func (meta *MetaMap) ListResource() (ImportList, error) {
 		if err != nil {
 			return nil, fmt.Errorf("parsing resource id %q: %v", id, err)
 		}
+		tfAddr := tfaddr.TFAddr{
+			Type: res.ResourceType,
+			Name: res.ResourceName,
+		}
 		item := ImportItem{
 			AzureResourceID: azureId,
 			TFResourceId:    res.ResourceId,
-			TFAddr: tfaddr.TFAddr{
-				Type: res.ResourceType,
-				Name: res.ResourceName,
-			},
+			TFAddrCache:     tfAddr,
+			TFAddr:          tfAddr,
 			Recommendations: []string{res.ResourceType},
 		}
 		l = append(l, item)
