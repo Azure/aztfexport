@@ -4,13 +4,11 @@ import (
 	"time"
 )
 
-var _ Meta = &MetaGroupDummy{}
-
 type MetaGroupDummy struct {
 	rg string
 }
 
-func newGroupMetaDummy(rg string) (Meta, error) {
+func NewGroupMetaDummy(rg string) (MetaGroupDummy, error) {
 	return MetaGroupDummy{rg: rg}, nil
 }
 

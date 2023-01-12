@@ -5,13 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/Azure/aztfy/pkg/config"
+	"github.com/Azure/aztfy/pkg/log"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/Azure/aztfy/internal/client"
-	"github.com/Azure/aztfy/internal/config"
-	"github.com/Azure/aztfy/internal/log"
 	"github.com/Azure/aztfy/internal/resmap"
 	"github.com/Azure/aztfy/internal/utils"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
@@ -30,6 +30,8 @@ import (
 
 const ResourceMappingFileName = "aztfyResourceMapping.json"
 const SkippedResourcesFileName = "aztfySkippedResources.txt"
+
+type TFConfigTransformer func(configs ConfigInfos) (ConfigInfos, error)
 
 type BaseMeta interface {
 	Init() error

@@ -2,11 +2,10 @@ package meta
 
 import (
 	"fmt"
-
-	"github.com/Azure/aztfy/internal/config"
-	"github.com/Azure/aztfy/internal/log"
 	"github.com/Azure/aztfy/internal/resourceset"
 	"github.com/Azure/aztfy/internal/tfaddr"
+	"github.com/Azure/aztfy/pkg/config"
+	"github.com/Azure/aztfy/pkg/log"
 	"github.com/magodo/armid"
 	"github.com/magodo/aztft/aztft"
 )
@@ -18,7 +17,7 @@ type MetaResource struct {
 	ResourceType string
 }
 
-func newMetaResource(cfg config.Config) (Meta, error) {
+func NewMetaResource(cfg config.Config) (*MetaResource, error) {
 	log.Printf("[INFO] New resource meta")
 	baseMeta, err := NewBaseMeta(cfg.CommonConfig)
 	if err != nil {

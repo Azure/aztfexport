@@ -2,10 +2,10 @@ package ui
 
 import (
 	"fmt"
+	"github.com/Azure/aztfy/pkg/config"
+	"github.com/Azure/aztfy/pkg/meta"
 	"log"
 
-	"github.com/Azure/aztfy/internal/config"
-	"github.com/Azure/aztfy/internal/meta"
 	"github.com/Azure/aztfy/internal/ui/aztfyclient"
 	"github.com/Azure/aztfy/internal/ui/common"
 	"github.com/mitchellh/go-wordwrap"

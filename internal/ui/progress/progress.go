@@ -2,6 +2,7 @@ package progress
 
 import (
 	"fmt"
+	meta2 "github.com/Azure/aztfy/pkg/meta"
 
 	"github.com/Azure/aztfy/internal/meta"
 	"github.com/Azure/aztfy/internal/ui/aztfyclient"
@@ -16,7 +17,7 @@ type result struct {
 }
 
 type Model struct {
-	c meta.Meta
+	c meta2.Meta
 	l meta.ImportList
 
 	idx         int
@@ -26,7 +27,7 @@ type Model struct {
 	progress prog.Model
 }
 
-func NewModel(c meta.Meta, parallelism int, l meta.ImportList) Model {
+func NewModel(c meta2.Meta, parallelism int, l meta.ImportList) Model {
 	return Model{
 		c:           c,
 		l:           l,

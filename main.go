@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/Azure/aztfy/pkg/config"
+	"github.com/Azure/aztfy/pkg/log"
 	"io"
 	golog "log"
 	"os"
@@ -17,8 +19,6 @@ import (
 	"github.com/magodo/tfadd/providers/azurerm"
 
 	"github.com/Azure/aztfy/internal"
-	"github.com/Azure/aztfy/internal/config"
-	"github.com/Azure/aztfy/internal/log"
 	"github.com/Azure/aztfy/internal/ui"
 	"github.com/Azure/aztfy/internal/utils"
 	azlog "github.com/Azure/azure-sdk-for-go/sdk/azcore/log"

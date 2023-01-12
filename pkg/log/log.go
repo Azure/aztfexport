@@ -4,11 +4,11 @@ type Logger interface {
 	Printf(format string, v ...any)
 }
 
-var log Logger = nullLogger{}
+var log Logger = NullLogger{}
 
-type nullLogger struct{}
+type NullLogger struct{}
 
-func (nullLogger) Printf(format string, v ...any) {}
+func (NullLogger) Printf(format string, v ...any) {}
 
 func SetLogger(l Logger) {
 	log = l

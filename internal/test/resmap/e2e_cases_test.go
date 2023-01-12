@@ -3,13 +3,13 @@ package resmap
 import (
 	"context"
 	"encoding/json"
+	"github.com/Azure/aztfy/pkg/config"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/Azure/aztfy/internal"
-	"github.com/Azure/aztfy/internal/config"
 	"github.com/Azure/aztfy/internal/test"
 	"github.com/Azure/aztfy/internal/test/cases"
 	"github.com/Azure/aztfy/internal/utils"

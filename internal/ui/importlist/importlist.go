@@ -2,6 +2,7 @@ package importlist
 
 import (
 	"fmt"
+	meta2 "github.com/Azure/aztfy/pkg/meta"
 	"regexp"
 	"sort"
 	"strings"
@@ -20,13 +21,13 @@ import (
 )
 
 type Model struct {
-	c        meta.Meta
+	c        meta2.Meta
 	listkeys listKeyMap
 
 	list list.Model
 }
 
-func NewModel(c meta.Meta, l meta.ImportList, idx int) Model {
+func NewModel(c meta2.Meta, l meta.ImportList, idx int) Model {
 	// Build candidate words for the textinput
 	candidates := make([]string, 0, len(azurerm.ProviderSchemaInfo.ResourceSchemas))
 	for rt := range azurerm.ProviderSchemaInfo.ResourceSchemas {

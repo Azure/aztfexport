@@ -3,6 +3,7 @@ package resourcegroup
 import (
 	"context"
 	"fmt"
+	"github.com/Azure/aztfy/pkg/config"
 	"os"
 	"path/filepath"
 	"testing"
@@ -12,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Azure/aztfy/internal"
-	"github.com/Azure/aztfy/internal/config"
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
 

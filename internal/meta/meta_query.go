@@ -3,15 +3,12 @@ package meta
 import (
 	"context"
 	"fmt"
-
-	"github.com/Azure/aztfy/internal/config"
-	"github.com/Azure/aztfy/internal/log"
 	"github.com/Azure/aztfy/internal/resourceset"
 	"github.com/Azure/aztfy/internal/tfaddr"
+	"github.com/Azure/aztfy/pkg/config"
+	"github.com/Azure/aztfy/pkg/log"
 	"github.com/magodo/azlist/azlist"
 )
-
-var _ Meta = &MetaQuery{}
 
 type MetaQuery struct {
 	baseMeta
@@ -21,7 +18,7 @@ type MetaQuery struct {
 	resourceNameSuffix string
 }
 
-func newMetaQuery(cfg config.Config) (Meta, error) {
+func NewMetaQuery(cfg config.Config) (*MetaQuery, error) {
 	log.Printf("[INFO] New query meta")
 	baseMeta, err := NewBaseMeta(cfg.CommonConfig)
 	if err != nil {
