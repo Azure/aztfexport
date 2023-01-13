@@ -8,7 +8,6 @@ type CommonConfig struct {
 	OutputDir           string
 	Append              bool
 	DevProvider         bool
-	Batch               bool
 	ContinueOnError     bool
 	BackendType         string
 	BackendConfig       []string

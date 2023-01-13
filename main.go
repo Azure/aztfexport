@@ -374,7 +374,6 @@ The output directory is not empty. Please choose one of actions below:
 							OutputDir:           flagOutputDir,
 							Append:              flagAppend,
 							DevProvider:         flagDevProvider,
-							Batch:               flagNonInteractive,
 							ContinueOnError:     flagContinue,
 							BackendType:         flagBackendType,
 							BackendConfig:       flagBackendConfig.Value(),
@@ -390,7 +389,7 @@ The output directory is not empty. Please choose one of actions below:
 						TFResourceType: flagResType,
 					}
 
-					return realMain(cfg)
+					return realMain(cfg, flagNonInteractive)
 				},
 			},
 			{
@@ -418,7 +417,6 @@ The output directory is not empty. Please choose one of actions below:
 							OutputDir:           flagOutputDir,
 							Append:              flagAppend,
 							DevProvider:         flagDevProvider,
-							Batch:               flagNonInteractive,
 							ContinueOnError:     flagContinue,
 							BackendType:         flagBackendType,
 							BackendConfig:       flagBackendConfig.Value(),
@@ -434,7 +432,7 @@ The output directory is not empty. Please choose one of actions below:
 						RecursiveQuery:      true,
 					}
 
-					return realMain(cfg)
+					return realMain(cfg, flagNonInteractive)
 				},
 			},
 			{
@@ -461,7 +459,6 @@ The output directory is not empty. Please choose one of actions below:
 							OutputDir:           flagOutputDir,
 							Append:              flagAppend,
 							DevProvider:         flagDevProvider,
-							Batch:               flagNonInteractive,
 							ContinueOnError:     flagContinue,
 							BackendType:         flagBackendType,
 							BackendConfig:       flagBackendConfig.Value(),
@@ -477,7 +474,7 @@ The output directory is not empty. Please choose one of actions below:
 						RecursiveQuery:      flagRecursive,
 					}
 
-					return realMain(cfg)
+					return realMain(cfg, flagNonInteractive)
 				},
 			},
 			{
@@ -505,7 +502,6 @@ The output directory is not empty. Please choose one of actions below:
 							OutputDir:           flagOutputDir,
 							Append:              flagAppend,
 							DevProvider:         flagDevProvider,
-							Batch:               flagNonInteractive,
 							ContinueOnError:     flagContinue,
 							BackendType:         flagBackendType,
 							BackendConfig:       flagBackendConfig.Value(),
@@ -519,7 +515,7 @@ The output directory is not empty. Please choose one of actions below:
 						MappingFile: mapFile,
 					}
 
-					return realMain(cfg)
+					return realMain(cfg, flagNonInteractive)
 				},
 			},
 		},
@@ -600,7 +596,7 @@ func subscriptionIdFromCLI() (string, error) {
 	return strconv.Unquote(strings.TrimSpace(stdout.String()))
 }
 
-func realMain(cfg config.Config) (result error) {
+func realMain(cfg config.Config, batch bool) (result error) {
 	// Initialize log
 	logLevel, err := logLevel(flagLogLevel)
 	if err != nil {
@@ -623,7 +619,7 @@ func realMain(cfg config.Config) (result error) {
 	log.Printf("[INFO] aztfy starts with config: %#v", cfg)
 
 	// Run in non-interactive mode
-	if cfg.Batch {
+	if batch {
 		if err := internal.BatchImport(cfg); err != nil {
 			result = err
 			return
