@@ -2,13 +2,12 @@ package importlist
 
 import (
 	"fmt"
-	meta2 "github.com/Azure/aztfy/pkg/meta"
+	"github.com/Azure/aztfy/pkg/meta"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/Azure/aztfy/internal/meta"
 	"github.com/Azure/aztfy/internal/tfaddr"
 	"github.com/Azure/aztfy/internal/ui/aztfyclient"
 	"github.com/Azure/aztfy/internal/ui/common"
@@ -21,13 +20,13 @@ import (
 )
 
 type Model struct {
-	c        meta2.Meta
+	c        meta.Meta
 	listkeys listKeyMap
 
 	list list.Model
 }
 
-func NewModel(c meta2.Meta, l meta.ImportList, idx int) Model {
+func NewModel(c meta.Meta, l meta.ImportList, idx int) Model {
 	// Build candidate words for the textinput
 	candidates := make([]string, 0, len(azurerm.ProviderSchemaInfo.ResourceSchemas))
 	for rt := range azurerm.ProviderSchemaInfo.ResourceSchemas {
@@ -167,7 +166,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.list.NewStatusMessage(common.InfoStyle.Render("Saving the resouce mapping..."))
 			err := m.c.ExportResourceMapping(m.importList(false))
 			if err == nil {
-				m.list.NewStatusMessage(common.InfoStyle.Render(fmt.Sprintf("Resource mapping saved to %s.", meta.ResourceMappingFileName)))
+				m.list.NewStatusMessage(common.InfoStyle.Render("Resource mapping saved"))
 			} else {
 				m.list.NewStatusMessage(common.ErrorMsgStyle.Render(err.Error()))
 			}
