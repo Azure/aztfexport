@@ -3,18 +3,17 @@ package internal
 import (
 	"fmt"
 	"github.com/Azure/aztfy/pkg/config"
-	meta2 "github.com/Azure/aztfy/pkg/meta"
+	"github.com/Azure/aztfy/pkg/meta"
 	"os"
 	"strings"
 
-	"github.com/Azure/aztfy/internal/meta"
 	"github.com/Azure/aztfy/internal/ui/common"
 	bspinner "github.com/charmbracelet/bubbles/spinner"
 	"github.com/magodo/spinner"
 )
 
 func BatchImport(cfg config.Config) error {
-	c, err := meta2.NewMeta(cfg)
+	c, err := meta.NewMeta(cfg)
 	if err != nil {
 		return err
 	}

@@ -6,6 +6,9 @@ import (
 	"github.com/Azure/aztfy/pkg/config"
 )
 
+type ImportItem = meta.ImportItem
+type ImportList = meta.ImportList
+
 type Meta interface {
 	meta.BaseMeta
 	ScopeName() string
