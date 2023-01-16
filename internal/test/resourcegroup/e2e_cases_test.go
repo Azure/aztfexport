@@ -2,10 +2,12 @@ package resourcegroup
 
 import (
 	"context"
-	"github.com/Azure/aztfy/pkg/config"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/Azure/aztfy/pkg/config"
 
 	"github.com/Azure/aztfy/internal"
 	"github.com/Azure/aztfy/internal/test"
@@ -23,8 +25,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 		t.Log(provisionDir)
 	}
 
-	os.Chdir(provisionDir)
-	if err := utils.WriteFileSync("main.tf", []byte(c.Tpl(d)), 0644); err != nil {
+	if err := utils.WriteFileSync(filepath.Join(provisionDir, "main.tf"), []byte(c.Tpl(d)), 0644); err != nil {
 		t.Fatalf("created to create the TF config file: %v", err)
 	}
 	tf, err := tfexec.NewTerraform(provisionDir, tfexecPath)
@@ -40,7 +41,6 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 	if err := tf.Apply(ctx); err != nil {
 		t.Fatalf("terraform apply failed: %v", err)
 	}
-
 	if !test.Keep() {
 		defer func() {
 			t.Log("Running: terraform destroy")
@@ -55,6 +55,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 	time.Sleep(delay)
 
 	aztfyDir := t.TempDir()
+
 	cfg := config.Config{
 		CommonConfig: config.CommonConfig{
 			SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),

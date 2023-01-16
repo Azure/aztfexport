@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Azure/aztfy/pkg/config"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -26,8 +27,7 @@ func TestQueryMode(t *testing.T) {
 		t.Log(provisionDir)
 	}
 
-	os.Chdir(provisionDir)
-	if err := utils.WriteFileSync("main.tf", []byte(fmt.Sprintf(`
+	if err := utils.WriteFileSync(filepath.Join(provisionDir, "main.tf"), []byte(fmt.Sprintf(`
 provider "azurerm" {
   features {
     resource_group {

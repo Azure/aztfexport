@@ -26,8 +26,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 		t.Log(provisionDir)
 	}
 
-	os.Chdir(provisionDir)
-	if err := utils.WriteFileSync("main.tf", []byte(c.Tpl(d)), 0644); err != nil {
+	if err := utils.WriteFileSync(filepath.Join(provisionDir, "main.tf"), []byte(c.Tpl(d)), 0644); err != nil {
 		t.Fatalf("created to create the TF config file: %v", err)
 	}
 	tf, err := tfexec.NewTerraform(provisionDir, tfexecPath)

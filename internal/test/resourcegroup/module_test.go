@@ -28,8 +28,7 @@ func TestAppendToModule(t *testing.T) {
 		t.Log(provisionDir)
 	}
 
-	os.Chdir(provisionDir)
-	if err := utils.WriteFileSync("main.tf", []byte(fmt.Sprintf(`
+	if err := utils.WriteFileSync(filepath.Join(provisionDir, "main.tf"), []byte(fmt.Sprintf(`
 provider "azurerm" {
   features {
     resource_group {
@@ -83,18 +82,17 @@ resource "azurerm_resource_group" "test3" {
 		t.Fatalf("failed to new terraform: %v", err)
 	}
 
-	os.Chdir(aztfyDir)
-	if err := os.MkdirAll(filepath.Join("modules", "submodules"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(aztfyDir, "modules", "submodules"), 0755); err != nil {
 		t.Fatalf("failed to create the directory `modules/submodules`: %v", err)
 	}
-	if err := utils.WriteFileSync("main.tf", []byte(`
+	if err := utils.WriteFileSync(filepath.Join(aztfyDir, "main.tf"), []byte(`
 module "my-module" {
   source = "./modules"
 }
 `), 0644); err != nil {
 		t.Fatalf("failed to create the TF config file: %v", err)
 	}
-	if err := utils.WriteFileSync(filepath.Join("modules", "main.tf"), []byte(`
+	if err := utils.WriteFileSync(filepath.Join(aztfyDir, "modules", "main.tf"), []byte(`
 module "sub-module" {
   source = "./submodules"
 }
