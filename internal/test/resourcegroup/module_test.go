@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/Azure/aztfy/internal/test"
-	"github.com/Azure/aztfy/internal/utils"
 	"github.com/stretchr/testify/require"
 
 	"github.com/Azure/aztfy/internal"
@@ -28,7 +27,7 @@ func TestAppendToModule(t *testing.T) {
 		t.Log(provisionDir)
 	}
 
-	if err := utils.WriteFileSync(filepath.Join(provisionDir, "main.tf"), []byte(fmt.Sprintf(`
+	if err := os.WriteFile(filepath.Join(provisionDir, "main.tf"), []byte(fmt.Sprintf(`
 provider "azurerm" {
   features {
     resource_group {
@@ -85,14 +84,14 @@ resource "azurerm_resource_group" "test3" {
 	if err := os.MkdirAll(filepath.Join(aztfyDir, "modules", "submodules"), 0755); err != nil {
 		t.Fatalf("failed to create the directory `modules/submodules`: %v", err)
 	}
-	if err := utils.WriteFileSync(filepath.Join(aztfyDir, "main.tf"), []byte(`
+	if err := os.WriteFile(filepath.Join(aztfyDir, "main.tf"), []byte(`
 module "my-module" {
   source = "./modules"
 }
 `), 0644); err != nil {
 		t.Fatalf("failed to create the TF config file: %v", err)
 	}
-	if err := utils.WriteFileSync(filepath.Join(aztfyDir, "modules", "main.tf"), []byte(`
+	if err := os.WriteFile(filepath.Join(aztfyDir, "modules", "main.tf"), []byte(`
 module "sub-module" {
   source = "./submodules"
 }

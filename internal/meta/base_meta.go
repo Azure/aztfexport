@@ -152,7 +152,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		mdir := dir
 		for _, moduleName := range modulePaths {
 			fpath := filepath.Join(mdir, "main.tf")
-			if err := utils.WriteFileSync(fpath, []byte(fmt.Sprintf(`module "%s" {
+			if err := os.WriteFile(fpath, []byte(fmt.Sprintf(`module "%s" {
   source = "./%s"
 }
 `, moduleName, moduleName)), 0644); err != nil {
@@ -291,7 +291,7 @@ func (meta *baseMeta) ParallelImport(items []*ImportItem) {
 			// Construct the empty cfg file for importing
 			cfgFile := filepath.Join(moduleDir, meta.filenameTmpCfg())
 			tpl := fmt.Sprintf(`resource "%s" "%s" {}`, item.TFAddr.Type, item.TFAddr.Name)
-			if err := utils.WriteFileSync(cfgFile, []byte(tpl), 0644); err != nil {
+			if err := os.WriteFile(cfgFile, []byte(tpl), 0644); err != nil {
 				item.ImportError = fmt.Errorf("generating resource template file: %w", err)
 				return i, nil
 			}
@@ -341,7 +341,7 @@ func (meta baseMeta) PushState() error {
 	if err := f.Close(); err != nil {
 		return fmt.Errorf("closing the temporary state file %s: %v", f.Name(), err)
 	}
-	if err := utils.WriteFileSync(f.Name(), meta.baseState, 0644); err != nil {
+	if err := os.WriteFile(f.Name(), meta.baseState, 0644); err != nil {
 		return fmt.Errorf("writing to the temporary state file: %v", err)
 	}
 
@@ -563,7 +563,7 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 	if module.ProviderConfigs["azurerm"] == nil {
 		log.Printf("[INFO] Output directory doesn't contain provider setting, create one then")
 		cfgFile := filepath.Join(meta.outdir, meta.filenameProviderSetting())
-		if err := utils.WriteFileSync(cfgFile, []byte(meta.providerConfig()), 0644); err != nil {
+		if err := os.WriteFile(cfgFile, []byte(meta.providerConfig()), 0644); err != nil {
 			return fmt.Errorf("error creating provider config: %w", err)
 		}
 	}
@@ -571,7 +571,7 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 	if len(module.ProviderConfigs) == 0 {
 		log.Printf("[INFO] Output directory doesn't contain terraform required provider setting, create one then")
 		cfgFile := filepath.Join(meta.outdir, meta.filenameTerraformSetting())
-		if err := utils.WriteFileSync(cfgFile, []byte(meta.terraformConfig(meta.backendType)), 0644); err != nil {
+		if err := os.WriteFile(cfgFile, []byte(meta.terraformConfig(meta.backendType)), 0644); err != nil {
 			return fmt.Errorf("error creating terraform config: %w", err)
 		}
 	}
@@ -588,11 +588,11 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 	// Initialize provider for the import directories.
 	for i := range meta.importBaseDirs {
 		providerFile := filepath.Join(meta.importBaseDirs[i], "provider.tf")
-		if err := utils.WriteFileSync(providerFile, []byte(meta.providerConfig()), 0644); err != nil {
+		if err := os.WriteFile(providerFile, []byte(meta.providerConfig()), 0644); err != nil {
 			return fmt.Errorf("error creating provider config: %w", err)
 		}
 		terraformFile := filepath.Join(meta.importBaseDirs[i], "terraform.tf")
-		if err := utils.WriteFileSync(terraformFile, []byte(meta.terraformConfig("local")), 0644); err != nil {
+		if err := os.WriteFile(terraformFile, []byte(meta.terraformConfig("local")), 0644); err != nil {
 			return fmt.Errorf("error creating terraform config: %w", err)
 		}
 		if err := meta.importTFs[i].Init(ctx); err != nil {

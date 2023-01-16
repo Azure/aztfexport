@@ -12,7 +12,6 @@ import (
 	"github.com/Azure/aztfy/internal"
 	"github.com/Azure/aztfy/internal/test"
 	"github.com/Azure/aztfy/internal/test/cases"
-	"github.com/Azure/aztfy/internal/utils"
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
@@ -25,7 +24,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 		t.Log(provisionDir)
 	}
 
-	if err := utils.WriteFileSync(filepath.Join(provisionDir, "main.tf"), []byte(c.Tpl(d)), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(provisionDir, "main.tf"), []byte(c.Tpl(d)), 0644); err != nil {
 		t.Fatalf("created to create the TF config file: %v", err)
 	}
 	tf, err := tfexec.NewTerraform(provisionDir, tfexecPath)

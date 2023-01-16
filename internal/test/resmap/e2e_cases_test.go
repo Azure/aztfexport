@@ -3,16 +3,16 @@ package resmap
 import (
 	"context"
 	"encoding/json"
-	"github.com/Azure/aztfy/pkg/config"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/Azure/aztfy/pkg/config"
+
 	"github.com/Azure/aztfy/internal"
 	"github.com/Azure/aztfy/internal/test"
 	"github.com/Azure/aztfy/internal/test/cases"
-	"github.com/Azure/aztfy/internal/utils"
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/stretchr/testify/require"
 )
@@ -26,7 +26,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 		t.Log(provisionDir)
 	}
 
-	if err := utils.WriteFileSync(filepath.Join(provisionDir, "main.tf"), []byte(c.Tpl(d)), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(provisionDir, "main.tf"), []byte(c.Tpl(d)), 0644); err != nil {
 		t.Fatalf("created to create the TF config file: %v", err)
 	}
 	tf, err := tfexec.NewTerraform(provisionDir, tfexecPath)
@@ -63,7 +63,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 	require.NoError(t, err)
 	bMapping, err := json.Marshal(resMapping)
 	require.NoError(t, err)
-	require.NoError(t, utils.WriteFileSync(mapFile, bMapping, 0644))
+	require.NoError(t, os.WriteFile(mapFile, bMapping, 0644))
 
 	cfg := config.Config{
 		CommonConfig: config.CommonConfig{

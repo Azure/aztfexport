@@ -27,7 +27,7 @@ func TestAppendMode(t *testing.T) {
 		t.Log(provisionDir)
 	}
 
-	if err := utils.WriteFileSync(filepath.Join(provisionDir, "main.tf"), []byte(fmt.Sprintf(`
+	if err := os.WriteFile(filepath.Join(provisionDir, "main.tf"), []byte(fmt.Sprintf(`
 provider "azurerm" {
   features {
     resource_group {
