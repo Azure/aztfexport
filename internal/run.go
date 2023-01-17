@@ -2,20 +2,26 @@ package internal
 
 import (
 	"fmt"
-	"github.com/Azure/aztfy/pkg/config"
-	"github.com/Azure/aztfy/pkg/meta"
+	internalmeta "github.com/Azure/aztfy/internal/meta"
 	"os"
 	"strings"
+
+	"github.com/Azure/aztfy/internal/config"
+	"github.com/Azure/aztfy/pkg/meta"
 
 	"github.com/Azure/aztfy/internal/ui/common"
 	bspinner "github.com/charmbracelet/bubbles/spinner"
 	"github.com/magodo/spinner"
 )
 
-func BatchImport(cfg config.Config) error {
-	c, err := meta.NewMeta(cfg)
-	if err != nil {
-		return err
+func BatchImport(cfg config.NonInteractiveModeConfig) error {
+	var c meta.Meta = internalmeta.NewGroupMetaDummy(cfg.ResourceGroupName)
+	if !cfg.MockMeta {
+		var err error
+		c, err = meta.NewMeta(cfg.Config)
+		if err != nil {
+			return err
+		}
 	}
 
 	var errors []string
@@ -49,7 +55,7 @@ func BatchImport(cfg config.Config) error {
 		}
 
 		// Return early if only generating mapping file
-		if cfg.GenerateMappingFile {
+		if cfg.GenMappingFileOnly {
 			return nil
 		}
 
@@ -66,9 +72,9 @@ func BatchImport(cfg config.Config) error {
 				idx := i + j
 				if list[idx].Skip() {
 					messages = append(messages, fmt.Sprintf("(%d/%d) Skipping %s", idx+1, len(list), list[idx].TFResourceId))
-					continue
+				} else {
+					messages = append(messages, fmt.Sprintf("(%d/%d) Importing %s as %s", idx+1, len(list), list[idx].TFResourceId, list[idx].TFAddr))
 				}
-				messages = append(messages, fmt.Sprintf("(%d/%d) Importing %s as %s", idx+1, len(list), list[idx].TFResourceId, list[idx].TFAddr))
 				importList = append(importList, &list[idx])
 			}
 
@@ -109,6 +115,7 @@ func BatchImport(cfg config.Config) error {
 		return nil
 	}
 
+	var err error
 	if cfg.PlainUI {
 		err = f(&StdoutMessager{})
 	} else {

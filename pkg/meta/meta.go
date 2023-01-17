@@ -11,14 +11,13 @@ type ImportList = meta.ImportList
 
 type Meta interface {
 	meta.BaseMeta
+	// ScopeName returns a string indicating current scope/mode.
 	ScopeName() string
+	// ListResource lists the resources belong to current scope.
 	ListResource() (meta.ImportList, error)
 }
 
 func NewMeta(cfg config.Config) (Meta, error) {
-	if cfg.MockClient {
-		return meta.NewGroupMetaDummy(cfg.ResourceGroupName)
-	}
 	switch {
 	case cfg.ResourceGroupName != "":
 		return meta.NewMetaResourceGroup(cfg)

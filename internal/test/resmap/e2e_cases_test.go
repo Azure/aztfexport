@@ -3,6 +3,7 @@ package resmap
 import (
 	"context"
 	"encoding/json"
+	internalconfig "github.com/Azure/aztfy/internal/config"
 	"os"
 	"path/filepath"
 	"testing"
@@ -65,16 +66,18 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(mapFile, bMapping, 0644))
 
-	cfg := config.Config{
-		CommonConfig: config.CommonConfig{
-			SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
-			OutputDir:      aztfyDir,
-			BackendType:    "local",
-			DevProvider:    true,
-			PlainUI:        true,
-			Parallelism:    1,
+	cfg := internalconfig.NonInteractiveModeConfig{
+		Config: config.Config{
+			CommonConfig: config.CommonConfig{
+				SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
+				OutputDir:      aztfyDir,
+				BackendType:    "local",
+				DevProvider:    true,
+				Parallelism:    1,
+			},
+			MappingFile: mapFile,
 		},
-		MappingFile: mapFile,
+		PlainUI: true,
 	}
 	t.Logf("Batch importing the resource group %s\n", d.RandomRgName())
 	if err := internal.BatchImport(cfg); err != nil {

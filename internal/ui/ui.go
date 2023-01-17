@@ -2,7 +2,8 @@ package ui
 
 import (
 	"fmt"
-	"github.com/Azure/aztfy/pkg/config"
+	"github.com/Azure/aztfy/internal/config"
+	internalmeta "github.com/Azure/aztfy/internal/meta"
 	"github.com/Azure/aztfy/pkg/meta"
 	"log"
 
@@ -21,7 +22,7 @@ import (
 
 const indentLevel = 2
 
-func NewProgram(cfg config.Config) (*tea.Program, error) {
+func NewProgram(cfg config.InteractiveModeConfig) (*tea.Program, error) {
 	m, err := newModel(cfg)
 	if err != nil {
 		return nil, err
@@ -81,17 +82,21 @@ type model struct {
 	importerrormsg aztfyclient.ShowImportErrorMsg
 }
 
-func newModel(cfg config.Config) (*model, error) {
+func newModel(cfg config.InteractiveModeConfig) (*model, error) {
 	s := spinner.NewModel()
 	s.Spinner = common.Spinner
 
-	meta, err := meta.NewMeta(cfg)
-	if err != nil {
-		return nil, err
+	var c meta.Meta = internalmeta.NewGroupMetaDummy(cfg.ResourceGroupName)
+	if !cfg.MockMeta {
+		var err error
+		c, err = meta.NewMeta(cfg.Config)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	m := &model{
-		meta:        meta,
+		meta:        c,
 		parallelism: cfg.Parallelism,
 		status:      statusInit,
 		spinner:     s,

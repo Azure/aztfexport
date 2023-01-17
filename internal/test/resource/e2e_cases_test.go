@@ -3,11 +3,13 @@ package resource
 import (
 	"context"
 	"fmt"
-	"github.com/Azure/aztfy/pkg/config"
+	internalconfig "github.com/Azure/aztfy/internal/config"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/Azure/aztfy/pkg/config"
 
 	"github.com/Azure/aztfy/internal"
 	"github.com/Azure/aztfy/internal/test"
@@ -61,17 +63,19 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 		t.Fatalf("failed to get resource ids: %v", err)
 	}
 	for idx, rctx := range l {
-		cfg := config.Config{
-			CommonConfig: config.CommonConfig{
-				SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
-				OutputDir:      aztfyDir,
-				BackendType:    "local",
-				DevProvider:    true,
-				PlainUI:        true,
-				Parallelism:    1,
+		cfg := internalconfig.NonInteractiveModeConfig{
+			Config: config.Config{
+				CommonConfig: config.CommonConfig{
+					SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
+					OutputDir:      aztfyDir,
+					BackendType:    "local",
+					DevProvider:    true,
+					Parallelism:    1,
+				},
+				ResourceId:     rctx.AzureId,
+				TFResourceName: fmt.Sprintf("res-%d", idx),
 			},
-			ResourceId:     rctx.AzureId,
-			TFResourceName: fmt.Sprintf("res-%d", idx),
+			PlainUI: true,
 		}
 		t.Logf("Resource importing %s\n", rctx.AzureId)
 		if err := utils.RemoveEverythingUnder(cfg.OutputDir); err != nil {

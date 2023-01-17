@@ -8,8 +8,8 @@ type MetaGroupDummy struct {
 	rg string
 }
 
-func NewGroupMetaDummy(rg string) (MetaGroupDummy, error) {
-	return MetaGroupDummy{rg: rg}, nil
+func NewGroupMetaDummy(rg string) MetaGroupDummy {
+	return MetaGroupDummy{rg: rg}
 }
 
 func (m MetaGroupDummy) Init() error {

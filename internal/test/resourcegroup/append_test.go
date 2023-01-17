@@ -3,10 +3,12 @@ package resourcegroup
 import (
 	"context"
 	"fmt"
-	"github.com/Azure/aztfy/pkg/config"
+	internalconfig "github.com/Azure/aztfy/internal/config"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/Azure/aztfy/pkg/config"
 
 	"github.com/Azure/aztfy/internal/test"
 	"github.com/Azure/aztfy/internal/utils"
@@ -75,16 +77,18 @@ resource "azurerm_resource_group" "test3" {
 
 	// Import the first resource group
 	aztfyDir := t.TempDir()
-	cfg := config.Config{
-		CommonConfig: config.CommonConfig{
-			SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
-			OutputDir:      aztfyDir,
-			BackendType:    "local",
-			DevProvider:    true,
-			PlainUI:        true,
-			Parallelism:    1,
+	cfg := internalconfig.NonInteractiveModeConfig{
+		Config: config.Config{
+			CommonConfig: config.CommonConfig{
+				SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
+				OutputDir:      aztfyDir,
+				BackendType:    "local",
+				DevProvider:    true,
+				Parallelism:    1,
+			},
+			ResourceNamePattern: "t1",
 		},
-		ResourceNamePattern: "t1",
+		PlainUI: true,
 	}
 	cfg.ResourceGroupName = d.RandomRgName() + "1"
 	cfg.ResourceNamePattern = "round1_"

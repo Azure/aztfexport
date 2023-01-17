@@ -2,6 +2,7 @@ package resourcegroup
 
 import (
 	"context"
+	internalconfig "github.com/Azure/aztfy/internal/config"
 	"os"
 	"path/filepath"
 	"testing"
@@ -55,17 +56,19 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 
 	aztfyDir := t.TempDir()
 
-	cfg := config.Config{
-		CommonConfig: config.CommonConfig{
-			SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
-			OutputDir:      aztfyDir,
-			BackendType:    "local",
-			DevProvider:    true,
-			PlainUI:        true,
-			Parallelism:    10,
+	cfg := internalconfig.NonInteractiveModeConfig{
+		Config: config.Config{
+			CommonConfig: config.CommonConfig{
+				SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
+				OutputDir:      aztfyDir,
+				BackendType:    "local",
+				DevProvider:    true,
+				Parallelism:    10,
+			},
+			ResourceGroupName:   d.RandomRgName(),
+			ResourceNamePattern: "res-",
 		},
-		ResourceGroupName:   d.RandomRgName(),
-		ResourceNamePattern: "res-",
+		PlainUI: true,
 	}
 	t.Logf("Batch importing the resource group %s\n", d.RandomRgName())
 	if err := internal.BatchImport(cfg); err != nil {

@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/Azure/aztfy/pkg/config"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	internalconfig "github.com/Azure/aztfy/internal/config"
+	"github.com/Azure/aztfy/pkg/config"
 
 	"github.com/Azure/aztfy/internal"
 	"github.com/Azure/aztfy/internal/test"
@@ -83,17 +85,19 @@ resource "azurerm_subnet" "test" {
 
 	// Import in non-recursive mode
 	aztfyDir := t.TempDir()
-	cfg := config.Config{
-		CommonConfig: config.CommonConfig{
-			SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
-			OutputDir:      aztfyDir,
-			BackendType:    "local",
-			DevProvider:    true,
-			PlainUI:        true,
-			Parallelism:    1,
+	cfg := internalconfig.NonInteractiveModeConfig{
+		Config: config.Config{
+			CommonConfig: config.CommonConfig{
+				SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
+				OutputDir:      aztfyDir,
+				BackendType:    "local",
+				DevProvider:    true,
+				Parallelism:    1,
+			},
+			ResourceNamePattern: "res-",
+			ARGPredicate:        fmt.Sprintf(`resourceGroup =~ "%s" and type =~ "microsoft.network/virtualnetworks"`, d.RandomRgName()),
 		},
-		ResourceNamePattern: "res-",
-		ARGPredicate:        fmt.Sprintf(`resourceGroup =~ "%s" and type =~ "microsoft.network/virtualnetworks"`, d.RandomRgName()),
+		PlainUI: true,
 	}
 	t.Log("Importing in non-recursive mode")
 	if err := utils.RemoveEverythingUnder(cfg.OutputDir); err != nil {

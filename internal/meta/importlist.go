@@ -39,6 +39,16 @@ func (item ImportItem) Skip() bool {
 
 type ImportList []ImportItem
 
+func (l ImportList) Skipped() ImportList {
+	var out ImportList
+	for _, item := range l {
+		if item.Skip() {
+			out = append(out, item)
+		}
+	}
+	return out
+}
+
 func (l ImportList) NonSkipped() ImportList {
 	var out ImportList
 	for _, item := range l {

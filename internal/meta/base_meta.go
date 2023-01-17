@@ -36,15 +36,26 @@ const SkippedResourcesFileName = "aztfySkippedResources.txt"
 type TFConfigTransformer func(configs ConfigInfos) (ConfigInfos, error)
 
 type BaseMeta interface {
+	// Init initializes aztfy, including initialize terraform, provider and soem runtime temporary resources.
 	Init() error
+	// DeInit deinitializes aztfy, including cleaning up runtime temporary resources.
 	DeInit() error
+	// Workspace returns the path of the output directory.
 	Workspace() string
+	// ParallelImport imports the specified import list in parallel (parallelism is set during the meta builder function).
 	ParallelImport(items []*ImportItem)
+	// PushState pushes the terraform state file (the base state of the workspace, adding the newly imported resources) back to the workspace.
 	PushState() error
+	// CleanTFState clean up the specified TF resource from the workspace's state file.
 	CleanTFState(addr string)
+	// GenerateCfg generates the TF configuration of the import list. Only resources successfully imported will be processed.
 	GenerateCfg(ImportList) error
+	// ExportSkippedResources writes a file listing record resources that are skipped to be imported to the output directory.
 	ExportSkippedResources(l ImportList) error
+	// ExportResourceMapping writes a resource mapping file to the output directory.
 	ExportResourceMapping(ImportList) error
+	// CleanUpWorkspace is a weired method that is only meant to be used internally by aztfy, which under the hood will remove everything in the output directory, except the generated TF config.
+	// This method does nothing if HCLOnly in the Config is not set.
 	CleanUpWorkspace() error
 }
 
@@ -255,6 +266,11 @@ func (meta *baseMeta) CleanTFState(addr string) {
 }
 
 func (meta *baseMeta) importItem(ctx context.Context, item *ImportItem, importIdx int) {
+	if item.Skip() {
+		log.Printf("[INFO] Skipping %s", item.TFResourceId)
+		return
+	}
+
 	moduleDir := meta.importModuleDirs[importIdx]
 	tf := meta.importTFs[importIdx]
 
@@ -278,7 +294,6 @@ func (meta *baseMeta) importItem(ctx context.Context, item *ImportItem, importId
 	item.Imported = err == nil
 }
 
-// Import items in parallel.
 func (meta *baseMeta) ParallelImport(items []*ImportItem) {
 	ctx := context.TODO()
 

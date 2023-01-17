@@ -3,10 +3,12 @@ package resourcegroup
 import (
 	"context"
 	"fmt"
-	"github.com/Azure/aztfy/pkg/config"
+	internalconfig "github.com/Azure/aztfy/internal/config"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/Azure/aztfy/pkg/config"
 
 	"github.com/Azure/aztfy/internal/test"
 	"github.com/stretchr/testify/require"
@@ -103,17 +105,19 @@ module "sub-module" {
 		t.Fatalf("terraform init failed: %v", err)
 	}
 
-	cfg := config.Config{
-		CommonConfig: config.CommonConfig{
-			SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
-			OutputDir:      aztfyDir,
-			BackendType:    "local",
-			DevProvider:    true,
-			PlainUI:        true,
-			Parallelism:    1,
-			Append:         true,
-			ModulePath:     "", // Import to the root module
+	cfg := internalconfig.NonInteractiveModeConfig{
+		Config: config.Config{
+			CommonConfig: config.CommonConfig{
+				SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
+				OutputDir:      aztfyDir,
+				BackendType:    "local",
+				DevProvider:    true,
+				Parallelism:    1,
+				Append:         true,
+				ModulePath:     "", // Import to the root module
+			},
 		},
+		PlainUI: true,
 	}
 	cfg.ResourceGroupName = d.RandomRgName() + "1"
 	cfg.ResourceNamePattern = "round1_"
