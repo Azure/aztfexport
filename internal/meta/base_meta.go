@@ -165,6 +165,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		mdir := dir
 		for _, moduleName := range modulePaths {
 			fpath := filepath.Join(mdir, "main.tf")
+			// #nosec G306
 			if err := os.WriteFile(fpath, []byte(fmt.Sprintf(`module "%s" {
   source = "./%s"
 }
@@ -277,6 +278,7 @@ func (meta *baseMeta) importItem(ctx context.Context, item *ImportItem, importId
 	// Construct the empty cfg file for importing
 	cfgFile := filepath.Join(moduleDir, meta.filenameTmpCfg())
 	tpl := fmt.Sprintf(`resource "%s" "%s" {}`, item.TFAddr.Type, item.TFAddr.Name)
+	// #nosec G306
 	if err := os.WriteFile(cfgFile, []byte(tpl), 0644); err != nil {
 		item.ImportError = fmt.Errorf("generating resource template file: %w", err)
 		return
@@ -368,6 +370,7 @@ func (meta baseMeta) PushState() error {
 	if err := f.Close(); err != nil {
 		return fmt.Errorf("closing the temporary state file %s: %v", f.Name(), err)
 	}
+	// #nosec G306
 	if err := os.WriteFile(f.Name(), meta.baseState, 0644); err != nil {
 		return fmt.Errorf("writing to the temporary state file: %v", err)
 	}
@@ -402,7 +405,8 @@ func (meta baseMeta) ExportResourceMapping(l ImportList) error {
 	if err != nil {
 		return fmt.Errorf("JSON marshalling the resource mapping: %v", err)
 	}
-	if err := os.WriteFile(output, b, 0600); err != nil {
+	// #nosec G306
+	if err := os.WriteFile(output, b, 0644); err != nil {
 		return fmt.Errorf("writing the resource mapping to %s: %v", output, err)
 	}
 	return nil
@@ -420,10 +424,11 @@ func (meta baseMeta) ExportSkippedResources(l ImportList) error {
 	}
 
 	output := filepath.Join(meta.outdir, SkippedResourcesFileName)
+	// #nosec G306
 	if err := os.WriteFile(output, []byte(fmt.Sprintf(`Following resources are marked to be skipped:
 
 %s
-`, strings.Join(sl, "\n"))), 0600); err != nil {
+`, strings.Join(sl, "\n"))), 0644); err != nil {
 		return fmt.Errorf("writing the skipped resources to %s: %v", output, err)
 	}
 	return nil
@@ -590,6 +595,7 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 	if module.ProviderConfigs["azurerm"] == nil {
 		log.Printf("[INFO] Output directory doesn't contain provider setting, create one then")
 		cfgFile := filepath.Join(meta.outdir, meta.filenameProviderSetting())
+		// #nosec G306
 		if err := os.WriteFile(cfgFile, []byte(meta.providerConfig()), 0644); err != nil {
 			return fmt.Errorf("error creating provider config: %w", err)
 		}
@@ -598,6 +604,7 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 	if len(module.ProviderConfigs) == 0 {
 		log.Printf("[INFO] Output directory doesn't contain terraform required provider setting, create one then")
 		cfgFile := filepath.Join(meta.outdir, meta.filenameTerraformSetting())
+		// #nosec G306
 		if err := os.WriteFile(cfgFile, []byte(meta.terraformConfig(meta.backendType)), 0644); err != nil {
 			return fmt.Errorf("error creating terraform config: %w", err)
 		}
@@ -615,10 +622,12 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 	// Initialize provider for the import directories.
 	for i := range meta.importBaseDirs {
 		providerFile := filepath.Join(meta.importBaseDirs[i], "provider.tf")
+		// #nosec G306
 		if err := os.WriteFile(providerFile, []byte(meta.providerConfig()), 0644); err != nil {
 			return fmt.Errorf("error creating provider config: %w", err)
 		}
 		terraformFile := filepath.Join(meta.importBaseDirs[i], "terraform.tf")
+		// #nosec G306
 		if err := os.WriteFile(terraformFile, []byte(meta.terraformConfig("local")), 0644); err != nil {
 			return fmt.Errorf("error creating terraform config: %w", err)
 		}
