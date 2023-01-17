@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/Azure/aztfy/pkg/config"
-	"github.com/Azure/aztfy/pkg/log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/Azure/aztfy/pkg/config"
+	"github.com/Azure/aztfy/pkg/log"
 
 	"github.com/Azure/aztfy/internal/client"
 	"github.com/Azure/aztfy/internal/resmap"
@@ -252,22 +254,51 @@ func (meta *baseMeta) CleanTFState(addr string) {
 	meta.tf.StateRm(ctx, addr)
 }
 
-// Import multiple items in parallel. Note that the length of items have to be less or equal than the parallelism.
+func (meta *baseMeta) importItem(ctx context.Context, item *ImportItem, importIdx int) {
+	moduleDir := meta.importModuleDirs[importIdx]
+	tf := meta.importTFs[importIdx]
+
+	// Construct the empty cfg file for importing
+	cfgFile := filepath.Join(moduleDir, meta.filenameTmpCfg())
+	tpl := fmt.Sprintf(`resource "%s" "%s" {}`, item.TFAddr.Type, item.TFAddr.Name)
+	if err := os.WriteFile(cfgFile, []byte(tpl), 0644); err != nil {
+		item.ImportError = fmt.Errorf("generating resource template file: %w", err)
+		return
+	}
+	defer os.Remove(cfgFile)
+
+	// Import resources
+	addr := item.TFAddr.String()
+	if meta.moduleAddr != "" {
+		addr = meta.moduleAddr + "." + addr
+	}
+	log.Printf("[INFO] Importing %s as %s", item.TFResourceId, addr)
+	err := tf.Import(ctx, addr, item.TFResourceId)
+	item.ImportError = err
+	item.Imported = err == nil
+}
+
+// Import items in parallel.
 func (meta *baseMeta) ParallelImport(items []*ImportItem) {
 	ctx := context.TODO()
+
+	itemsCh := make(chan *ImportItem, len(items))
+	for _, item := range items {
+		itemsCh <- item
+	}
+	close(itemsCh)
 
 	wp := workerpool.NewWorkPool(meta.parallelism)
 
 	wp.Run(func(i interface{}) error {
 		idx := i.(int)
 
-		// Don't merge state if import error hit
-		if items[idx].ImportError != nil {
-			return nil
-		}
-
 		stateFile := filepath.Join(meta.importBaseDirs[idx], "terraform.tfstate")
 
+		// Don't merge state file if this import dir doesn't contain state file, which can because either this import dir imported nothing, or it encountered import error
+		if _, err := os.Stat(stateFile); errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
 		// Ensure the state file is removed after this round import, preparing for the next round.
 		defer os.Remove(stateFile)
 
@@ -281,31 +312,12 @@ func (meta *baseMeta) ParallelImport(items []*ImportItem) {
 		return nil
 	})
 
-	for i := range items {
+	for i := 0; i < meta.parallelism; i++ {
 		i := i
 		wp.AddTask(func() (interface{}, error) {
-			item := items[i]
-			moduleDir := meta.importModuleDirs[i]
-			tf := meta.importTFs[i]
-
-			// Construct the empty cfg file for importing
-			cfgFile := filepath.Join(moduleDir, meta.filenameTmpCfg())
-			tpl := fmt.Sprintf(`resource "%s" "%s" {}`, item.TFAddr.Type, item.TFAddr.Name)
-			if err := os.WriteFile(cfgFile, []byte(tpl), 0644); err != nil {
-				item.ImportError = fmt.Errorf("generating resource template file: %w", err)
-				return i, nil
+			for item := range itemsCh {
+				meta.importItem(ctx, item, i)
 			}
-			defer os.Remove(cfgFile)
-
-			// Import resources
-			addr := item.TFAddr.String()
-			if meta.moduleAddr != "" {
-				addr = meta.moduleAddr + "." + addr
-			}
-			log.Printf("[INFO] Importing %s as %s", item.TFResourceId, addr)
-			err := tf.Import(ctx, addr, item.TFResourceId)
-			item.ImportError = err
-			item.Imported = err == nil
 			return i, nil
 		})
 	}
