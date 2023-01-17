@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"fmt"
 	internalmeta "github.com/Azure/aztfy/internal/meta"
 	"os"
@@ -14,7 +15,7 @@ import (
 	"github.com/magodo/spinner"
 )
 
-func BatchImport(cfg config.NonInteractiveModeConfig) error {
+func BatchImport(ctx context.Context, cfg config.NonInteractiveModeConfig) error {
 	var c meta.Meta = internalmeta.NewGroupMetaDummy(cfg.ResourceGroupName)
 	if !cfg.MockMeta {
 		var err error
@@ -28,29 +29,29 @@ func BatchImport(cfg config.NonInteractiveModeConfig) error {
 
 	f := func(msg Messager) error {
 		msg.SetStatus("Initializing...")
-		if err := c.Init(); err != nil {
+		if err := c.Init(ctx); err != nil {
 			return err
 		}
 
 		defer func() {
 			msg.SetStatus("DeInitializing...")
 			// #nosec G104
-			c.DeInit()
+			c.DeInit(ctx)
 		}()
 
 		msg.SetStatus("Listing resources...")
-		list, err := c.ListResource()
+		list, err := c.ListResource(ctx)
 		if err != nil {
 			return err
 		}
 
 		msg.SetStatus("Exporting Skipped Resource file...")
-		if err := c.ExportSkippedResources(list); err != nil {
+		if err := c.ExportSkippedResources(ctx, list); err != nil {
 			return fmt.Errorf("exporting Skipped Resource file: %v", err)
 		}
 
 		msg.SetStatus("Exporting Resource Mapping file...")
-		if err := c.ExportResourceMapping(list); err != nil {
+		if err := c.ExportResourceMapping(ctx, list); err != nil {
 			return fmt.Errorf("exporting Resource Mapping file: %v", err)
 		}
 
@@ -79,7 +80,7 @@ func BatchImport(cfg config.NonInteractiveModeConfig) error {
 			}
 
 			msg.SetStatus(strings.Join(messages, "\n"))
-			c.ParallelImport(importList)
+			c.ParallelImport(ctx, importList)
 
 			var thisErrors []string
 			for j := 0; j < n; j++ {
@@ -98,17 +99,17 @@ func BatchImport(cfg config.NonInteractiveModeConfig) error {
 			}
 		}
 
-		if err := c.PushState(); err != nil {
+		if err := c.PushState(ctx); err != nil {
 			return fmt.Errorf("failed to push state: %v", err)
 		}
 
 		msg.SetStatus("Generating Terraform configurations...")
-		if err := c.GenerateCfg(list); err != nil {
+		if err := c.GenerateCfg(ctx, list); err != nil {
 			return fmt.Errorf("generating Terraform configuration: %v", err)
 		}
 
 		msg.SetStatus("Cleaning up...")
-		if err := c.CleanUpWorkspace(); err != nil {
+		if err := c.CleanUpWorkspace(ctx); err != nil {
 			return fmt.Errorf("cleaning up main workspace: %v", err)
 		}
 

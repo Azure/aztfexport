@@ -1,6 +1,7 @@
 package importlist
 
 import (
+	"context"
 	"fmt"
 	"github.com/Azure/aztfy/pkg/meta"
 	"regexp"
@@ -20,13 +21,14 @@ import (
 )
 
 type Model struct {
+	ctx      context.Context
 	c        meta.Meta
 	listkeys listKeyMap
 
 	list list.Model
 }
 
-func NewModel(c meta.Meta, l meta.ImportList, idx int) Model {
+func NewModel(ctx context.Context, c meta.Meta, l meta.ImportList, idx int) Model {
 	// Build candidate words for the textinput
 	candidates := make([]string, 0, len(azurerm.ProviderSchemaInfo.ResourceSchemas))
 	for rt := range azurerm.ProviderSchemaInfo.ResourceSchemas {
@@ -86,6 +88,7 @@ func NewModel(c meta.Meta, l meta.ImportList, idx int) Model {
 	)
 
 	return Model{
+		ctx:      ctx,
 		c:        c,
 		listkeys: newListKeyMap(),
 		list:     lst,
@@ -123,7 +126,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				return m, m.list.NewStatusMessage(common.ErrorMsgStyle.Render("One or more user input is invalid"))
 			}
 
-			return m, aztfyclient.StartImport(m.c, m.importList(true))
+			return m, aztfyclient.StartImport(m.importList(true))
 		case key.Matches(msg, m.listkeys.skip):
 			sel := m.list.SelectedItem()
 			if sel == nil {
@@ -164,14 +167,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			return m, m.list.NewStatusMessage(common.InfoStyle.Render(fmt.Sprintf("Possible resource type(s): %s", strings.Join(selItem.v.Recommendations, ","))))
 		case key.Matches(msg, m.listkeys.save):
 			m.list.NewStatusMessage(common.InfoStyle.Render("Saving the resouce mapping..."))
-			err := m.c.ExportResourceMapping(m.importList(false))
+			err := m.c.ExportResourceMapping(m.ctx, m.importList(false))
 			if err == nil {
 				m.list.NewStatusMessage(common.InfoStyle.Render("Resource mapping saved"))
 			} else {
 				m.list.NewStatusMessage(common.ErrorMsgStyle.Render(err.Error()))
 			}
 		case key.Matches(msg, m.list.KeyMap.Quit):
-			return m, aztfyclient.Quit(m.c)
+			return m, aztfyclient.Quit(m.ctx, m.c)
 		}
 	case tea.WindowSizeMsg:
 		// The height here minus the height occupied by the title

@@ -1,6 +1,7 @@
 package aztfyclient
 
 import (
+	"context"
 	"github.com/Azure/aztfy/pkg/meta"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -62,9 +63,9 @@ func NewClient(meta meta.Meta) tea.Cmd {
 	}
 }
 
-func Init(c meta.Meta) tea.Cmd {
+func Init(ctx context.Context, c meta.Meta) tea.Cmd {
 	return func() tea.Msg {
-		err := c.Init()
+		err := c.Init(ctx)
 		if err != nil {
 			return ErrMsg(err)
 		}
@@ -72,9 +73,9 @@ func Init(c meta.Meta) tea.Cmd {
 	}
 }
 
-func ListResource(c meta.Meta) tea.Cmd {
+func ListResource(ctx context.Context, c meta.Meta) tea.Cmd {
 	return func() tea.Msg {
-		list, err := c.ListResource()
+		list, err := c.ListResource(ctx)
 		if err != nil {
 			return ErrMsg(err)
 		}
@@ -88,13 +89,13 @@ func ShowImportError(item meta.ImportItem, idx int, l meta.ImportList) tea.Cmd {
 	}
 }
 
-func StartImport(c meta.Meta, l meta.ImportList) tea.Cmd {
+func StartImport(l meta.ImportList) tea.Cmd {
 	return func() tea.Msg {
 		return StartImportMsg{List: l}
 	}
 }
 
-func ImportItems(c meta.Meta, items []meta.ImportItem) tea.Cmd {
+func ImportItems(ctx context.Context, c meta.Meta, items []meta.ImportItem) tea.Cmd {
 	return func() tea.Msg {
 		var l []*meta.ImportItem
 		for i := range items {
@@ -103,7 +104,7 @@ func ImportItems(c meta.Meta, items []meta.ImportItem) tea.Cmd {
 			}
 			l = append(l, &items[i])
 		}
-		c.ParallelImport(l)
+		c.ParallelImport(ctx, l)
 		return ImportItemsDoneMsg{Items: items}
 	}
 }
@@ -114,45 +115,45 @@ func FinishImport(l meta.ImportList) tea.Cmd {
 	}
 }
 
-func GenerateCfg(c meta.Meta, l meta.ImportList) tea.Cmd {
+func GenerateCfg(ctx context.Context, c meta.Meta, l meta.ImportList) tea.Cmd {
 	return func() tea.Msg {
-		if err := c.GenerateCfg(l); err != nil {
+		if err := c.GenerateCfg(ctx, l); err != nil {
 			return ErrMsg(err)
 		}
 		return GenerateCfgDoneMsg{}
 	}
 }
 
-func CleanUpWorkspace(c meta.Meta) tea.Cmd {
+func CleanUpWorkspace(ctx context.Context, c meta.Meta) tea.Cmd {
 	return func() tea.Msg {
-		if err := c.CleanUpWorkspace(); err != nil {
+		if err := c.CleanUpWorkspace(ctx); err != nil {
 			return ErrMsg(err)
 		}
 		return WorkspaceCleanupDoneMsg{}
 	}
 }
 
-func PushState(c meta.Meta, l meta.ImportList) tea.Cmd {
+func PushState(ctx context.Context, c meta.Meta, l meta.ImportList) tea.Cmd {
 	return func() tea.Msg {
-		if err := c.PushState(); err != nil {
+		if err := c.PushState(ctx); err != nil {
 			return ErrMsg(err)
 		}
 		return PushStateDoneMsg{List: l}
 	}
 }
 
-func ExportResourceMapping(c meta.Meta, l meta.ImportList) tea.Cmd {
+func ExportResourceMapping(ctx context.Context, c meta.Meta, l meta.ImportList) tea.Cmd {
 	return func() tea.Msg {
-		if err := c.ExportResourceMapping(l); err != nil {
+		if err := c.ExportResourceMapping(ctx, l); err != nil {
 			return ErrMsg(err)
 		}
 		return ExportResourceMappingDoneMsg{List: l}
 	}
 }
 
-func ExportSkippedResources(c meta.Meta, l meta.ImportList) tea.Cmd {
+func ExportSkippedResources(ctx context.Context, c meta.Meta, l meta.ImportList) tea.Cmd {
 	return func() tea.Msg {
-		if err := c.ExportSkippedResources(l); err != nil {
+		if err := c.ExportSkippedResources(ctx, l); err != nil {
 			return ErrMsg(err)
 		}
 		return ExportSkippedResourcesDoneMsg{List: l}
@@ -165,9 +166,9 @@ func CleanTFState(addr string) tea.Cmd {
 	}
 }
 
-func Quit(c meta.Meta) tea.Cmd {
+func Quit(ctx context.Context, c meta.Meta) tea.Cmd {
 	return func() tea.Msg {
-		if err := c.DeInit(); err != nil {
+		if err := c.DeInit(ctx); err != nil {
 			return ErrMsg(err)
 		}
 		return QuitMsg{}

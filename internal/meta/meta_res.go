@@ -1,6 +1,7 @@
 package meta
 
 import (
+	"context"
 	"fmt"
 	"github.com/Azure/aztfy/internal/resourceset"
 	"github.com/Azure/aztfy/internal/tfaddr"
@@ -41,7 +42,7 @@ func (meta MetaResource) ScopeName() string {
 	return meta.AzureId.String()
 }
 
-func (meta *MetaResource) ListResource() (ImportList, error) {
+func (meta *MetaResource) ListResource(_ context.Context) (ImportList, error) {
 	resourceSet := resourceset.AzureResourceSet{
 		Resources: []resourceset.AzureResource{
 			{

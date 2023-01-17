@@ -81,7 +81,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 		if err := utils.RemoveEverythingUnder(cfg.OutputDir); err != nil {
 			t.Fatalf("failed to clean up the output directory: %v", err)
 		}
-		if err := internal.BatchImport(cfg); err != nil {
+		if err := internal.BatchImport(ctx, cfg); err != nil {
 			t.Fatalf("failed to run resource import: %v", err)
 		}
 		test.Verify(t, ctx, aztfyDir, tfexecPath, rctx.ExpectResourceCount)

@@ -37,26 +37,26 @@ type TFConfigTransformer func(configs ConfigInfos) (ConfigInfos, error)
 
 type BaseMeta interface {
 	// Init initializes aztfy, including initialize terraform, provider and soem runtime temporary resources.
-	Init() error
+	Init(ctx context.Context) error
 	// DeInit deinitializes aztfy, including cleaning up runtime temporary resources.
-	DeInit() error
+	DeInit(ctx context.Context) error
 	// Workspace returns the path of the output directory.
 	Workspace() string
 	// ParallelImport imports the specified import list in parallel (parallelism is set during the meta builder function).
-	ParallelImport(items []*ImportItem)
+	ParallelImport(ctx context.Context, items []*ImportItem)
 	// PushState pushes the terraform state file (the base state of the workspace, adding the newly imported resources) back to the workspace.
-	PushState() error
+	PushState(ctx context.Context) error
 	// CleanTFState clean up the specified TF resource from the workspace's state file.
-	CleanTFState(addr string)
+	CleanTFState(ctx context.Context, addr string)
 	// GenerateCfg generates the TF configuration of the import list. Only resources successfully imported will be processed.
-	GenerateCfg(ImportList) error
+	GenerateCfg(ctx context.Context, l ImportList) error
 	// ExportSkippedResources writes a file listing record resources that are skipped to be imported to the output directory.
-	ExportSkippedResources(l ImportList) error
+	ExportSkippedResources(ctx context.Context, l ImportList) error
 	// ExportResourceMapping writes a resource mapping file to the output directory.
-	ExportResourceMapping(ImportList) error
+	ExportResourceMapping(ctx context.Context, l ImportList) error
 	// CleanUpWorkspace is a weired method that is only meant to be used internally by aztfy, which under the hood will remove everything in the output directory, except the generated TF config.
 	// This method does nothing if HCLOnly in the Config is not set.
-	CleanUpWorkspace() error
+	CleanUpWorkspace(ctx context.Context) error
 }
 
 var _ BaseMeta = &baseMeta{}
@@ -230,9 +230,7 @@ func (meta baseMeta) Workspace() string {
 	return meta.outdir
 }
 
-func (meta *baseMeta) Init() error {
-	ctx := context.TODO()
-
+func (meta *baseMeta) Init(ctx context.Context) error {
 	if err := meta.initTF(ctx); err != nil {
 		return err
 	}
@@ -251,7 +249,7 @@ func (meta *baseMeta) Init() error {
 	return nil
 }
 
-func (meta baseMeta) DeInit() error {
+func (meta baseMeta) DeInit(_ context.Context) error {
 	// Clean up the temporary workspaces for parallel import
 	for _, dir := range meta.importBaseDirs {
 		// #nosec G104
@@ -260,8 +258,7 @@ func (meta baseMeta) DeInit() error {
 	return nil
 }
 
-func (meta *baseMeta) CleanTFState(addr string) {
-	ctx := context.TODO()
+func (meta *baseMeta) CleanTFState(ctx context.Context, addr string) {
 	// #nosec G104
 	meta.tf.StateRm(ctx, addr)
 }
@@ -296,9 +293,7 @@ func (meta *baseMeta) importItem(ctx context.Context, item *ImportItem, importId
 	item.Imported = err == nil
 }
 
-func (meta *baseMeta) ParallelImport(items []*ImportItem) {
-	ctx := context.TODO()
-
+func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) {
 	itemsCh := make(chan *ImportItem, len(items))
 	for _, item := range items {
 		itemsCh <- item
@@ -343,9 +338,7 @@ func (meta *baseMeta) ParallelImport(items []*ImportItem) {
 	wp.Done()
 }
 
-func (meta baseMeta) PushState() error {
-	ctx := context.TODO()
-
+func (meta baseMeta) PushState(ctx context.Context) error {
 	// Don't push state if there is no state to push. This might happen when all the resources failed to import with "--continue".
 	if len(meta.baseState) == 0 {
 		return nil
@@ -384,11 +377,11 @@ func (meta baseMeta) PushState() error {
 	return nil
 }
 
-func (meta baseMeta) GenerateCfg(l ImportList) error {
-	return meta.generateCfg(l, meta.lifecycleAddon, meta.addDependency)
+func (meta baseMeta) GenerateCfg(ctx context.Context, l ImportList) error {
+	return meta.generateCfg(ctx, l, meta.lifecycleAddon, meta.addDependency)
 }
 
-func (meta baseMeta) ExportResourceMapping(l ImportList) error {
+func (meta baseMeta) ExportResourceMapping(_ context.Context, l ImportList) error {
 	m := resmap.ResourceMapping{}
 	for _, item := range l {
 		if item.Skip() {
@@ -412,7 +405,7 @@ func (meta baseMeta) ExportResourceMapping(l ImportList) error {
 	return nil
 }
 
-func (meta baseMeta) ExportSkippedResources(l ImportList) error {
+func (meta baseMeta) ExportSkippedResources(_ context.Context, l ImportList) error {
 	var sl []string
 	for _, item := range l {
 		if item.Skip() {
@@ -434,7 +427,7 @@ func (meta baseMeta) ExportSkippedResources(l ImportList) error {
 	return nil
 }
 
-func (meta baseMeta) CleanUpWorkspace() error {
+func (meta baseMeta) CleanUpWorkspace(_ context.Context) error {
 	// Clean up everything under the output directory, except for the TF code.
 	if meta.hclOnly {
 		tmpDir, err := os.MkdirTemp("", "")
@@ -471,9 +464,7 @@ func (meta baseMeta) CleanUpWorkspace() error {
 	return nil
 }
 
-func (meta baseMeta) generateCfg(l ImportList, cfgTrans ...TFConfigTransformer) error {
-	ctx := context.TODO()
-
+func (meta baseMeta) generateCfg(ctx context.Context, l ImportList, cfgTrans ...TFConfigTransformer) error {
 	cfginfos, err := meta.stateToConfig(ctx, l)
 	if err != nil {
 		return fmt.Errorf("converting from state to configurations: %w", err)

@@ -38,9 +38,7 @@ func (meta MetaResourceGroup) ScopeName() string {
 	return meta.resourceGroup
 }
 
-func (meta *MetaResourceGroup) ListResource() (ImportList, error) {
-	ctx := context.TODO()
-
+func (meta *MetaResourceGroup) ListResource(ctx context.Context) (ImportList, error) {
 	rset, err := meta.queryResourceSet(ctx, meta.resourceGroup)
 	if err != nil {
 		return nil, err

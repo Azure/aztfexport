@@ -122,7 +122,7 @@ module "sub-module" {
 	cfg.ResourceGroupName = d.RandomRgName() + "1"
 	cfg.ResourceNamePattern = "round1_"
 	t.Log("Batch importing the 1st rg")
-	if err := internal.BatchImport(cfg); err != nil {
+	if err := internal.BatchImport(ctx, cfg); err != nil {
 		t.Fatalf("failed to run first batch import: %v", err)
 	}
 	// Import the second resource group mutably
@@ -130,7 +130,7 @@ module "sub-module" {
 	cfg.ResourceNamePattern = "round2_"
 	cfg.CommonConfig.ModulePath = "my-module"
 	t.Log("Batch importing the 2nd rg")
-	if err := internal.BatchImport(cfg); err != nil {
+	if err := internal.BatchImport(ctx, cfg); err != nil {
 		t.Fatalf("failed to run second batch import: %v", err)
 	}
 	// Import the third resource group mutably
@@ -138,7 +138,7 @@ module "sub-module" {
 	cfg.ResourceNamePattern = "round3_"
 	cfg.CommonConfig.ModulePath = "my-module.sub-module"
 	t.Log("Batch importing the 3rd rg")
-	if err := internal.BatchImport(cfg); err != nil {
+	if err := internal.BatchImport(ctx, cfg); err != nil {
 		t.Fatalf("failed to run second batch import: %v", err)
 	}
 

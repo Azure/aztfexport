@@ -1,6 +1,7 @@
 package meta
 
 import (
+	"context"
 	"fmt"
 	"github.com/Azure/aztfy/internal/meta"
 	"github.com/Azure/aztfy/pkg/config"
@@ -14,7 +15,7 @@ type Meta interface {
 	// ScopeName returns a string indicating current scope/mode.
 	ScopeName() string
 	// ListResource lists the resources belong to current scope.
-	ListResource() (meta.ImportList, error)
+	ListResource(ctx context.Context) (meta.ImportList, error)
 }
 
 func NewMeta(cfg config.Config) (Meta, error) {

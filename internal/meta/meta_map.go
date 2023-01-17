@@ -1,6 +1,7 @@
 package meta
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/Azure/aztfy/pkg/config"
@@ -37,7 +38,7 @@ func (meta MetaMap) ScopeName() string {
 	return meta.mappingFile
 }
 
-func (meta *MetaMap) ListResource() (ImportList, error) {
+func (meta *MetaMap) ListResource(_ context.Context) (ImportList, error) {
 	var m resmap.ResourceMapping
 
 	b, err := os.ReadFile(meta.mappingFile)

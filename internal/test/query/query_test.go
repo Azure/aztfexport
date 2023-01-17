@@ -103,7 +103,7 @@ resource "azurerm_subnet" "test" {
 	if err := utils.RemoveEverythingUnder(cfg.OutputDir); err != nil {
 		t.Fatalf("failed to clean up the output directory: %v", err)
 	}
-	if err := internal.BatchImport(cfg); err != nil {
+	if err := internal.BatchImport(ctx, cfg); err != nil {
 		t.Fatalf("failed to run batch import non-recursively: %v", err)
 	}
 	test.Verify(t, ctx, aztfyDir, tfexecPath, 1)
@@ -114,7 +114,7 @@ resource "azurerm_subnet" "test" {
 	if err := utils.RemoveEverythingUnder(cfg.OutputDir); err != nil {
 		t.Fatalf("failed to clean up the output directory: %v", err)
 	}
-	if err := internal.BatchImport(cfg); err != nil {
+	if err := internal.BatchImport(ctx, cfg); err != nil {
 		t.Fatalf("failed to run batch import recursively: %v", err)
 	}
 	test.Verify(t, ctx, aztfyDir, tfexecPath, 2)

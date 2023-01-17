@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	internalconfig "github.com/Azure/aztfy/internal/config"
 	"io"
@@ -388,7 +389,7 @@ The output directory is not empty. Please choose one of actions below:
 						TFResourceType: flagResType,
 					}
 
-					return realMain(cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile)
+					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile)
 				},
 			},
 			{
@@ -428,7 +429,7 @@ The output directory is not empty. Please choose one of actions below:
 						RecursiveQuery:      true,
 					}
 
-					return realMain(cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile)
+					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile)
 				},
 			},
 			{
@@ -467,7 +468,7 @@ The output directory is not empty. Please choose one of actions below:
 						RecursiveQuery:      flagRecursive,
 					}
 
-					return realMain(cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile)
+					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile)
 				},
 			},
 			{
@@ -505,7 +506,7 @@ The output directory is not empty. Please choose one of actions below:
 						MappingFile: mapFile,
 					}
 
-					return realMain(cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile)
+					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile)
 				},
 			},
 		},
@@ -586,7 +587,7 @@ func subscriptionIdFromCLI() (string, error) {
 	return strconv.Unquote(strings.TrimSpace(stdout.String()))
 }
 
-func realMain(cfg config.Config, batch, mockMeta, plainUI, genMapFile bool) (result error) {
+func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, genMapFile bool) (result error) {
 	// Initialize log
 	logLevel, err := logLevel(flagLogLevel)
 	if err != nil {
@@ -616,7 +617,7 @@ func realMain(cfg config.Config, batch, mockMeta, plainUI, genMapFile bool) (res
 			PlainUI:            plainUI,
 			GenMappingFileOnly: genMapFile,
 		}
-		if err := internal.BatchImport(nicfg); err != nil {
+		if err := internal.BatchImport(ctx, nicfg); err != nil {
 			result = err
 			return
 		}
@@ -628,7 +629,7 @@ func realMain(cfg config.Config, batch, mockMeta, plainUI, genMapFile bool) (res
 		Config:   cfg,
 		MockMeta: mockMeta,
 	}
-	prog, err := ui.NewProgram(icfg)
+	prog, err := ui.NewProgram(ctx, icfg)
 	if err != nil {
 		result = err
 		return

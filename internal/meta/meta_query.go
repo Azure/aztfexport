@@ -43,9 +43,7 @@ func (meta MetaQuery) ScopeName() string {
 	return msg
 }
 
-func (meta *MetaQuery) ListResource() (ImportList, error) {
-	ctx := context.TODO()
-
+func (meta *MetaQuery) ListResource(ctx context.Context) (ImportList, error) {
 	rset, err := meta.queryResourceSet(ctx, meta.argPredicate, meta.recursiveQuery)
 	if err != nil {
 		return nil, err
