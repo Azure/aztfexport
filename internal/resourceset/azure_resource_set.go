@@ -71,6 +71,7 @@ func (rset AzureResourceSet) ToTFResources(parallelism int) []TFResource {
 	})
 
 	for _, res := range rset.Resources {
+		res := res
 		wp.AddTask(func() (interface{}, error) {
 			tftypes, tfids, exact, err := aztft.QueryTypeAndId(res.Id.String(), true)
 			return result{
