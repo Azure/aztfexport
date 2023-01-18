@@ -3,6 +3,7 @@ package meta
 import (
 	"context"
 	"fmt"
+
 	"github.com/Azure/aztfy/internal/resourceset"
 	"github.com/Azure/aztfy/internal/tfaddr"
 	"github.com/Azure/aztfy/pkg/config"
@@ -55,7 +56,7 @@ func (meta *MetaQuery) ListResource(ctx context.Context) (ImportList, error) {
 		return nil, fmt.Errorf("tweaking across resources in the azure resource set: %v", err)
 	}
 
-	rl := rset.ToTFResources()
+	rl := rset.ToTFResources(meta.parallelism)
 
 	var l ImportList
 	for i, res := range rl {
