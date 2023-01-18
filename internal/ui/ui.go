@@ -3,10 +3,11 @@ package ui
 import (
 	"context"
 	"fmt"
+
 	"github.com/Azure/aztfy/internal/config"
 	internalmeta "github.com/Azure/aztfy/internal/meta"
+	"github.com/Azure/aztfy/pkg/log"
 	"github.com/Azure/aztfy/pkg/meta"
-	"log"
 
 	"github.com/Azure/aztfy/internal/ui/aztfyclient"
 	"github.com/Azure/aztfy/internal/ui/common"
@@ -117,7 +118,7 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if _, ok := msg.(spinner.TickMsg); !ok {
-		log.Printf("[INFO] UI update. STATUS: %s | MSG: %#v\n", m.status, msg)
+		log.Printf("[DEBUG] UI update. STATUS: %s | MSG: %#v\n", m.status, msg)
 	}
 
 	switch msg := msg.(type) {
