@@ -18,7 +18,7 @@ require (
 	github.com/hashicorp/terraform-exec v0.17.2
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/magodo/armid v0.0.0-20220923023118-aec41eaf7370
-	github.com/magodo/azlist v0.0.0-20221201100009-664a9dd10ef3
+	github.com/magodo/azlist v0.0.0-20230118083100-39d50ebb1596
 	github.com/magodo/aztft v0.3.1-0.20230106111449-dcd315087da2
 	github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
