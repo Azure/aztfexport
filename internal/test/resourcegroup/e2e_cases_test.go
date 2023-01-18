@@ -2,15 +2,17 @@ package resourcegroup
 
 import (
 	"context"
+	internalconfig "github.com/Azure/aztfy/internal/config"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/Azure/aztfy/pkg/config"
+
 	"github.com/Azure/aztfy/internal"
-	"github.com/Azure/aztfy/internal/config"
 	"github.com/Azure/aztfy/internal/test"
 	"github.com/Azure/aztfy/internal/test/cases"
-	"github.com/Azure/aztfy/internal/utils"
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
@@ -23,8 +25,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 		t.Log(provisionDir)
 	}
 
-	os.Chdir(provisionDir)
-	if err := utils.WriteFileSync("main.tf", []byte(c.Tpl(d)), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(provisionDir, "main.tf"), []byte(c.Tpl(d)), 0644); err != nil {
 		t.Fatalf("created to create the TF config file: %v", err)
 	}
 	tf, err := tfexec.NewTerraform(provisionDir, tfexecPath)
@@ -40,7 +41,6 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 	if err := tf.Apply(ctx); err != nil {
 		t.Fatalf("terraform apply failed: %v", err)
 	}
-
 	if !test.Keep() {
 		defer func() {
 			t.Log("Running: terraform destroy")
@@ -55,20 +55,23 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 	time.Sleep(delay)
 
 	aztfyDir := t.TempDir()
-	cfg := config.Config{
-		CommonConfig: config.CommonConfig{
-			SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
-			OutputDir:      aztfyDir,
-			BackendType:    "local",
-			DevProvider:    true,
-			PlainUI:        true,
-			Parallelism:    10,
+
+	cfg := internalconfig.NonInteractiveModeConfig{
+		Config: config.Config{
+			CommonConfig: config.CommonConfig{
+				SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
+				OutputDir:      aztfyDir,
+				BackendType:    "local",
+				DevProvider:    true,
+				Parallelism:    10,
+			},
+			ResourceGroupName:   d.RandomRgName(),
+			ResourceNamePattern: "res-",
 		},
-		ResourceGroupName:   d.RandomRgName(),
-		ResourceNamePattern: "res-",
+		PlainUI: true,
 	}
 	t.Logf("Batch importing the resource group %s\n", d.RandomRgName())
-	if err := internal.BatchImport(cfg); err != nil {
+	if err := internal.BatchImport(ctx, cfg); err != nil {
 		t.Fatalf("failed to run batch import: %v", err)
 	}
 	test.Verify(t, ctx, aztfyDir, tfexecPath, c.Total())

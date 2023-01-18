@@ -3,16 +3,17 @@ package resourcegroup
 import (
 	"context"
 	"fmt"
+	internalconfig "github.com/Azure/aztfy/internal/config"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/Azure/aztfy/pkg/config"
+
 	"github.com/Azure/aztfy/internal/test"
-	"github.com/Azure/aztfy/internal/utils"
 	"github.com/stretchr/testify/require"
 
 	"github.com/Azure/aztfy/internal"
-	"github.com/Azure/aztfy/internal/config"
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
@@ -28,8 +29,7 @@ func TestAppendToModule(t *testing.T) {
 		t.Log(provisionDir)
 	}
 
-	os.Chdir(provisionDir)
-	if err := utils.WriteFileSync("main.tf", []byte(fmt.Sprintf(`
+	if err := os.WriteFile(filepath.Join(provisionDir, "main.tf"), []byte(fmt.Sprintf(`
 provider "azurerm" {
   features {
     resource_group {
@@ -83,18 +83,17 @@ resource "azurerm_resource_group" "test3" {
 		t.Fatalf("failed to new terraform: %v", err)
 	}
 
-	os.Chdir(aztfyDir)
-	if err := os.MkdirAll(filepath.Join("modules", "submodules"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(aztfyDir, "modules", "submodules"), 0755); err != nil {
 		t.Fatalf("failed to create the directory `modules/submodules`: %v", err)
 	}
-	if err := utils.WriteFileSync("main.tf", []byte(`
+	if err := os.WriteFile(filepath.Join(aztfyDir, "main.tf"), []byte(`
 module "my-module" {
   source = "./modules"
 }
 `), 0644); err != nil {
 		t.Fatalf("failed to create the TF config file: %v", err)
 	}
-	if err := utils.WriteFileSync(filepath.Join("modules", "main.tf"), []byte(`
+	if err := os.WriteFile(filepath.Join(aztfyDir, "modules", "main.tf"), []byte(`
 module "sub-module" {
   source = "./submodules"
 }
@@ -106,22 +105,24 @@ module "sub-module" {
 		t.Fatalf("terraform init failed: %v", err)
 	}
 
-	cfg := config.Config{
-		CommonConfig: config.CommonConfig{
-			SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
-			OutputDir:      aztfyDir,
-			BackendType:    "local",
-			DevProvider:    true,
-			PlainUI:        true,
-			Parallelism:    1,
-			Append:         true,
-			ModulePath:     "", // Import to the root module
+	cfg := internalconfig.NonInteractiveModeConfig{
+		Config: config.Config{
+			CommonConfig: config.CommonConfig{
+				SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
+				OutputDir:      aztfyDir,
+				BackendType:    "local",
+				DevProvider:    true,
+				Parallelism:    1,
+				Append:         true,
+				ModulePath:     "", // Import to the root module
+			},
 		},
+		PlainUI: true,
 	}
 	cfg.ResourceGroupName = d.RandomRgName() + "1"
 	cfg.ResourceNamePattern = "round1_"
 	t.Log("Batch importing the 1st rg")
-	if err := internal.BatchImport(cfg); err != nil {
+	if err := internal.BatchImport(ctx, cfg); err != nil {
 		t.Fatalf("failed to run first batch import: %v", err)
 	}
 	// Import the second resource group mutably
@@ -129,7 +130,7 @@ module "sub-module" {
 	cfg.ResourceNamePattern = "round2_"
 	cfg.CommonConfig.ModulePath = "my-module"
 	t.Log("Batch importing the 2nd rg")
-	if err := internal.BatchImport(cfg); err != nil {
+	if err := internal.BatchImport(ctx, cfg); err != nil {
 		t.Fatalf("failed to run second batch import: %v", err)
 	}
 	// Import the third resource group mutably
@@ -137,7 +138,7 @@ module "sub-module" {
 	cfg.ResourceNamePattern = "round3_"
 	cfg.CommonConfig.ModulePath = "my-module.sub-module"
 	t.Log("Batch importing the 3rd rg")
-	if err := internal.BatchImport(cfg); err != nil {
+	if err := internal.BatchImport(ctx, cfg); err != nil {
 		t.Fatalf("failed to run second batch import: %v", err)
 	}
 

@@ -1,26 +1,25 @@
 package meta
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/Azure/aztfy/pkg/config"
+	"github.com/Azure/aztfy/pkg/log"
 	"os"
 	"sort"
 
-	"github.com/Azure/aztfy/internal/config"
-	"github.com/Azure/aztfy/internal/log"
 	"github.com/Azure/aztfy/internal/resmap"
 	"github.com/Azure/aztfy/internal/tfaddr"
 	"github.com/magodo/armid"
 )
-
-var _ Meta = &MetaMap{}
 
 type MetaMap struct {
 	baseMeta
 	mappingFile string
 }
 
-func newMetaMap(cfg config.Config) (Meta, error) {
+func NewMetaMap(cfg config.Config) (*MetaMap, error) {
 	log.Printf("[INFO] New map meta")
 	baseMeta, err := NewBaseMeta(cfg.CommonConfig)
 	if err != nil {
@@ -39,7 +38,7 @@ func (meta MetaMap) ScopeName() string {
 	return meta.mappingFile
 }
 
-func (meta *MetaMap) ListResource() (ImportList, error) {
+func (meta *MetaMap) ListResource(_ context.Context) (ImportList, error) {
 	var m resmap.ResourceMapping
 
 	b, err := os.ReadFile(meta.mappingFile)

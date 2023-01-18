@@ -4,14 +4,16 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/Azure/aztfy/pkg/config"
+	"github.com/Azure/aztfy/pkg/log"
+
 	"github.com/Azure/aztfy/internal/client"
-	"github.com/Azure/aztfy/internal/config"
-	"github.com/Azure/aztfy/internal/log"
 	"github.com/Azure/aztfy/internal/resmap"
 	"github.com/Azure/aztfy/internal/utils"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
@@ -31,17 +33,30 @@ import (
 const ResourceMappingFileName = "aztfyResourceMapping.json"
 const SkippedResourcesFileName = "aztfySkippedResources.txt"
 
+type TFConfigTransformer func(configs ConfigInfos) (ConfigInfos, error)
+
 type BaseMeta interface {
-	Init() error
-	DeInit() error
+	// Init initializes aztfy, including initialize terraform, provider and soem runtime temporary resources.
+	Init(ctx context.Context) error
+	// DeInit deinitializes aztfy, including cleaning up runtime temporary resources.
+	DeInit(ctx context.Context) error
+	// Workspace returns the path of the output directory.
 	Workspace() string
-	ParallelImport(items []*ImportItem)
-	PushState() error
-	CleanTFState(addr string)
-	GenerateCfg(ImportList) error
-	ExportSkippedResources(l ImportList) error
-	ExportResourceMapping(ImportList) error
-	CleanUpWorkspace() error
+	// ParallelImport imports the specified import list in parallel (parallelism is set during the meta builder function).
+	ParallelImport(ctx context.Context, items []*ImportItem)
+	// PushState pushes the terraform state file (the base state of the workspace, adding the newly imported resources) back to the workspace.
+	PushState(ctx context.Context) error
+	// CleanTFState clean up the specified TF resource from the workspace's state file.
+	CleanTFState(ctx context.Context, addr string)
+	// GenerateCfg generates the TF configuration of the import list. Only resources successfully imported will be processed.
+	GenerateCfg(ctx context.Context, l ImportList) error
+	// ExportSkippedResources writes a file listing record resources that are skipped to be imported to the output directory.
+	ExportSkippedResources(ctx context.Context, l ImportList) error
+	// ExportResourceMapping writes a resource mapping file to the output directory.
+	ExportResourceMapping(ctx context.Context, l ImportList) error
+	// CleanUpWorkspace is a weired method that is only meant to be used internally by aztfy, which under the hood will remove everything in the output directory, except the generated TF config.
+	// This method does nothing if HCLOnly in the Config is not set.
+	CleanUpWorkspace(ctx context.Context) error
 }
 
 var _ BaseMeta = &baseMeta{}
@@ -150,7 +165,8 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		mdir := dir
 		for _, moduleName := range modulePaths {
 			fpath := filepath.Join(mdir, "main.tf")
-			if err := utils.WriteFileSync(fpath, []byte(fmt.Sprintf(`module "%s" {
+			// #nosec G306
+			if err := os.WriteFile(fpath, []byte(fmt.Sprintf(`module "%s" {
   source = "./%s"
 }
 `, moduleName, moduleName)), 0644); err != nil {
@@ -214,9 +230,7 @@ func (meta baseMeta) Workspace() string {
 	return meta.outdir
 }
 
-func (meta *baseMeta) Init() error {
-	ctx := context.TODO()
-
+func (meta *baseMeta) Init(ctx context.Context) error {
 	if err := meta.initTF(ctx); err != nil {
 		return err
 	}
@@ -235,7 +249,7 @@ func (meta *baseMeta) Init() error {
 	return nil
 }
 
-func (meta baseMeta) DeInit() error {
+func (meta baseMeta) DeInit(_ context.Context) error {
 	// Clean up the temporary workspaces for parallel import
 	for _, dir := range meta.importBaseDirs {
 		// #nosec G104
@@ -244,28 +258,59 @@ func (meta baseMeta) DeInit() error {
 	return nil
 }
 
-func (meta *baseMeta) CleanTFState(addr string) {
-	ctx := context.TODO()
+func (meta *baseMeta) CleanTFState(ctx context.Context, addr string) {
 	// #nosec G104
 	meta.tf.StateRm(ctx, addr)
 }
 
-// Import multiple items in parallel. Note that the length of items have to be less or equal than the parallelism.
-func (meta *baseMeta) ParallelImport(items []*ImportItem) {
-	ctx := context.TODO()
+func (meta *baseMeta) importItem(ctx context.Context, item *ImportItem, importIdx int) {
+	if item.Skip() {
+		log.Printf("[INFO] Skipping %s", item.TFResourceId)
+		return
+	}
+
+	moduleDir := meta.importModuleDirs[importIdx]
+	tf := meta.importTFs[importIdx]
+
+	// Construct the empty cfg file for importing
+	cfgFile := filepath.Join(moduleDir, meta.filenameTmpCfg())
+	tpl := fmt.Sprintf(`resource "%s" "%s" {}`, item.TFAddr.Type, item.TFAddr.Name)
+	// #nosec G306
+	if err := os.WriteFile(cfgFile, []byte(tpl), 0644); err != nil {
+		item.ImportError = fmt.Errorf("generating resource template file: %w", err)
+		return
+	}
+	defer os.Remove(cfgFile)
+
+	// Import resources
+	addr := item.TFAddr.String()
+	if meta.moduleAddr != "" {
+		addr = meta.moduleAddr + "." + addr
+	}
+	log.Printf("[INFO] Importing %s as %s", item.TFResourceId, addr)
+	err := tf.Import(ctx, addr, item.TFResourceId)
+	item.ImportError = err
+	item.Imported = err == nil
+}
+
+func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) {
+	itemsCh := make(chan *ImportItem, len(items))
+	for _, item := range items {
+		itemsCh <- item
+	}
+	close(itemsCh)
 
 	wp := workerpool.NewWorkPool(meta.parallelism)
 
 	wp.Run(func(i interface{}) error {
 		idx := i.(int)
 
-		// Don't merge state if import error hit
-		if items[idx].ImportError != nil {
-			return nil
-		}
-
 		stateFile := filepath.Join(meta.importBaseDirs[idx], "terraform.tfstate")
 
+		// Don't merge state file if this import dir doesn't contain state file, which can because either this import dir imported nothing, or it encountered import error
+		if _, err := os.Stat(stateFile); errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
 		// Ensure the state file is removed after this round import, preparing for the next round.
 		defer os.Remove(stateFile)
 
@@ -279,31 +324,12 @@ func (meta *baseMeta) ParallelImport(items []*ImportItem) {
 		return nil
 	})
 
-	for i := range items {
+	for i := 0; i < meta.parallelism; i++ {
 		i := i
 		wp.AddTask(func() (interface{}, error) {
-			item := items[i]
-			moduleDir := meta.importModuleDirs[i]
-			tf := meta.importTFs[i]
-
-			// Construct the empty cfg file for importing
-			cfgFile := filepath.Join(moduleDir, meta.filenameTmpCfg())
-			tpl := fmt.Sprintf(`resource "%s" "%s" {}`, item.TFAddr.Type, item.TFAddr.Name)
-			if err := utils.WriteFileSync(cfgFile, []byte(tpl), 0644); err != nil {
-				item.ImportError = fmt.Errorf("generating resource template file: %w", err)
-				return i, nil
+			for item := range itemsCh {
+				meta.importItem(ctx, item, i)
 			}
-			defer os.Remove(cfgFile)
-
-			// Import resources
-			addr := item.TFAddr.String()
-			if meta.moduleAddr != "" {
-				addr = meta.moduleAddr + "." + addr
-			}
-			log.Printf("[INFO] Importing %s as %s", item.TFResourceId, addr)
-			err := tf.Import(ctx, addr, item.TFResourceId)
-			item.ImportError = err
-			item.Imported = err == nil
 			return i, nil
 		})
 	}
@@ -312,9 +338,7 @@ func (meta *baseMeta) ParallelImport(items []*ImportItem) {
 	wp.Done()
 }
 
-func (meta baseMeta) PushState() error {
-	ctx := context.TODO()
-
+func (meta baseMeta) PushState(ctx context.Context) error {
 	// Don't push state if there is no state to push. This might happen when all the resources failed to import with "--continue".
 	if len(meta.baseState) == 0 {
 		return nil
@@ -339,7 +363,8 @@ func (meta baseMeta) PushState() error {
 	if err := f.Close(); err != nil {
 		return fmt.Errorf("closing the temporary state file %s: %v", f.Name(), err)
 	}
-	if err := utils.WriteFileSync(f.Name(), meta.baseState, 0644); err != nil {
+	// #nosec G306
+	if err := os.WriteFile(f.Name(), meta.baseState, 0644); err != nil {
 		return fmt.Errorf("writing to the temporary state file: %v", err)
 	}
 
@@ -352,11 +377,11 @@ func (meta baseMeta) PushState() error {
 	return nil
 }
 
-func (meta baseMeta) GenerateCfg(l ImportList) error {
-	return meta.generateCfg(l, meta.lifecycleAddon, meta.addDependency)
+func (meta baseMeta) GenerateCfg(ctx context.Context, l ImportList) error {
+	return meta.generateCfg(ctx, l, meta.lifecycleAddon, meta.addDependency)
 }
 
-func (meta baseMeta) ExportResourceMapping(l ImportList) error {
+func (meta baseMeta) ExportResourceMapping(_ context.Context, l ImportList) error {
 	m := resmap.ResourceMapping{}
 	for _, item := range l {
 		if item.Skip() {
@@ -373,13 +398,14 @@ func (meta baseMeta) ExportResourceMapping(l ImportList) error {
 	if err != nil {
 		return fmt.Errorf("JSON marshalling the resource mapping: %v", err)
 	}
-	if err := os.WriteFile(output, b, 0600); err != nil {
+	// #nosec G306
+	if err := os.WriteFile(output, b, 0644); err != nil {
 		return fmt.Errorf("writing the resource mapping to %s: %v", output, err)
 	}
 	return nil
 }
 
-func (meta baseMeta) ExportSkippedResources(l ImportList) error {
+func (meta baseMeta) ExportSkippedResources(_ context.Context, l ImportList) error {
 	var sl []string
 	for _, item := range l {
 		if item.Skip() {
@@ -391,16 +417,17 @@ func (meta baseMeta) ExportSkippedResources(l ImportList) error {
 	}
 
 	output := filepath.Join(meta.outdir, SkippedResourcesFileName)
+	// #nosec G306
 	if err := os.WriteFile(output, []byte(fmt.Sprintf(`Following resources are marked to be skipped:
 
 %s
-`, strings.Join(sl, "\n"))), 0600); err != nil {
+`, strings.Join(sl, "\n"))), 0644); err != nil {
 		return fmt.Errorf("writing the skipped resources to %s: %v", output, err)
 	}
 	return nil
 }
 
-func (meta baseMeta) CleanUpWorkspace() error {
+func (meta baseMeta) CleanUpWorkspace(_ context.Context) error {
 	// Clean up everything under the output directory, except for the TF code.
 	if meta.hclOnly {
 		tmpDir, err := os.MkdirTemp("", "")
@@ -437,9 +464,7 @@ func (meta baseMeta) CleanUpWorkspace() error {
 	return nil
 }
 
-func (meta baseMeta) generateCfg(l ImportList, cfgTrans ...TFConfigTransformer) error {
-	ctx := context.TODO()
-
+func (meta baseMeta) generateCfg(ctx context.Context, l ImportList, cfgTrans ...TFConfigTransformer) error {
 	cfginfos, err := meta.stateToConfig(ctx, l)
 	if err != nil {
 		return fmt.Errorf("converting from state to configurations: %w", err)
@@ -561,7 +586,8 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 	if module.ProviderConfigs["azurerm"] == nil {
 		log.Printf("[INFO] Output directory doesn't contain provider setting, create one then")
 		cfgFile := filepath.Join(meta.outdir, meta.filenameProviderSetting())
-		if err := utils.WriteFileSync(cfgFile, []byte(meta.providerConfig()), 0644); err != nil {
+		// #nosec G306
+		if err := os.WriteFile(cfgFile, []byte(meta.providerConfig()), 0644); err != nil {
 			return fmt.Errorf("error creating provider config: %w", err)
 		}
 	}
@@ -569,7 +595,8 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 	if len(module.ProviderConfigs) == 0 {
 		log.Printf("[INFO] Output directory doesn't contain terraform required provider setting, create one then")
 		cfgFile := filepath.Join(meta.outdir, meta.filenameTerraformSetting())
-		if err := utils.WriteFileSync(cfgFile, []byte(meta.terraformConfig(meta.backendType)), 0644); err != nil {
+		// #nosec G306
+		if err := os.WriteFile(cfgFile, []byte(meta.terraformConfig(meta.backendType)), 0644); err != nil {
 			return fmt.Errorf("error creating terraform config: %w", err)
 		}
 	}
@@ -586,11 +613,13 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 	// Initialize provider for the import directories.
 	for i := range meta.importBaseDirs {
 		providerFile := filepath.Join(meta.importBaseDirs[i], "provider.tf")
-		if err := utils.WriteFileSync(providerFile, []byte(meta.providerConfig()), 0644); err != nil {
+		// #nosec G306
+		if err := os.WriteFile(providerFile, []byte(meta.providerConfig()), 0644); err != nil {
 			return fmt.Errorf("error creating provider config: %w", err)
 		}
 		terraformFile := filepath.Join(meta.importBaseDirs[i], "terraform.tf")
-		if err := utils.WriteFileSync(terraformFile, []byte(meta.terraformConfig("local")), 0644); err != nil {
+		// #nosec G306
+		if err := os.WriteFile(terraformFile, []byte(meta.terraformConfig("local")), 0644); err != nil {
 			return fmt.Errorf("error creating terraform config: %w", err)
 		}
 		if err := meta.importTFs[i].Init(ctx); err != nil {

@@ -3,14 +3,17 @@ package resourcegroup
 import (
 	"context"
 	"fmt"
+	internalconfig "github.com/Azure/aztfy/internal/config"
 	"os"
+	"path/filepath"
 	"testing"
+
+	"github.com/Azure/aztfy/pkg/config"
 
 	"github.com/Azure/aztfy/internal/test"
 	"github.com/Azure/aztfy/internal/utils"
 
 	"github.com/Azure/aztfy/internal"
-	"github.com/Azure/aztfy/internal/config"
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
@@ -26,8 +29,7 @@ func TestAppendMode(t *testing.T) {
 		t.Log(provisionDir)
 	}
 
-	os.Chdir(provisionDir)
-	if err := utils.WriteFileSync("main.tf", []byte(fmt.Sprintf(`
+	if err := os.WriteFile(filepath.Join(provisionDir, "main.tf"), []byte(fmt.Sprintf(`
 provider "azurerm" {
   features {
     resource_group {
@@ -75,16 +77,18 @@ resource "azurerm_resource_group" "test3" {
 
 	// Import the first resource group
 	aztfyDir := t.TempDir()
-	cfg := config.Config{
-		CommonConfig: config.CommonConfig{
-			SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
-			OutputDir:      aztfyDir,
-			BackendType:    "local",
-			DevProvider:    true,
-			PlainUI:        true,
-			Parallelism:    1,
+	cfg := internalconfig.NonInteractiveModeConfig{
+		Config: config.Config{
+			CommonConfig: config.CommonConfig{
+				SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
+				OutputDir:      aztfyDir,
+				BackendType:    "local",
+				DevProvider:    true,
+				Parallelism:    1,
+			},
+			ResourceNamePattern: "t1",
 		},
-		ResourceNamePattern: "t1",
+		PlainUI: true,
 	}
 	cfg.ResourceGroupName = d.RandomRgName() + "1"
 	cfg.ResourceNamePattern = "round1_"
@@ -92,7 +96,7 @@ resource "azurerm_resource_group" "test3" {
 	if err := utils.RemoveEverythingUnder(cfg.OutputDir); err != nil {
 		t.Fatalf("failed to clean up the output directory: %v", err)
 	}
-	if err := internal.BatchImport(cfg); err != nil {
+	if err := internal.BatchImport(ctx, cfg); err != nil {
 		t.Fatalf("failed to run first batch import: %v", err)
 	}
 	// Import the second resource group mutably
@@ -100,7 +104,7 @@ resource "azurerm_resource_group" "test3" {
 	cfg.ResourceGroupName = d.RandomRgName() + "2"
 	cfg.ResourceNamePattern = "round2_"
 	t.Log("Batch importing the 2nd rg")
-	if err := internal.BatchImport(cfg); err != nil {
+	if err := internal.BatchImport(ctx, cfg); err != nil {
 		t.Fatalf("failed to run second batch import: %v", err)
 	}
 	// Import the third resource group mutably
@@ -108,7 +112,7 @@ resource "azurerm_resource_group" "test3" {
 	cfg.ResourceGroupName = d.RandomRgName() + "3"
 	cfg.ResourceNamePattern = "round3_"
 	t.Log("Batch importing the 3rd rg")
-	if err := internal.BatchImport(cfg); err != nil {
+	if err := internal.BatchImport(ctx, cfg); err != nil {
 		t.Fatalf("failed to run second batch import: %v", err)
 	}
 

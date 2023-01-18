@@ -1,11 +1,13 @@
 package ui
 
 import (
+	"context"
 	"fmt"
+	"github.com/Azure/aztfy/internal/config"
+	internalmeta "github.com/Azure/aztfy/internal/meta"
+	"github.com/Azure/aztfy/pkg/meta"
 	"log"
 
-	"github.com/Azure/aztfy/internal/config"
-	"github.com/Azure/aztfy/internal/meta"
 	"github.com/Azure/aztfy/internal/ui/aztfyclient"
 	"github.com/Azure/aztfy/internal/ui/common"
 	"github.com/mitchellh/go-wordwrap"
@@ -21,8 +23,8 @@ import (
 
 const indentLevel = 2
 
-func NewProgram(cfg config.Config) (*tea.Program, error) {
-	m, err := newModel(cfg)
+func NewProgram(ctx context.Context, cfg config.InteractiveModeConfig) (*tea.Program, error) {
+	m, err := newModel(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +68,7 @@ func (s status) String() string {
 }
 
 type model struct {
+	ctx         context.Context
 	meta        meta.Meta
 	parallelism int
 
@@ -81,17 +84,22 @@ type model struct {
 	importerrormsg aztfyclient.ShowImportErrorMsg
 }
 
-func newModel(cfg config.Config) (*model, error) {
+func newModel(ctx context.Context, cfg config.InteractiveModeConfig) (*model, error) {
 	s := spinner.NewModel()
 	s.Spinner = common.Spinner
 
-	meta, err := meta.NewMeta(cfg)
-	if err != nil {
-		return nil, err
+	var c meta.Meta = internalmeta.NewGroupMetaDummy(cfg.ResourceGroupName)
+	if !cfg.MockMeta {
+		var err error
+		c, err = meta.NewMeta(cfg.Config)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	m := &model{
-		meta:        meta,
+		ctx:         ctx,
+		meta:        c,
 		parallelism: cfg.Parallelism,
 		status:      statusInit,
 		spinner:     s,
@@ -119,7 +127,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyCtrlC:
 			m.status = statusQuitting
-			return m, aztfyclient.Quit(m.meta)
+			return m, aztfyclient.Quit(m.ctx, m.meta)
 		}
 	case spinner.TickMsg:
 		var cmd tea.Cmd
@@ -128,13 +136,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case aztfyclient.NewClientMsg:
 		m.meta = msg
 		m.status = statusInit
-		return m, aztfyclient.Init(m.meta)
+		return m, aztfyclient.Init(m.ctx, m.meta)
 	case aztfyclient.InitProviderDoneMsg:
 		m.status = statusListingResource
-		return m, aztfyclient.ListResource(m.meta)
+		return m, aztfyclient.ListResource(m.ctx, m.meta)
 	case aztfyclient.ListResourceDoneMsg:
 		m.status = statusBuildingImportList
-		m.importlist = importlist.NewModel(m.meta, msg.List, 0)
+		m.importlist = importlist.NewModel(m.ctx, m.meta, msg.List, 0)
 		// Trigger a windows resize cmd to resize the importlist model.
 		// Though we can pass the winsize as input variable during model initialization.
 		// But this way we only need to maintain the resizing logic at one place (which takes consideration of the title height).
@@ -146,7 +154,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case aztfyclient.StartImportMsg:
 		m.status = statusImporting
-		m.progress = progress.NewModel(m.meta, m.parallelism, msg.List)
+		m.progress = progress.NewModel(m.ctx, m.meta, m.parallelism, msg.List)
 		return m, tea.Batch(
 			m.progress.Init(),
 			// Resize the progress bar
@@ -156,32 +164,32 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		for idx, item := range msg.List {
 			if item.ImportError != nil {
 				m.status = statusBuildingImportList
-				m.importlist = importlist.NewModel(m.meta, msg.List, idx)
+				m.importlist = importlist.NewModel(m.ctx, m.meta, msg.List, idx)
 				cmd := func() tea.Msg { return m.winsize }
 				return m, cmd
 			}
 		}
 		m.status = statusPushState
-		return m, aztfyclient.PushState(m.meta, msg.List)
+		return m, aztfyclient.PushState(m.ctx, m.meta, msg.List)
 	case aztfyclient.PushStateDoneMsg:
 		m.status = statusExportResourceMapping
-		return m, aztfyclient.ExportResourceMapping(m.meta, msg.List)
+		return m, aztfyclient.ExportResourceMapping(m.ctx, m.meta, msg.List)
 	case aztfyclient.ExportResourceMappingDoneMsg:
 		m.status = statusExportSkippedResources
-		return m, aztfyclient.ExportSkippedResources(m.meta, msg.List)
+		return m, aztfyclient.ExportSkippedResources(m.ctx, m.meta, msg.List)
 	case aztfyclient.ExportSkippedResourcesDoneMsg:
 		m.status = statusGeneratingCfg
-		return m, aztfyclient.GenerateCfg(m.meta, msg.List)
+		return m, aztfyclient.GenerateCfg(m.ctx, m.meta, msg.List)
 	case aztfyclient.GenerateCfgDoneMsg:
 		m.status = statusCleaningUpWorkspaceCfg
-		return m, aztfyclient.CleanUpWorkspace(m.meta)
+		return m, aztfyclient.CleanUpWorkspace(m.ctx, m.meta)
 	case aztfyclient.WorkspaceCleanupDoneMsg:
 		m.status = statusSummary
 		return m, nil
 	case aztfyclient.QuitMsg:
 		return m, tea.Quit
 	case aztfyclient.CleanTFStateMsg:
-		m.meta.CleanTFState(msg.Addr)
+		m.meta.CleanTFState(m.ctx, msg.Addr)
 		return m, nil
 	case aztfyclient.ErrMsg:
 		m.status = statusError
@@ -201,7 +209,7 @@ func updateChildren(msg tea.Msg, m model) (model, tea.Cmd) {
 	case statusImportErrorMsg:
 		if _, ok := msg.(tea.KeyMsg); ok {
 			m.status = statusBuildingImportList
-			m.importlist = importlist.NewModel(m.meta, m.importerrormsg.List, m.importerrormsg.Index)
+			m.importlist = importlist.NewModel(m.ctx, m.meta, m.importerrormsg.List, m.importerrormsg.Index)
 			cmd = func() tea.Msg { return m.winsize }
 			return m, cmd
 		}
@@ -212,7 +220,7 @@ func updateChildren(msg tea.Msg, m model) (model, tea.Cmd) {
 		switch msg.(type) {
 		case tea.KeyMsg:
 			m.status = statusQuitting
-			return m, aztfyclient.Quit(m.meta)
+			return m, aztfyclient.Quit(m.ctx, m.meta)
 		}
 	}
 	return m, nil

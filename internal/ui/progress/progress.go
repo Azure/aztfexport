@@ -1,9 +1,10 @@
 package progress
 
 import (
+	"context"
 	"fmt"
+	"github.com/Azure/aztfy/pkg/meta"
 
-	"github.com/Azure/aztfy/internal/meta"
 	"github.com/Azure/aztfy/internal/ui/aztfyclient"
 	"github.com/Azure/aztfy/internal/ui/common"
 	prog "github.com/charmbracelet/bubbles/progress"
@@ -16,8 +17,9 @@ type result struct {
 }
 
 type Model struct {
-	c meta.Meta
-	l meta.ImportList
+	ctx context.Context
+	c   meta.Meta
+	l   meta.ImportList
 
 	idx         int
 	parallelism int
@@ -26,8 +28,9 @@ type Model struct {
 	progress prog.Model
 }
 
-func NewModel(c meta.Meta, parallelism int, l meta.ImportList) Model {
+func NewModel(ctx context.Context, c meta.Meta, parallelism int, l meta.ImportList) Model {
 	return Model{
+		ctx:         ctx,
 		c:           c,
 		l:           l,
 		idx:         0,
@@ -47,7 +50,7 @@ func (m Model) Init() tea.Cmd {
 		n = len(m.l) - m.idx
 	}
 	return tea.Batch(
-		aztfyclient.ImportItems(m.c, m.l[m.idx:m.idx+n]),
+		aztfyclient.ImportItems(m.ctx, m.c, m.l[m.idx:m.idx+n]),
 	)
 }
 
@@ -95,7 +98,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		if m.idx+m.parallelism > len(m.l) {
 			n = len(m.l) - m.idx
 		}
-		cmds = append(cmds, aztfyclient.ImportItems(m.c, m.l[m.idx:m.idx+n]))
+		cmds = append(cmds, aztfyclient.ImportItems(m.ctx, m.c, m.l[m.idx:m.idx+n]))
 		return m, tea.Batch(cmds...)
 
 	default:

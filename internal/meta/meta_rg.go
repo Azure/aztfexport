@@ -3,16 +3,13 @@ package meta
 import (
 	"context"
 	"fmt"
-
-	"github.com/Azure/aztfy/internal/config"
-	"github.com/Azure/aztfy/internal/log"
 	"github.com/Azure/aztfy/internal/resourceset"
 	"github.com/Azure/aztfy/internal/tfaddr"
+	"github.com/Azure/aztfy/pkg/config"
+	"github.com/Azure/aztfy/pkg/log"
 	"github.com/magodo/armid"
 	"github.com/magodo/azlist/azlist"
 )
-
-var _ Meta = &MetaResourceGroup{}
 
 type MetaResourceGroup struct {
 	baseMeta
@@ -21,7 +18,7 @@ type MetaResourceGroup struct {
 	resourceNameSuffix string
 }
 
-func newMetaResourceGroup(cfg config.Config) (Meta, error) {
+func NewMetaResourceGroup(cfg config.Config) (*MetaResourceGroup, error) {
 	log.Printf("[INFO] New resource group meta")
 	baseMeta, err := NewBaseMeta(cfg.CommonConfig)
 	if err != nil {
@@ -41,9 +38,7 @@ func (meta MetaResourceGroup) ScopeName() string {
 	return meta.resourceGroup
 }
 
-func (meta *MetaResourceGroup) ListResource() (ImportList, error) {
-	ctx := context.TODO()
-
+func (meta *MetaResourceGroup) ListResource(ctx context.Context) (ImportList, error) {
 	rset, err := meta.queryResourceSet(ctx, meta.resourceGroup)
 	if err != nil {
 		return nil, err

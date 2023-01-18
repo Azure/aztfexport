@@ -1,25 +1,24 @@
 package meta
 
 import (
+	"context"
 	"time"
 )
-
-var _ Meta = &MetaGroupDummy{}
 
 type MetaGroupDummy struct {
 	rg string
 }
 
-func newGroupMetaDummy(rg string) (Meta, error) {
-	return MetaGroupDummy{rg: rg}, nil
+func NewGroupMetaDummy(rg string) MetaGroupDummy {
+	return MetaGroupDummy{rg: rg}
 }
 
-func (m MetaGroupDummy) Init() error {
+func (m MetaGroupDummy) Init(_ context.Context) error {
 	time.Sleep(500 * time.Millisecond)
 	return nil
 }
 
-func (m MetaGroupDummy) DeInit() error {
+func (m MetaGroupDummy) DeInit(_ context.Context) error {
 	time.Sleep(500 * time.Millisecond)
 	return nil
 }
@@ -32,7 +31,7 @@ func (m MetaGroupDummy) Workspace() string {
 	return "example-workspace"
 }
 
-func (m MetaGroupDummy) ListResource() (ImportList, error) {
+func (m MetaGroupDummy) ListResource(_ context.Context) (ImportList, error) {
 	time.Sleep(500 * time.Millisecond)
 	return ImportList{
 		ImportItem{
@@ -53,36 +52,36 @@ func (m MetaGroupDummy) ListResource() (ImportList, error) {
 	}, nil
 }
 
-func (m MetaGroupDummy) CleanTFState(_ string) {
+func (m MetaGroupDummy) CleanTFState(_ context.Context, _ string) {
 	return
 }
 
-func (m MetaGroupDummy) ParallelImport(items []*ImportItem) {
+func (m MetaGroupDummy) ParallelImport(_ context.Context, items []*ImportItem) {
 	time.Sleep(time.Second)
 	return
 }
 
-func (m MetaGroupDummy) PushState() error {
+func (m MetaGroupDummy) PushState(_ context.Context) error {
 	time.Sleep(time.Second)
 	return nil
 }
 
-func (m MetaGroupDummy) GenerateCfg(l ImportList) error {
+func (m MetaGroupDummy) GenerateCfg(_ context.Context, l ImportList) error {
 	time.Sleep(500 * time.Millisecond)
 	return nil
 }
 
-func (m MetaGroupDummy) ExportResourceMapping(l ImportList) error {
+func (m MetaGroupDummy) ExportResourceMapping(_ context.Context, l ImportList) error {
 	time.Sleep(500 * time.Millisecond)
 	return nil
 }
 
-func (m MetaGroupDummy) ExportSkippedResources(l ImportList) error {
+func (m MetaGroupDummy) ExportSkippedResources(_ context.Context, l ImportList) error {
 	time.Sleep(500 * time.Millisecond)
 	return nil
 }
 
-func (m MetaGroupDummy) CleanUpWorkspace() error {
+func (m MetaGroupDummy) CleanUpWorkspace(_ context.Context) error {
 	time.Sleep(500 * time.Millisecond)
 	return nil
 }

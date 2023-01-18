@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	internalconfig "github.com/Azure/aztfy/internal/config"
 	"io"
 	golog "log"
 	"os"
@@ -11,14 +13,15 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Azure/aztfy/pkg/config"
+	"github.com/Azure/aztfy/pkg/log"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/magodo/armid"
 	"github.com/magodo/azlist/azlist"
 	"github.com/magodo/tfadd/providers/azurerm"
 
 	"github.com/Azure/aztfy/internal"
-	"github.com/Azure/aztfy/internal/config"
-	"github.com/Azure/aztfy/internal/log"
 	"github.com/Azure/aztfy/internal/ui"
 	"github.com/Azure/aztfy/internal/utils"
 	azlog "github.com/Azure/azure-sdk-for-go/sdk/azcore/log"
@@ -368,29 +371,25 @@ The output directory is not empty. Please choose one of actions below:
 
 					// Initialize the config
 					cfg := config.Config{
-						MockClient: hflagMockClient,
 						CommonConfig: config.CommonConfig{
-							SubscriptionId:      flagSubscriptionId,
-							OutputDir:           flagOutputDir,
-							Append:              flagAppend,
-							DevProvider:         flagDevProvider,
-							Batch:               flagNonInteractive,
-							ContinueOnError:     flagContinue,
-							BackendType:         flagBackendType,
-							BackendConfig:       flagBackendConfig.Value(),
-							FullConfig:          flagFullConfig,
-							Parallelism:         flagParallelism,
-							PlainUI:             hflagPlainUI,
-							GenerateMappingFile: flagGenerateMappingFile,
-							HCLOnly:             flagHCLOnly,
-							ModulePath:          flagModulePath,
+							SubscriptionId:  flagSubscriptionId,
+							OutputDir:       flagOutputDir,
+							Append:          flagAppend,
+							DevProvider:     flagDevProvider,
+							ContinueOnError: flagContinue,
+							BackendType:     flagBackendType,
+							BackendConfig:   flagBackendConfig.Value(),
+							FullConfig:      flagFullConfig,
+							Parallelism:     flagParallelism,
+							HCLOnly:         flagHCLOnly,
+							ModulePath:      flagModulePath,
 						},
 						ResourceId:     resId,
 						TFResourceName: flagResName,
 						TFResourceType: flagResType,
 					}
 
-					return realMain(cfg)
+					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile)
 				},
 			},
 			{
@@ -412,29 +411,25 @@ The output directory is not empty. Please choose one of actions below:
 
 					// Initialize the config
 					cfg := config.Config{
-						MockClient: hflagMockClient,
 						CommonConfig: config.CommonConfig{
-							SubscriptionId:      flagSubscriptionId,
-							OutputDir:           flagOutputDir,
-							Append:              flagAppend,
-							DevProvider:         flagDevProvider,
-							Batch:               flagNonInteractive,
-							ContinueOnError:     flagContinue,
-							BackendType:         flagBackendType,
-							BackendConfig:       flagBackendConfig.Value(),
-							FullConfig:          flagFullConfig,
-							Parallelism:         flagParallelism,
-							PlainUI:             hflagPlainUI,
-							GenerateMappingFile: flagGenerateMappingFile,
-							HCLOnly:             flagHCLOnly,
-							ModulePath:          flagModulePath,
+							SubscriptionId:  flagSubscriptionId,
+							OutputDir:       flagOutputDir,
+							Append:          flagAppend,
+							DevProvider:     flagDevProvider,
+							ContinueOnError: flagContinue,
+							BackendType:     flagBackendType,
+							BackendConfig:   flagBackendConfig.Value(),
+							FullConfig:      flagFullConfig,
+							Parallelism:     flagParallelism,
+							HCLOnly:         flagHCLOnly,
+							ModulePath:      flagModulePath,
 						},
 						ResourceGroupName:   rg,
 						ResourceNamePattern: flagPattern,
 						RecursiveQuery:      true,
 					}
 
-					return realMain(cfg)
+					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile)
 				},
 			},
 			{
@@ -455,29 +450,25 @@ The output directory is not empty. Please choose one of actions below:
 
 					// Initialize the config
 					cfg := config.Config{
-						MockClient: hflagMockClient,
 						CommonConfig: config.CommonConfig{
-							SubscriptionId:      flagSubscriptionId,
-							OutputDir:           flagOutputDir,
-							Append:              flagAppend,
-							DevProvider:         flagDevProvider,
-							Batch:               flagNonInteractive,
-							ContinueOnError:     flagContinue,
-							BackendType:         flagBackendType,
-							BackendConfig:       flagBackendConfig.Value(),
-							FullConfig:          flagFullConfig,
-							Parallelism:         flagParallelism,
-							PlainUI:             hflagPlainUI,
-							GenerateMappingFile: flagGenerateMappingFile,
-							HCLOnly:             flagHCLOnly,
-							ModulePath:          flagModulePath,
+							SubscriptionId:  flagSubscriptionId,
+							OutputDir:       flagOutputDir,
+							Append:          flagAppend,
+							DevProvider:     flagDevProvider,
+							ContinueOnError: flagContinue,
+							BackendType:     flagBackendType,
+							BackendConfig:   flagBackendConfig.Value(),
+							FullConfig:      flagFullConfig,
+							Parallelism:     flagParallelism,
+							HCLOnly:         flagHCLOnly,
+							ModulePath:      flagModulePath,
 						},
 						ARGPredicate:        predicate,
 						ResourceNamePattern: flagPattern,
 						RecursiveQuery:      flagRecursive,
 					}
 
-					return realMain(cfg)
+					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile)
 				},
 			},
 			{
@@ -499,27 +490,23 @@ The output directory is not empty. Please choose one of actions below:
 
 					// Initialize the config
 					cfg := config.Config{
-						MockClient: hflagMockClient,
 						CommonConfig: config.CommonConfig{
-							SubscriptionId:      flagSubscriptionId,
-							OutputDir:           flagOutputDir,
-							Append:              flagAppend,
-							DevProvider:         flagDevProvider,
-							Batch:               flagNonInteractive,
-							ContinueOnError:     flagContinue,
-							BackendType:         flagBackendType,
-							BackendConfig:       flagBackendConfig.Value(),
-							FullConfig:          flagFullConfig,
-							Parallelism:         flagParallelism,
-							PlainUI:             hflagPlainUI,
-							GenerateMappingFile: flagGenerateMappingFile,
-							HCLOnly:             flagHCLOnly,
-							ModulePath:          flagModulePath,
+							SubscriptionId:  flagSubscriptionId,
+							OutputDir:       flagOutputDir,
+							Append:          flagAppend,
+							DevProvider:     flagDevProvider,
+							ContinueOnError: flagContinue,
+							BackendType:     flagBackendType,
+							BackendConfig:   flagBackendConfig.Value(),
+							FullConfig:      flagFullConfig,
+							Parallelism:     flagParallelism,
+							HCLOnly:         flagHCLOnly,
+							ModulePath:      flagModulePath,
 						},
 						MappingFile: mapFile,
 					}
 
-					return realMain(cfg)
+					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile)
 				},
 			},
 		},
@@ -600,7 +587,7 @@ func subscriptionIdFromCLI() (string, error) {
 	return strconv.Unquote(strings.TrimSpace(stdout.String()))
 }
 
-func realMain(cfg config.Config) (result error) {
+func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, genMapFile bool) (result error) {
 	// Initialize log
 	logLevel, err := logLevel(flagLogLevel)
 	if err != nil {
@@ -623,8 +610,14 @@ func realMain(cfg config.Config) (result error) {
 	log.Printf("[INFO] aztfy starts with config: %#v", cfg)
 
 	// Run in non-interactive mode
-	if cfg.Batch {
-		if err := internal.BatchImport(cfg); err != nil {
+	if batch {
+		nicfg := internalconfig.NonInteractiveModeConfig{
+			MockMeta:           mockMeta,
+			Config:             cfg,
+			PlainUI:            plainUI,
+			GenMappingFileOnly: genMapFile,
+		}
+		if err := internal.BatchImport(ctx, nicfg); err != nil {
 			result = err
 			return
 		}
@@ -632,7 +625,11 @@ func realMain(cfg config.Config) (result error) {
 	}
 
 	// Run in interactive mode
-	prog, err := ui.NewProgram(cfg)
+	icfg := internalconfig.InteractiveModeConfig{
+		Config:   cfg,
+		MockMeta: mockMeta,
+	}
+	prog, err := ui.NewProgram(ctx, icfg)
 	if err != nil {
 		result = err
 		return

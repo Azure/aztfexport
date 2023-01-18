@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
+	internalconfig "github.com/Azure/aztfy/internal/config"
+	"github.com/Azure/aztfy/pkg/config"
+
 	"github.com/Azure/aztfy/internal"
-	"github.com/Azure/aztfy/internal/config"
 	"github.com/Azure/aztfy/internal/test"
 	"github.com/Azure/aztfy/internal/utils"
 	"github.com/hashicorp/terraform-exec/tfexec"
@@ -26,8 +29,7 @@ func TestQueryMode(t *testing.T) {
 		t.Log(provisionDir)
 	}
 
-	os.Chdir(provisionDir)
-	if err := utils.WriteFileSync("main.tf", []byte(fmt.Sprintf(`
+	if err := os.WriteFile(filepath.Join(provisionDir, "main.tf"), []byte(fmt.Sprintf(`
 provider "azurerm" {
   features {
     resource_group {
@@ -83,23 +85,25 @@ resource "azurerm_subnet" "test" {
 
 	// Import in non-recursive mode
 	aztfyDir := t.TempDir()
-	cfg := config.Config{
-		CommonConfig: config.CommonConfig{
-			SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
-			OutputDir:      aztfyDir,
-			BackendType:    "local",
-			DevProvider:    true,
-			PlainUI:        true,
-			Parallelism:    1,
+	cfg := internalconfig.NonInteractiveModeConfig{
+		Config: config.Config{
+			CommonConfig: config.CommonConfig{
+				SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
+				OutputDir:      aztfyDir,
+				BackendType:    "local",
+				DevProvider:    true,
+				Parallelism:    1,
+			},
+			ResourceNamePattern: "res-",
+			ARGPredicate:        fmt.Sprintf(`resourceGroup =~ "%s" and type =~ "microsoft.network/virtualnetworks"`, d.RandomRgName()),
 		},
-		ResourceNamePattern: "res-",
-		ARGPredicate:        fmt.Sprintf(`resourceGroup =~ "%s" and type =~ "microsoft.network/virtualnetworks"`, d.RandomRgName()),
+		PlainUI: true,
 	}
 	t.Log("Importing in non-recursive mode")
 	if err := utils.RemoveEverythingUnder(cfg.OutputDir); err != nil {
 		t.Fatalf("failed to clean up the output directory: %v", err)
 	}
-	if err := internal.BatchImport(cfg); err != nil {
+	if err := internal.BatchImport(ctx, cfg); err != nil {
 		t.Fatalf("failed to run batch import non-recursively: %v", err)
 	}
 	test.Verify(t, ctx, aztfyDir, tfexecPath, 1)
@@ -110,7 +114,7 @@ resource "azurerm_subnet" "test" {
 	if err := utils.RemoveEverythingUnder(cfg.OutputDir); err != nil {
 		t.Fatalf("failed to clean up the output directory: %v", err)
 	}
-	if err := internal.BatchImport(cfg); err != nil {
+	if err := internal.BatchImport(ctx, cfg); err != nil {
 		t.Fatalf("failed to run batch import recursively: %v", err)
 	}
 	test.Verify(t, ctx, aztfyDir, tfexecPath, 2)
