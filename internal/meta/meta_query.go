@@ -45,17 +45,21 @@ func (meta MetaQuery) ScopeName() string {
 }
 
 func (meta *MetaQuery) ListResource(ctx context.Context) (ImportList, error) {
+	log.Printf("[DEBUG] Query resource set")
 	rset, err := meta.queryResourceSet(ctx, meta.argPredicate, meta.recursiveQuery)
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("[DEBUG] Populate resource set")
 	if err := rset.PopulateResource(); err != nil {
 		return nil, fmt.Errorf("tweaking single resources in the azure resource set: %v", err)
 	}
+	log.Printf("[DEBUG] Reduce resource set")
 	if err := rset.ReduceResource(); err != nil {
 		return nil, fmt.Errorf("tweaking across resources in the azure resource set: %v", err)
 	}
 
+	log.Printf("[DEBUG] Azure Resource set map to TF resource set")
 	rl := rset.ToTFResources(meta.parallelism)
 
 	var l ImportList

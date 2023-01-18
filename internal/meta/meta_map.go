@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/Azure/aztfy/pkg/config"
-	"github.com/Azure/aztfy/pkg/log"
 	"os"
 	"sort"
+
+	"github.com/Azure/aztfy/pkg/config"
+	"github.com/Azure/aztfy/pkg/log"
 
 	"github.com/Azure/aztfy/internal/resmap"
 	"github.com/Azure/aztfy/internal/tfaddr"
@@ -41,6 +42,7 @@ func (meta MetaMap) ScopeName() string {
 func (meta *MetaMap) ListResource(_ context.Context) (ImportList, error) {
 	var m resmap.ResourceMapping
 
+	log.Printf("[DEBUG] Read resource set from mapping file")
 	b, err := os.ReadFile(meta.mappingFile)
 	if err != nil {
 		return nil, fmt.Errorf("reading mapping file %s: %v", meta.mappingFile, err)

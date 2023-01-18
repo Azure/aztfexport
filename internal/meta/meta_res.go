@@ -51,6 +51,7 @@ func (meta *MetaResource) ListResource(_ context.Context) (ImportList, error) {
 			},
 		},
 	}
+	log.Printf("[DEBUG] Azure Resource set map to TF resource set")
 	rl := resourceSet.ToTFResources(meta.parallelism)
 
 	// This is to record known resource types. In case there is a known resource type and there comes another same typed resource,
