@@ -84,6 +84,7 @@ func (rset AzureResourceSet) ToTFResources(parallelism int) []TFResource {
 		})
 	}
 
+	// #nosec G104
 	wp.Done()
 
 	sort.Slice(tfresources, func(i, j int) bool {
