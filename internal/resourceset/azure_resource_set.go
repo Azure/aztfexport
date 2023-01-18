@@ -1,8 +1,9 @@
 package resourceset
 
 import (
-	"log"
 	"sort"
+
+	"github.com/Azure/aztfy/pkg/log"
 
 	"github.com/magodo/armid"
 	"github.com/magodo/aztft/aztft"
