@@ -3,6 +3,7 @@ package meta
 import (
 	"context"
 	"fmt"
+
 	"github.com/Azure/aztfy/internal/resourceset"
 	"github.com/Azure/aztfy/internal/tfaddr"
 	"github.com/Azure/aztfy/pkg/config"
@@ -50,7 +51,8 @@ func (meta *MetaResource) ListResource(_ context.Context) (ImportList, error) {
 			},
 		},
 	}
-	rl := resourceSet.ToTFResources()
+	log.Printf("[DEBUG] Azure Resource set map to TF resource set")
+	rl := resourceSet.ToTFResources(meta.parallelism)
 
 	// This is to record known resource types. In case there is a known resource type and there comes another same typed resource,
 	// then we need to modify the resource name. Otherwise, there will be a resource address conflict.

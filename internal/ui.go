@@ -1,6 +1,9 @@
 package internal
 
-import "fmt"
+import (
+	"log"
+	"os"
+)
 
 // Abstract the Messager struct in the github.com/magodo/spinner
 type Messager interface {
@@ -8,12 +11,20 @@ type Messager interface {
 	SetDetail(msg string)
 }
 
-type StdoutMessager struct{}
-
-func (p *StdoutMessager) SetStatus(msg string) {
-	fmt.Println(msg)
+type stdoutMessager struct {
+	*log.Logger
 }
 
-func (p *StdoutMessager) SetDetail(msg string) {
-	fmt.Println(msg)
+func NewStdoutMessager() Messager {
+	return &stdoutMessager{
+		Logger: log.New(os.Stdout, "[aztfy] ", log.LstdFlags),
+	}
+}
+
+func (p *stdoutMessager) SetStatus(msg string) {
+	p.Println(msg)
+}
+
+func (p *stdoutMessager) SetDetail(msg string) {
+	p.Println(msg)
 }

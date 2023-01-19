@@ -3,9 +3,10 @@ package internal
 import (
 	"context"
 	"fmt"
-	internalmeta "github.com/Azure/aztfy/internal/meta"
 	"os"
 	"strings"
+
+	internalmeta "github.com/Azure/aztfy/internal/meta"
 
 	"github.com/Azure/aztfy/internal/config"
 	"github.com/Azure/aztfy/pkg/meta"
@@ -118,7 +119,7 @@ func BatchImport(ctx context.Context, cfg config.NonInteractiveModeConfig) error
 
 	var err error
 	if cfg.PlainUI {
-		err = f(&StdoutMessager{})
+		err = f(NewStdoutMessager())
 	} else {
 		s := bspinner.NewModel()
 		s.Spinner = common.Spinner
