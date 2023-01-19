@@ -263,36 +263,6 @@ func (meta *baseMeta) CleanTFState(ctx context.Context, addr string) {
 	meta.tf.StateRm(ctx, addr)
 }
 
-func (meta *baseMeta) importItem(ctx context.Context, item *ImportItem, importIdx int) {
-	if item.Skip() {
-		log.Printf("[INFO] Skipping %s", item.TFResourceId)
-		return
-	}
-
-	moduleDir := meta.importModuleDirs[importIdx]
-	tf := meta.importTFs[importIdx]
-
-	// Construct the empty cfg file for importing
-	cfgFile := filepath.Join(moduleDir, meta.filenameTmpCfg())
-	tpl := fmt.Sprintf(`resource "%s" "%s" {}`, item.TFAddr.Type, item.TFAddr.Name)
-	// #nosec G306
-	if err := os.WriteFile(cfgFile, []byte(tpl), 0644); err != nil {
-		item.ImportError = fmt.Errorf("generating resource template file: %w", err)
-		return
-	}
-	defer os.Remove(cfgFile)
-
-	// Import resources
-	addr := item.TFAddr.String()
-	if meta.moduleAddr != "" {
-		addr = meta.moduleAddr + "." + addr
-	}
-	log.Printf("[INFO] Importing %s as %s", item.TFResourceId, addr)
-	err := tf.Import(ctx, addr, item.TFResourceId)
-	item.ImportError = err
-	item.Imported = err == nil
-}
-
 func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) {
 	itemsCh := make(chan *ImportItem, len(items))
 	for _, item := range items {
@@ -606,28 +576,76 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 	for _, opt := range meta.backendConfig {
 		opts = append(opts, tfexec.BackendConfig(opt))
 	}
+
+	log.Printf(`[DEBUG] Run "terraform init" for the output directory %s`, meta.outdir)
 	if err := meta.tf.Init(ctx, opts...); err != nil {
-		return fmt.Errorf("error running terraform init: %s", err)
+		return fmt.Errorf("error running terraform init for the output directory: %s", err)
 	}
 
 	// Initialize provider for the import directories.
+	wp := workerpool.NewWorkPool(meta.parallelism)
+	wp.Run(nil)
 	for i := range meta.importBaseDirs {
-		providerFile := filepath.Join(meta.importBaseDirs[i], "provider.tf")
-		// #nosec G306
-		if err := os.WriteFile(providerFile, []byte(meta.providerConfig()), 0644); err != nil {
-			return fmt.Errorf("error creating provider config: %w", err)
-		}
-		terraformFile := filepath.Join(meta.importBaseDirs[i], "terraform.tf")
-		// #nosec G306
-		if err := os.WriteFile(terraformFile, []byte(meta.terraformConfig("local")), 0644); err != nil {
-			return fmt.Errorf("error creating terraform config: %w", err)
-		}
-		if err := meta.importTFs[i].Init(ctx); err != nil {
-			return fmt.Errorf("error running terraform init: %s", err)
-		}
+		i := i
+		wp.AddTask(func() (interface{}, error) {
+			providerFile := filepath.Join(meta.importBaseDirs[i], "provider.tf")
+			// #nosec G306
+			if err := os.WriteFile(providerFile, []byte(meta.providerConfig()), 0644); err != nil {
+				return nil, fmt.Errorf("error creating provider config: %w", err)
+			}
+			terraformFile := filepath.Join(meta.importBaseDirs[i], "terraform.tf")
+			// #nosec G306
+			if err := os.WriteFile(terraformFile, []byte(meta.terraformConfig("local")), 0644); err != nil {
+				return nil, fmt.Errorf("error creating terraform config: %w", err)
+			}
+			log.Printf(`[DEBUG] Run "terraform init" for the import directory %s`, meta.importBaseDirs[i])
+			if err := meta.importTFs[i].Init(ctx); err != nil {
+				return nil, fmt.Errorf("error running terraform init: %s", err)
+			}
+			return nil, nil
+		})
+	}
+	if err := wp.Done(); err != nil {
+		return fmt.Errorf("initializing provider for the import directories: %v", err)
 	}
 
 	return nil
+}
+
+func (meta *baseMeta) importItem(ctx context.Context, item *ImportItem, importIdx int) {
+	if item.Skip() {
+		log.Printf("[INFO] Skipping %s", item.TFResourceId)
+		return
+	}
+
+	moduleDir := meta.importModuleDirs[importIdx]
+	tf := meta.importTFs[importIdx]
+
+	// Construct the empty cfg file for importing
+	cfgFile := filepath.Join(moduleDir, meta.filenameTmpCfg())
+	tpl := fmt.Sprintf(`resource "%s" "%s" {}`, item.TFAddr.Type, item.TFAddr.Name)
+	// #nosec G306
+	if err := os.WriteFile(cfgFile, []byte(tpl), 0644); err != nil {
+		err := fmt.Errorf("generating resource template file for %s: %w", item.TFAddr, err)
+		log.Printf("[ERROR] %v", err)
+		item.ImportError = err
+		return
+	}
+	defer os.Remove(cfgFile)
+
+	// Import resources
+	addr := item.TFAddr.String()
+	if meta.moduleAddr != "" {
+		addr = meta.moduleAddr + "." + addr
+	}
+	log.Printf("[INFO] Importing %s as %s", item.TFResourceId, addr)
+	err := tf.Import(ctx, addr, item.TFResourceId)
+	if err != nil {
+		err = fmt.Errorf("importing %s: %w", item.TFAddr, err)
+		log.Printf("[ERROR] %v", err)
+	}
+	item.ImportError = err
+	item.Imported = err == nil
 }
 
 func (meta baseMeta) stateToConfig(ctx context.Context, list ImportList) (ConfigInfos, error) {

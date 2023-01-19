@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	internalconfig "github.com/Azure/aztfy/internal/config"
 	"io"
 	golog "log"
 	"os"
@@ -12,6 +11,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	internalconfig "github.com/Azure/aztfy/internal/config"
 
 	"github.com/Azure/aztfy/pkg/config"
 	"github.com/Azure/aztfy/pkg/log"
@@ -281,7 +282,7 @@ The output directory is not empty. Please choose one of actions below:
 		&cli.StringFlag{
 			Name:        "log-level",
 			EnvVars:     []string{"AZTFY_LOG_LEVEL"},
-			Usage:       `Log level, can be one of "ERROR", "WARN", "INFO", "DEBUG"`,
+			Usage:       `Log level, can be one of "ERROR", "WARN", "INFO", "DEBUG" and "TRACE"`,
 			Destination: &flagLogLevel,
 			Value:       "INFO",
 		},
@@ -530,6 +531,8 @@ func logLevel(level string) (hclog.Level, error) {
 		return hclog.Info, nil
 	case "DEBUG":
 		return hclog.Debug, nil
+	case "TRACE":
+		return hclog.Trace, nil
 	default:
 		return hclog.NoLevel, fmt.Errorf("unknown log level: %s", level)
 	}
@@ -562,7 +565,7 @@ func initLog(path string, level hclog.Level) error {
 		// Enable log for azure sdk
 		os.Setenv("AZURE_SDK_GO_LOGGING", "all") // #nosec G104
 		azlog.SetListener(func(cls azlog.Event, msg string) {
-			logger.Printf("[DEBUG] %s: %s\n", cls, msg)
+			logger.Printf("[TRACE] %s: %s\n", cls, msg)
 		})
 	}
 	return nil
