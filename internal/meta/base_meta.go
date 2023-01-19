@@ -606,25 +606,37 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 	for _, opt := range meta.backendConfig {
 		opts = append(opts, tfexec.BackendConfig(opt))
 	}
+
+	log.Printf(`[DEBUG] Run "terraform init" for the output directory %s`, meta.outdir)
 	if err := meta.tf.Init(ctx, opts...); err != nil {
-		return fmt.Errorf("error running terraform init: %s", err)
+		return fmt.Errorf("error running terraform init for the output directory: %s", err)
 	}
 
 	// Initialize provider for the import directories.
+	wp := workerpool.NewWorkPool(meta.parallelism)
+	wp.Run(nil)
 	for i := range meta.importBaseDirs {
-		providerFile := filepath.Join(meta.importBaseDirs[i], "provider.tf")
-		// #nosec G306
-		if err := os.WriteFile(providerFile, []byte(meta.providerConfig()), 0644); err != nil {
-			return fmt.Errorf("error creating provider config: %w", err)
-		}
-		terraformFile := filepath.Join(meta.importBaseDirs[i], "terraform.tf")
-		// #nosec G306
-		if err := os.WriteFile(terraformFile, []byte(meta.terraformConfig("local")), 0644); err != nil {
-			return fmt.Errorf("error creating terraform config: %w", err)
-		}
-		if err := meta.importTFs[i].Init(ctx); err != nil {
-			return fmt.Errorf("error running terraform init: %s", err)
-		}
+		i := i
+		wp.AddTask(func() (interface{}, error) {
+			providerFile := filepath.Join(meta.importBaseDirs[i], "provider.tf")
+			// #nosec G306
+			if err := os.WriteFile(providerFile, []byte(meta.providerConfig()), 0644); err != nil {
+				return nil, fmt.Errorf("error creating provider config: %w", err)
+			}
+			terraformFile := filepath.Join(meta.importBaseDirs[i], "terraform.tf")
+			// #nosec G306
+			if err := os.WriteFile(terraformFile, []byte(meta.terraformConfig("local")), 0644); err != nil {
+				return nil, fmt.Errorf("error creating terraform config: %w", err)
+			}
+			log.Printf(`[DEBUG] Run "terraform init" for the import directory %s`, meta.importBaseDirs[i])
+			if err := meta.importTFs[i].Init(ctx); err != nil {
+				return nil, fmt.Errorf("error running terraform init: %s", err)
+			}
+			return nil, nil
+		})
+	}
+	if err := wp.Done(); err != nil {
+		return fmt.Errorf("initializing provider for the import directories: %v", err)
 	}
 
 	return nil
