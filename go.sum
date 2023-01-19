@@ -208,8 +208,6 @@ github.com/magodo/tfpluginschema v0.0.0-20220905090502-2d6a05ebaefd h1:L0kTduNwp
 github.com/magodo/tfpluginschema v0.0.0-20220905090502-2d6a05ebaefd/go.mod h1:u625f3VQoOZTAxoDjeDLmrBdKqriRK4OHCpSWt7FQc8=
 github.com/magodo/tfstate v0.0.0-20220409052014-9b9568dda918 h1:yZ5ZEMSKZNCM7KpivKhDNNQEZYSDxg0Wyi5p0hQ8dVo=
 github.com/magodo/tfstate v0.0.0-20220409052014-9b9568dda918/go.mod h1:BW96zQS6A92qWVONOjviK73K0HlKdt5ufNBioGnOaEs=
-github.com/magodo/workerpool v0.0.0-20211124060943-1c48f3e5a514 h1:9JtvsO+tAKh70rXqUb39Ldn4p6zDqDOgrCpo15MM1cw=
-github.com/magodo/workerpool v0.0.0-20211124060943-1c48f3e5a514/go.mod h1:oI7XLq0SfJZISAwYhT7DHmi1Fqbr1Q8ZE8gegIe7iAI=
 github.com/magodo/workerpool v0.0.0-20230119025400-40192d2716ea h1:QK7gPkX5ubzDLTImfsSvAlVv/n/x1smVkeYpECA0mPo=
 github.com/magodo/workerpool v0.0.0-20230119025400-40192d2716ea/go.mod h1:oI7XLq0SfJZISAwYhT7DHmi1Fqbr1Q8ZE8gegIe7iAI=
 github.com/matryer/is v1.2.0/go.mod h1:2fLPjFQM9rhQ15aVEtbuwhJinnOqrmgXPNdZsdwlWXA=
