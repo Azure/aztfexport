@@ -65,9 +65,13 @@ func BuildCredAndClientOpt(t *testing.T) (azcore.TokenCredential, *arm.ClientOpt
 		t.Fatalf("unknown environment specified: %q", env)
 	}
 
+	// #nosec G104
 	os.Setenv("AZURE_TENANT_ID", os.Getenv("ARM_TENANT_ID"))
+	// #nosec G104
 	os.Setenv("AZURE_CLIENT_ID", os.Getenv("ARM_CLIENT_ID"))
+	// #nosec G104
 	os.Setenv("AZURE_CLIENT_SECRET", os.Getenv("ARM_CLIENT_SECRET"))
+	// #nosec G104
 	os.Setenv("AZURE_CLIENT_CERTIFICATE_PATH", os.Getenv("ARM_CLIENT_CERTIFICATE_PATH"))
 
 	clientOpt := &arm.ClientOptions{
