@@ -16,6 +16,8 @@ import (
 	"github.com/Azure/aztfy/internal/client"
 	"github.com/Azure/aztfy/internal/resmap"
 	"github.com/Azure/aztfy/internal/utils"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
@@ -62,17 +64,19 @@ type BaseMeta interface {
 var _ BaseMeta = &baseMeta{}
 
 type baseMeta struct {
-	subscriptionId string
-	rootdir        string
-	outdir         string
-	tf             *tfexec.Terraform
-	resourceClient *armresources.Client
-	devProvider    bool
-	backendType    string
-	backendConfig  []string
-	fullConfig     bool
-	parallelism    int
-	hclOnly        bool
+	subscriptionId    string
+	azureSDKCred      azcore.TokenCredential
+	azureSDKClientOpt arm.ClientOptions
+	rootdir           string
+	outdir            string
+	tf                *tfexec.Terraform
+	resourceClient    *armresources.Client
+	devProvider       bool
+	backendType       string
+	backendConfig     []string
+	fullConfig        bool
+	parallelism       int
+	hclOnly           bool
 
 	// The module address prefix in the resource addr. E.g. module.mod1.module.mod2.azurerm_resource_group.test.
 	// This is an empty string if module path is not specified.
@@ -184,10 +188,10 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		importBaseDirs = append(importBaseDirs, dir)
 	}
 
-	// Construct client builder
-	b, err := client.NewClientBuilder()
-	if err != nil {
-		return nil, fmt.Errorf("building authorizer: %w", err)
+	// Construct Azure resources client
+	b := client.ClientBuilder{
+		Credential: cfg.AzureSDKCredential,
+		Opt:        cfg.AzureSDKClientOption,
 	}
 	resClient, err := b.NewResourcesClient(cfg.SubscriptionId)
 	if err != nil {
@@ -205,19 +209,21 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	os.Setenv("ARM_SKIP_PROVIDER_REGISTRATION", "true")
 
 	meta := &baseMeta{
-		subscriptionId:   cfg.SubscriptionId,
-		rootdir:          rootdir,
-		outdir:           cfg.OutputDir,
-		resourceClient:   resClient,
-		devProvider:      cfg.DevProvider,
-		backendType:      cfg.BackendType,
-		backendConfig:    cfg.BackendConfig,
-		fullConfig:       cfg.FullConfig,
-		parallelism:      cfg.Parallelism,
-		useSafeFilename:  cfg.Append,
-		hclOnly:          cfg.HCLOnly,
-		importBaseDirs:   importBaseDirs,
-		importModuleDirs: importModuleDirs,
+		subscriptionId:    cfg.SubscriptionId,
+		azureSDKCred:      cfg.AzureSDKCredential,
+		azureSDKClientOpt: cfg.AzureSDKClientOption,
+		rootdir:           rootdir,
+		outdir:            cfg.OutputDir,
+		resourceClient:    resClient,
+		devProvider:       cfg.DevProvider,
+		backendType:       cfg.BackendType,
+		backendConfig:     cfg.BackendConfig,
+		fullConfig:        cfg.FullConfig,
+		parallelism:       cfg.Parallelism,
+		useSafeFilename:   cfg.Append,
+		hclOnly:           cfg.HCLOnly,
+		importBaseDirs:    importBaseDirs,
+		importModuleDirs:  importModuleDirs,
 
 		moduleAddr: moduleAddr,
 		moduleDir:  moduleDir,

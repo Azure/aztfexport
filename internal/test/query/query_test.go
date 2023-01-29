@@ -1,4 +1,4 @@
-package main
+package query
 
 import (
 	"context"
@@ -83,16 +83,20 @@ resource "azurerm_subnet" "test" {
 	t.Logf("Sleep for %v to wait for the just created resources be recorded in ARG\n", delay)
 	time.Sleep(delay)
 
+	cred, clientOpt := test.BuildCredAndClientOpt(t)
+
 	// Import in non-recursive mode
 	aztfyDir := t.TempDir()
 	cfg := internalconfig.NonInteractiveModeConfig{
 		Config: config.Config{
 			CommonConfig: config.CommonConfig{
-				SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
-				OutputDir:      aztfyDir,
-				BackendType:    "local",
-				DevProvider:    true,
-				Parallelism:    1,
+				SubscriptionId:       os.Getenv("ARM_SUBSCRIPTION_ID"),
+				AzureSDKCredential:   cred,
+				AzureSDKClientOption: *clientOpt,
+				OutputDir:            aztfyDir,
+				BackendType:          "local",
+				DevProvider:          true,
+				Parallelism:          1,
 			},
 			ResourceNamePattern: "res-",
 			ARGPredicate:        fmt.Sprintf(`resourceGroup =~ "%s" and type =~ "microsoft.network/virtualnetworks"`, d.RandomRgName()),

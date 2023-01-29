@@ -60,7 +60,7 @@ func (meta *MetaQuery) ListResource(ctx context.Context) (ImportList, error) {
 	}
 
 	log.Printf("[DEBUG] Azure Resource set map to TF resource set")
-	rl := rset.ToTFResources(meta.parallelism)
+	rl := rset.ToTFResources(meta.parallelism, meta.azureSDKCred, meta.azureSDKClientOpt)
 
 	var l ImportList
 	for i, res := range rl {
@@ -89,7 +89,14 @@ func (meta *MetaQuery) ListResource(ctx context.Context) (ImportList, error) {
 }
 
 func (meta MetaQuery) queryResourceSet(ctx context.Context, predicate string, recursive bool) (*resourceset.AzureResourceSet, error) {
-	result, err := azlist.List(ctx, meta.subscriptionId, predicate, &azlist.Option{Parallelism: meta.parallelism, Recursive: recursive})
+	result, err := azlist.List(ctx, predicate,
+		azlist.Option{
+			SubscriptionId: meta.subscriptionId,
+			Cred:           meta.azureSDKCred,
+			ClientOpt:      meta.azureSDKClientOpt,
+			Parallelism:    meta.parallelism,
+			Recursive:      recursive,
+		})
 	if err != nil {
 		return nil, fmt.Errorf("listing resource set: %v", err)
 	}

@@ -12,6 +12,11 @@ import (
 	"text/template"
 
 	"github.com/Azure/aztfy/internal/resmap"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/hashicorp/go-version"
 	install "github.com/hashicorp/hc-install"
 	"github.com/hashicorp/hc-install/fs"
@@ -40,6 +45,57 @@ func Precheck(t *testing.T) {
 			t.Skipf("`%s` must be set for e2e tests!", variable)
 		}
 	}
+}
+
+func BuildCredAndClientOpt(t *testing.T) (azcore.TokenCredential, *arm.ClientOptions) {
+	env := "public"
+	if v := os.Getenv("ARM_ENVIRONMENT"); v != "" {
+		env = v
+	}
+
+	var cloudCfg cloud.Configuration
+	switch strings.ToLower(env) {
+	case "public":
+		cloudCfg = cloud.AzurePublic
+	case "usgovernment":
+		cloudCfg = cloud.AzureGovernment
+	case "china":
+		cloudCfg = cloud.AzureChina
+	default:
+		t.Fatalf("unknown environment specified: %q", env)
+	}
+
+	os.Setenv("AZURE_TENANT_ID", os.Getenv("ARM_TENANT_ID"))
+	os.Setenv("AZURE_CLIENT_ID", os.Getenv("ARM_CLIENT_ID"))
+	os.Setenv("AZURE_CLIENT_SECRET", os.Getenv("ARM_CLIENT_SECRET"))
+	os.Setenv("AZURE_CLIENT_CERTIFICATE_PATH", os.Getenv("ARM_CLIENT_CERTIFICATE_PATH"))
+
+	clientOpt := &arm.ClientOptions{
+		ClientOptions: policy.ClientOptions{
+			Cloud: cloudCfg,
+			Telemetry: policy.TelemetryOptions{
+				ApplicationID: "aztfy",
+				Disabled:      false,
+			},
+			Logging: policy.LogOptions{
+				IncludeBody: true,
+			},
+		},
+	}
+
+	cred, err := azidentity.NewClientSecretCredential(
+		os.Getenv("ARM_TENANT_ID"),
+		os.Getenv("ARM_CLIENT_ID"),
+		os.Getenv("ARM_CLIENT_SECRET"),
+		&azidentity.ClientSecretCredentialOptions{
+			ClientOptions: clientOpt.ClientOptions,
+		},
+	)
+	if err != nil {
+		t.Fatalf("failed to obtain a credential: %v", err)
+	}
+
+	return cred, clientOpt
 }
 
 func EnsureTF(t *testing.T) string {

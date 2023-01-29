@@ -3,11 +3,13 @@ package resource
 import (
 	"context"
 	"fmt"
-	internalconfig "github.com/Azure/aztfy/internal/config"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/Azure/aztfy/internal/client"
+	internalconfig "github.com/Azure/aztfy/internal/config"
 
 	"github.com/Azure/aztfy/pkg/config"
 
@@ -62,15 +64,20 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 	if err != nil {
 		t.Fatalf("failed to get resource ids: %v", err)
 	}
+
+	cred, clientOpt := test.BuildCredAndClientOpt(t)
+
 	for idx, rctx := range l {
 		cfg := internalconfig.NonInteractiveModeConfig{
 			Config: config.Config{
 				CommonConfig: config.CommonConfig{
-					SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
-					OutputDir:      aztfyDir,
-					BackendType:    "local",
-					DevProvider:    true,
-					Parallelism:    1,
+					SubscriptionId:       os.Getenv("ARM_SUBSCRIPTION_ID"),
+					AzureSDKCredential:   cred,
+					AzureSDKClientOption: *clientOpt,
+					OutputDir:            aztfyDir,
+					BackendType:          "local",
+					DevProvider:          true,
+					Parallelism:          1,
 				},
 				ResourceId:     rctx.AzureId,
 				TFResourceName: fmt.Sprintf("res-%d", idx),
@@ -111,7 +118,8 @@ func TestApplicationInsightWebTest(t *testing.T) {
 func TestKeyVaultNestedItems(t *testing.T) {
 	t.Parallel()
 	test.Precheck(t)
-	c, d := cases.CaseKeyVaultNestedItems{}, test.NewData()
+	cred, opt := test.BuildCredAndClientOpt(t)
+	c, d := cases.CaseKeyVaultNestedItems{B: client.ClientBuilder{Credential: cred, Opt: *opt}}, test.NewData()
 	runCase(t, d, c)
 }
 

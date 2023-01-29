@@ -1,8 +1,17 @@
 package config
 
+import (
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
+)
+
 type CommonConfig struct {
 	// SubscriptionId specifies the user's Azure subscription id.
 	SubscriptionId string
+	// AzureSDKCredential specifies the Azure SDK token credential
+	AzureSDKCredential azcore.TokenCredential
+	// AzureSDKClientOption specifies the Azure SDK client option
+	AzureSDKClientOption arm.ClientOptions
 	// OutputDir specifies the Terraform working directory for aztfy to import resources and generate TF configs.
 	OutputDir string
 	// Append specifies whether this run is in append mode, in which case aztfy will generate some "safe" file name to avoid conflicts to usre's existing files.

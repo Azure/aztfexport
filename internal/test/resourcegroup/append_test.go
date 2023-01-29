@@ -3,10 +3,11 @@ package resourcegroup
 import (
 	"context"
 	"fmt"
-	internalconfig "github.com/Azure/aztfy/internal/config"
 	"os"
 	"path/filepath"
 	"testing"
+
+	internalconfig "github.com/Azure/aztfy/internal/config"
 
 	"github.com/Azure/aztfy/pkg/config"
 
@@ -77,14 +78,19 @@ resource "azurerm_resource_group" "test3" {
 
 	// Import the first resource group
 	aztfyDir := t.TempDir()
+
+	cred, clientOpt := test.BuildCredAndClientOpt(t)
+
 	cfg := internalconfig.NonInteractiveModeConfig{
 		Config: config.Config{
 			CommonConfig: config.CommonConfig{
-				SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
-				OutputDir:      aztfyDir,
-				BackendType:    "local",
-				DevProvider:    true,
-				Parallelism:    1,
+				SubscriptionId:       os.Getenv("ARM_SUBSCRIPTION_ID"),
+				AzureSDKCredential:   cred,
+				AzureSDKClientOption: *clientOpt,
+				OutputDir:            aztfyDir,
+				BackendType:          "local",
+				DevProvider:          true,
+				Parallelism:          1,
 			},
 			ResourceNamePattern: "t1",
 		},
