@@ -74,6 +74,7 @@ type baseMeta struct {
 	devProvider       bool
 	backendType       string
 	backendConfig     []string
+	providerConfig    map[string]string
 	fullConfig        bool
 	parallelism       int
 	hclOnly           bool
@@ -218,6 +219,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		devProvider:       cfg.DevProvider,
 		backendType:       cfg.BackendType,
 		backendConfig:     cfg.BackendConfig,
+		providerConfig:    cfg.ProviderConfig,
 		fullConfig:        cfg.FullConfig,
 		parallelism:       cfg.Parallelism,
 		useSafeFilename:   cfg.Append,
@@ -453,7 +455,7 @@ func (meta baseMeta) generateCfg(ctx context.Context, l ImportList, cfgTrans ...
 	return meta.generateConfig(cfginfos)
 }
 
-func (meta *baseMeta) terraformConfig(backendType string) string {
+func (meta *baseMeta) buildTerraformConfig(backendType string) string {
 	if meta.devProvider {
 		return fmt.Sprintf(`terraform {
   backend %q {}
@@ -473,11 +475,15 @@ func (meta *baseMeta) terraformConfig(backendType string) string {
 `, backendType, azurerm.ProviderSchemaInfo.Version)
 }
 
-func (meta *baseMeta) providerConfig() string {
+func (meta *baseMeta) buildProviderConfig() string {
+	lines := []string{"  features {}"}
+	for k, v := range meta.providerConfig {
+		lines = append(lines, fmt.Sprintf("  %s = %s", k, v))
+	}
 	return fmt.Sprintf(`provider "azurerm" {
-  features {}
+%s
 }
-`)
+`, strings.Join(lines, "\n"))
 }
 
 func (meta baseMeta) filenameTerraformSetting() string {
@@ -563,7 +569,7 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 		log.Printf("[INFO] Output directory doesn't contain provider setting, create one then")
 		cfgFile := filepath.Join(meta.outdir, meta.filenameProviderSetting())
 		// #nosec G306
-		if err := os.WriteFile(cfgFile, []byte(meta.providerConfig()), 0644); err != nil {
+		if err := os.WriteFile(cfgFile, []byte(meta.buildProviderConfig()), 0644); err != nil {
 			return fmt.Errorf("error creating provider config: %w", err)
 		}
 	}
@@ -572,7 +578,7 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 		log.Printf("[INFO] Output directory doesn't contain terraform required provider setting, create one then")
 		cfgFile := filepath.Join(meta.outdir, meta.filenameTerraformSetting())
 		// #nosec G306
-		if err := os.WriteFile(cfgFile, []byte(meta.terraformConfig(meta.backendType)), 0644); err != nil {
+		if err := os.WriteFile(cfgFile, []byte(meta.buildTerraformConfig(meta.backendType)), 0644); err != nil {
 			return fmt.Errorf("error creating terraform config: %w", err)
 		}
 	}
@@ -596,12 +602,12 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 		wp.AddTask(func() (interface{}, error) {
 			providerFile := filepath.Join(meta.importBaseDirs[i], "provider.tf")
 			// #nosec G306
-			if err := os.WriteFile(providerFile, []byte(meta.providerConfig()), 0644); err != nil {
+			if err := os.WriteFile(providerFile, []byte(meta.buildProviderConfig()), 0644); err != nil {
 				return nil, fmt.Errorf("error creating provider config: %w", err)
 			}
 			terraformFile := filepath.Join(meta.importBaseDirs[i], "terraform.tf")
 			// #nosec G306
-			if err := os.WriteFile(terraformFile, []byte(meta.terraformConfig("local")), 0644); err != nil {
+			if err := os.WriteFile(terraformFile, []byte(meta.buildTerraformConfig("local")), 0644); err != nil {
 				return nil, fmt.Errorf("error creating terraform config: %w", err)
 			}
 			log.Printf(`[DEBUG] Run "terraform init" for the import directory %s`, meta.importBaseDirs[i])
