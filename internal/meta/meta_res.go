@@ -52,7 +52,7 @@ func (meta *MetaResource) ListResource(_ context.Context) (ImportList, error) {
 		},
 	}
 	log.Printf("[DEBUG] Azure Resource set map to TF resource set")
-	rl := resourceSet.ToTFResources(meta.parallelism)
+	rl := resourceSet.ToTFResources(meta.parallelism, meta.azureSDKCred, meta.azureSDKClientOpt)
 
 	// This is to record known resource types. In case there is a known resource type and there comes another same typed resource,
 	// then we need to modify the resource name. Otherwise, there will be a resource address conflict.
@@ -81,7 +81,11 @@ func (meta *MetaResource) ListResource(_ context.Context) (ImportList, error) {
 		// In this case, users can use the `--type` option to manually specify the TF resource type.
 		if meta.ResourceType != "" {
 			if meta.AzureId.Equal(res.AzureId) {
-				tfid, err := aztft.QueryId(meta.AzureId.String(), meta.ResourceType, true)
+				tfid, err := aztft.QueryId(meta.AzureId.String(), meta.ResourceType,
+					&aztft.APIOption{
+						Cred:         meta.azureSDKCred,
+						ClientOption: meta.azureSDKClientOpt,
+					})
 				if err != nil {
 					return nil, err
 				}

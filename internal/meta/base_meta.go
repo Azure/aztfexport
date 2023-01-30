@@ -16,6 +16,8 @@ import (
 	"github.com/Azure/aztfy/internal/client"
 	"github.com/Azure/aztfy/internal/resmap"
 	"github.com/Azure/aztfy/internal/utils"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
@@ -62,17 +64,20 @@ type BaseMeta interface {
 var _ BaseMeta = &baseMeta{}
 
 type baseMeta struct {
-	subscriptionId string
-	rootdir        string
-	outdir         string
-	tf             *tfexec.Terraform
-	resourceClient *armresources.Client
-	devProvider    bool
-	backendType    string
-	backendConfig  []string
-	fullConfig     bool
-	parallelism    int
-	hclOnly        bool
+	subscriptionId    string
+	azureSDKCred      azcore.TokenCredential
+	azureSDKClientOpt arm.ClientOptions
+	rootdir           string
+	outdir            string
+	tf                *tfexec.Terraform
+	resourceClient    *armresources.Client
+	devProvider       bool
+	backendType       string
+	backendConfig     []string
+	providerConfig    map[string]string
+	fullConfig        bool
+	parallelism       int
+	hclOnly           bool
 
 	// The module address prefix in the resource addr. E.g. module.mod1.module.mod2.azurerm_resource_group.test.
 	// This is an empty string if module path is not specified.
@@ -184,10 +189,10 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		importBaseDirs = append(importBaseDirs, dir)
 	}
 
-	// Construct client builder
-	b, err := client.NewClientBuilder()
-	if err != nil {
-		return nil, fmt.Errorf("building authorizer: %w", err)
+	// Construct Azure resources client
+	b := client.ClientBuilder{
+		Credential: cfg.AzureSDKCredential,
+		Opt:        cfg.AzureSDKClientOption,
 	}
 	resClient, err := b.NewResourcesClient(cfg.SubscriptionId)
 	if err != nil {
@@ -205,19 +210,22 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	os.Setenv("ARM_SKIP_PROVIDER_REGISTRATION", "true")
 
 	meta := &baseMeta{
-		subscriptionId:   cfg.SubscriptionId,
-		rootdir:          rootdir,
-		outdir:           cfg.OutputDir,
-		resourceClient:   resClient,
-		devProvider:      cfg.DevProvider,
-		backendType:      cfg.BackendType,
-		backendConfig:    cfg.BackendConfig,
-		fullConfig:       cfg.FullConfig,
-		parallelism:      cfg.Parallelism,
-		useSafeFilename:  cfg.Append,
-		hclOnly:          cfg.HCLOnly,
-		importBaseDirs:   importBaseDirs,
-		importModuleDirs: importModuleDirs,
+		subscriptionId:    cfg.SubscriptionId,
+		azureSDKCred:      cfg.AzureSDKCredential,
+		azureSDKClientOpt: cfg.AzureSDKClientOption,
+		rootdir:           rootdir,
+		outdir:            cfg.OutputDir,
+		resourceClient:    resClient,
+		devProvider:       cfg.DevProvider,
+		backendType:       cfg.BackendType,
+		backendConfig:     cfg.BackendConfig,
+		providerConfig:    cfg.ProviderConfig,
+		fullConfig:        cfg.FullConfig,
+		parallelism:       cfg.Parallelism,
+		useSafeFilename:   cfg.Append,
+		hclOnly:           cfg.HCLOnly,
+		importBaseDirs:    importBaseDirs,
+		importModuleDirs:  importModuleDirs,
 
 		moduleAddr: moduleAddr,
 		moduleDir:  moduleDir,
@@ -447,7 +455,7 @@ func (meta baseMeta) generateCfg(ctx context.Context, l ImportList, cfgTrans ...
 	return meta.generateConfig(cfginfos)
 }
 
-func (meta *baseMeta) terraformConfig(backendType string) string {
+func (meta *baseMeta) buildTerraformConfig(backendType string) string {
 	if meta.devProvider {
 		return fmt.Sprintf(`terraform {
   backend %q {}
@@ -467,11 +475,15 @@ func (meta *baseMeta) terraformConfig(backendType string) string {
 `, backendType, azurerm.ProviderSchemaInfo.Version)
 }
 
-func (meta *baseMeta) providerConfig() string {
+func (meta *baseMeta) buildProviderConfig() string {
+	lines := []string{"  features {}"}
+	for k, v := range meta.providerConfig {
+		lines = append(lines, fmt.Sprintf("  %s = %s", k, v))
+	}
 	return fmt.Sprintf(`provider "azurerm" {
-  features {}
+%s
 }
-`)
+`, strings.Join(lines, "\n"))
 }
 
 func (meta baseMeta) filenameTerraformSetting() string {
@@ -557,7 +569,7 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 		log.Printf("[INFO] Output directory doesn't contain provider setting, create one then")
 		cfgFile := filepath.Join(meta.outdir, meta.filenameProviderSetting())
 		// #nosec G306
-		if err := os.WriteFile(cfgFile, []byte(meta.providerConfig()), 0644); err != nil {
+		if err := os.WriteFile(cfgFile, []byte(meta.buildProviderConfig()), 0644); err != nil {
 			return fmt.Errorf("error creating provider config: %w", err)
 		}
 	}
@@ -566,7 +578,7 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 		log.Printf("[INFO] Output directory doesn't contain terraform required provider setting, create one then")
 		cfgFile := filepath.Join(meta.outdir, meta.filenameTerraformSetting())
 		// #nosec G306
-		if err := os.WriteFile(cfgFile, []byte(meta.terraformConfig(meta.backendType)), 0644); err != nil {
+		if err := os.WriteFile(cfgFile, []byte(meta.buildTerraformConfig(meta.backendType)), 0644); err != nil {
 			return fmt.Errorf("error creating terraform config: %w", err)
 		}
 	}
@@ -590,12 +602,12 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 		wp.AddTask(func() (interface{}, error) {
 			providerFile := filepath.Join(meta.importBaseDirs[i], "provider.tf")
 			// #nosec G306
-			if err := os.WriteFile(providerFile, []byte(meta.providerConfig()), 0644); err != nil {
+			if err := os.WriteFile(providerFile, []byte(meta.buildProviderConfig()), 0644); err != nil {
 				return nil, fmt.Errorf("error creating provider config: %w", err)
 			}
 			terraformFile := filepath.Join(meta.importBaseDirs[i], "terraform.tf")
 			// #nosec G306
-			if err := os.WriteFile(terraformFile, []byte(meta.terraformConfig("local")), 0644); err != nil {
+			if err := os.WriteFile(terraformFile, []byte(meta.buildTerraformConfig("local")), 0644); err != nil {
 				return nil, fmt.Errorf("error creating terraform config: %w", err)
 			}
 			log.Printf(`[DEBUG] Run "terraform init" for the import directory %s`, meta.importBaseDirs[i])

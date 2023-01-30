@@ -14,7 +14,9 @@ import (
 
 var _ Case = CaseKeyVaultNestedItems{}
 
-type CaseKeyVaultNestedItems struct{}
+type CaseKeyVaultNestedItems struct {
+	B client.ClientBuilder
+}
 
 func (CaseKeyVaultNestedItems) Tpl(d test.Data) string {
 	return fmt.Sprintf(`
@@ -124,11 +126,8 @@ func (CaseKeyVaultNestedItems) Total() int {
 	return 5
 }
 
-func (CaseKeyVaultNestedItems) getItems(d test.Data) (keyId, secretId, certId string, err error) {
-	b, err := client.NewClientBuilder()
-	if err != nil {
-		return "", "", "", err
-	}
+func (c CaseKeyVaultNestedItems) getItems(d test.Data) (keyId, secretId, certId string, err error) {
+	b := c.B
 	subid := os.Getenv("ARM_SUBSCRIPTION_ID")
 	ctx := context.Background()
 	{

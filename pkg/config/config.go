@@ -1,8 +1,17 @@
 package config
 
+import (
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
+)
+
 type CommonConfig struct {
 	// SubscriptionId specifies the user's Azure subscription id.
 	SubscriptionId string
+	// AzureSDKCredential specifies the Azure SDK token credential
+	AzureSDKCredential azcore.TokenCredential
+	// AzureSDKClientOption specifies the Azure SDK client option
+	AzureSDKClientOption arm.ClientOptions
 	// OutputDir specifies the Terraform working directory for aztfy to import resources and generate TF configs.
 	OutputDir string
 	// Append specifies whether this run is in append mode, in which case aztfy will generate some "safe" file name to avoid conflicts to usre's existing files.
@@ -15,6 +24,11 @@ type CommonConfig struct {
 	BackendType string
 	// BackendConfig specifies an array of Terraform backend configs.
 	BackendConfig []string
+	// ProviderConfig specifies key value pairs that will be expanded to the terraform-provider-azurerm settings (i.e. `azurerm {}` block)
+	// Currently, only the top level attribute whose type is string is supported.
+	// This is not used directly by aztfy binary as the provider configs can be set by environment variable already.
+	// While it is useful for module users that want support multi-users scenarios in one process (in which case changing env vars affect the whole process).
+	ProviderConfig map[string]string
 	// FullConfig specifies whether to export all (non computed-only) Terarform properties when generating TF configs.
 	FullConfig bool
 	// Parallelism specifies the parallelism for the process

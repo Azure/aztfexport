@@ -4,6 +4,8 @@ import (
 	"sort"
 
 	"github.com/Azure/aztfy/pkg/log"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
 
 	"github.com/magodo/armid"
 	"github.com/magodo/aztft/aztft"
@@ -24,7 +26,7 @@ type PesudoResourceInfo struct {
 	TFId   string
 }
 
-func (rset AzureResourceSet) ToTFResources(parallelism int) []TFResource {
+func (rset AzureResourceSet) ToTFResources(parallelism int, cred azcore.TokenCredential, clientOpt arm.ClientOptions) []TFResource {
 	tfresources := []TFResource{}
 
 	wp := workerpool.NewWorkPool(parallelism)
@@ -73,7 +75,12 @@ func (rset AzureResourceSet) ToTFResources(parallelism int) []TFResource {
 	for _, res := range rset.Resources {
 		res := res
 		wp.AddTask(func() (interface{}, error) {
-			tftypes, tfids, exact, err := aztft.QueryTypeAndId(res.Id.String(), true)
+			tftypes, tfids, exact, err := aztft.QueryTypeAndId(res.Id.String(),
+				&aztft.APIOption{
+					Cred:         cred,
+					ClientOption: clientOpt,
+				},
+			)
 			return result{
 				resid:   res.Id,
 				tftypes: tftypes,

@@ -3,10 +3,11 @@ package resourcegroup
 import (
 	"context"
 	"fmt"
-	internalconfig "github.com/Azure/aztfy/internal/config"
 	"os"
 	"path/filepath"
 	"testing"
+
+	internalconfig "github.com/Azure/aztfy/internal/config"
 
 	"github.com/Azure/aztfy/pkg/config"
 
@@ -105,16 +106,20 @@ module "sub-module" {
 		t.Fatalf("terraform init failed: %v", err)
 	}
 
+	cred, clientOpt := test.BuildCredAndClientOpt(t)
+
 	cfg := internalconfig.NonInteractiveModeConfig{
 		Config: config.Config{
 			CommonConfig: config.CommonConfig{
-				SubscriptionId: os.Getenv("ARM_SUBSCRIPTION_ID"),
-				OutputDir:      aztfyDir,
-				BackendType:    "local",
-				DevProvider:    true,
-				Parallelism:    1,
-				Append:         true,
-				ModulePath:     "", // Import to the root module
+				SubscriptionId:       os.Getenv("ARM_SUBSCRIPTION_ID"),
+				AzureSDKCredential:   cred,
+				AzureSDKClientOption: *clientOpt,
+				OutputDir:            aztfyDir,
+				BackendType:          "local",
+				DevProvider:          true,
+				Parallelism:          1,
+				Append:               true,
+				ModulePath:           "", // Import to the root module
 			},
 		},
 		PlainUI: true,

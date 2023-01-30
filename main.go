@@ -25,7 +25,12 @@ import (
 	"github.com/Azure/aztfy/internal"
 	"github.com/Azure/aztfy/internal/ui"
 	"github.com/Azure/aztfy/internal/utils"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
 	azlog "github.com/Azure/azure-sdk-for-go/sdk/azcore/log"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/urfave/cli/v2"
 )
 
@@ -370,20 +375,27 @@ The output directory is not empty. Please choose one of actions below:
 						return fmt.Errorf("invalid resource id: %v", err)
 					}
 
+					cred, clientOpt, err := buildAzureSDKCredAndClientOpt()
+					if err != nil {
+						return err
+					}
+
 					// Initialize the config
 					cfg := config.Config{
 						CommonConfig: config.CommonConfig{
-							SubscriptionId:  flagSubscriptionId,
-							OutputDir:       flagOutputDir,
-							Append:          flagAppend,
-							DevProvider:     flagDevProvider,
-							ContinueOnError: flagContinue,
-							BackendType:     flagBackendType,
-							BackendConfig:   flagBackendConfig.Value(),
-							FullConfig:      flagFullConfig,
-							Parallelism:     flagParallelism,
-							HCLOnly:         flagHCLOnly,
-							ModulePath:      flagModulePath,
+							SubscriptionId:       flagSubscriptionId,
+							AzureSDKCredential:   cred,
+							AzureSDKClientOption: *clientOpt,
+							OutputDir:            flagOutputDir,
+							Append:               flagAppend,
+							DevProvider:          flagDevProvider,
+							ContinueOnError:      flagContinue,
+							BackendType:          flagBackendType,
+							BackendConfig:        flagBackendConfig.Value(),
+							FullConfig:           flagFullConfig,
+							Parallelism:          flagParallelism,
+							HCLOnly:              flagHCLOnly,
+							ModulePath:           flagModulePath,
 						},
 						ResourceId:     resId,
 						TFResourceName: flagResName,
@@ -410,20 +422,27 @@ The output directory is not empty. Please choose one of actions below:
 
 					rg := c.Args().First()
 
+					cred, clientOpt, err := buildAzureSDKCredAndClientOpt()
+					if err != nil {
+						return err
+					}
+
 					// Initialize the config
 					cfg := config.Config{
 						CommonConfig: config.CommonConfig{
-							SubscriptionId:  flagSubscriptionId,
-							OutputDir:       flagOutputDir,
-							Append:          flagAppend,
-							DevProvider:     flagDevProvider,
-							ContinueOnError: flagContinue,
-							BackendType:     flagBackendType,
-							BackendConfig:   flagBackendConfig.Value(),
-							FullConfig:      flagFullConfig,
-							Parallelism:     flagParallelism,
-							HCLOnly:         flagHCLOnly,
-							ModulePath:      flagModulePath,
+							SubscriptionId:       flagSubscriptionId,
+							AzureSDKCredential:   cred,
+							AzureSDKClientOption: *clientOpt,
+							OutputDir:            flagOutputDir,
+							Append:               flagAppend,
+							DevProvider:          flagDevProvider,
+							ContinueOnError:      flagContinue,
+							BackendType:          flagBackendType,
+							BackendConfig:        flagBackendConfig.Value(),
+							FullConfig:           flagFullConfig,
+							Parallelism:          flagParallelism,
+							HCLOnly:              flagHCLOnly,
+							ModulePath:           flagModulePath,
 						},
 						ResourceGroupName:   rg,
 						ResourceNamePattern: flagPattern,
@@ -449,20 +468,27 @@ The output directory is not empty. Please choose one of actions below:
 
 					predicate := c.Args().First()
 
+					cred, clientOpt, err := buildAzureSDKCredAndClientOpt()
+					if err != nil {
+						return err
+					}
+
 					// Initialize the config
 					cfg := config.Config{
 						CommonConfig: config.CommonConfig{
-							SubscriptionId:  flagSubscriptionId,
-							OutputDir:       flagOutputDir,
-							Append:          flagAppend,
-							DevProvider:     flagDevProvider,
-							ContinueOnError: flagContinue,
-							BackendType:     flagBackendType,
-							BackendConfig:   flagBackendConfig.Value(),
-							FullConfig:      flagFullConfig,
-							Parallelism:     flagParallelism,
-							HCLOnly:         flagHCLOnly,
-							ModulePath:      flagModulePath,
+							SubscriptionId:       flagSubscriptionId,
+							AzureSDKCredential:   cred,
+							AzureSDKClientOption: *clientOpt,
+							OutputDir:            flagOutputDir,
+							Append:               flagAppend,
+							DevProvider:          flagDevProvider,
+							ContinueOnError:      flagContinue,
+							BackendType:          flagBackendType,
+							BackendConfig:        flagBackendConfig.Value(),
+							FullConfig:           flagFullConfig,
+							Parallelism:          flagParallelism,
+							HCLOnly:              flagHCLOnly,
+							ModulePath:           flagModulePath,
 						},
 						ARGPredicate:        predicate,
 						ResourceNamePattern: flagPattern,
@@ -489,20 +515,27 @@ The output directory is not empty. Please choose one of actions below:
 
 					mapFile := c.Args().First()
 
+					cred, clientOpt, err := buildAzureSDKCredAndClientOpt()
+					if err != nil {
+						return err
+					}
+
 					// Initialize the config
 					cfg := config.Config{
 						CommonConfig: config.CommonConfig{
-							SubscriptionId:  flagSubscriptionId,
-							OutputDir:       flagOutputDir,
-							Append:          flagAppend,
-							DevProvider:     flagDevProvider,
-							ContinueOnError: flagContinue,
-							BackendType:     flagBackendType,
-							BackendConfig:   flagBackendConfig.Value(),
-							FullConfig:      flagFullConfig,
-							Parallelism:     flagParallelism,
-							HCLOnly:         flagHCLOnly,
-							ModulePath:      flagModulePath,
+							SubscriptionId:       flagSubscriptionId,
+							AzureSDKCredential:   cred,
+							AzureSDKClientOption: *clientOpt,
+							OutputDir:            flagOutputDir,
+							Append:               flagAppend,
+							DevProvider:          flagDevProvider,
+							ContinueOnError:      flagContinue,
+							BackendType:          flagBackendType,
+							BackendConfig:        flagBackendConfig.Value(),
+							FullConfig:           flagFullConfig,
+							Parallelism:          flagParallelism,
+							HCLOnly:              flagHCLOnly,
+							ModulePath:           flagModulePath,
 						},
 						MappingFile: mapFile,
 					}
@@ -569,6 +602,67 @@ func initLog(path string, level hclog.Level) error {
 		})
 	}
 	return nil
+}
+
+// buildAzureSDKCredAndClientOpt builds the Azure SDK credential and client option from multiple sources (i.e. environment variables, MSI, Azure CLI).
+func buildAzureSDKCredAndClientOpt() (azcore.TokenCredential, *arm.ClientOptions, error) {
+	env := "public"
+	if v := os.Getenv("ARM_ENVIRONMENT"); v != "" {
+		env = v
+	}
+
+	var cloudCfg cloud.Configuration
+	switch strings.ToLower(env) {
+	case "public":
+		cloudCfg = cloud.AzurePublic
+	case "usgovernment":
+		cloudCfg = cloud.AzureGovernment
+	case "china":
+		cloudCfg = cloud.AzureChina
+	default:
+		return nil, nil, fmt.Errorf("unknown environment specified: %q", env)
+	}
+
+	// Maps the auth related environment variables used in the provider to what azidentity honors
+	if v, ok := os.LookupEnv("ARM_TENANT_ID"); ok {
+		// #nosec G104
+		os.Setenv("AZURE_TENANT_ID", v)
+	}
+	if v, ok := os.LookupEnv("ARM_CLIENT_ID"); ok {
+		// #nosec G104
+		os.Setenv("AZURE_CLIENT_ID", v)
+	}
+	if v, ok := os.LookupEnv("ARM_CLIENT_SECRET"); ok {
+		// #nosec G104
+		os.Setenv("AZURE_CLIENT_SECRET", v)
+	}
+	if v, ok := os.LookupEnv("ARM_CLIENT_CERTIFICATE_PATH"); ok {
+		// #nosec G104
+		os.Setenv("AZURE_CLIENT_CERTIFICATE_PATH", v)
+	}
+
+	clientOpt := &arm.ClientOptions{
+		ClientOptions: policy.ClientOptions{
+			Cloud: cloudCfg,
+			Telemetry: policy.TelemetryOptions{
+				ApplicationID: "aztfy",
+				Disabled:      false,
+			},
+			Logging: policy.LogOptions{
+				IncludeBody: true,
+			},
+		},
+	}
+
+	cred, err := azidentity.NewDefaultAzureCredential(&azidentity.DefaultAzureCredentialOptions{
+		ClientOptions: clientOpt.ClientOptions,
+		TenantID:      os.Getenv("ARM_TENANT_ID"),
+	})
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to obtain a credential: %v", err)
+	}
+
+	return cred, clientOpt, nil
 }
 
 func subscriptionIdFromCLI() (string, error) {
