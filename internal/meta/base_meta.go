@@ -67,7 +67,6 @@ type baseMeta struct {
 	subscriptionId    string
 	azureSDKCred      azcore.TokenCredential
 	azureSDKClientOpt arm.ClientOptions
-	rootdir           string
 	outdir            string
 	tf                *tfexec.Terraform
 	resourceClient    *armresources.Client
@@ -106,17 +105,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		return nil, fmt.Errorf("Parallelism not set in the config")
 	}
 
-	// Initialize the rootdir
-	cachedir, err := os.UserCacheDir()
-	if err != nil {
-		return nil, fmt.Errorf("error finding the user cache directory: %w", err)
-	}
-	rootdir := filepath.Join(cachedir, "aztfy")
-	// #nosec G301
-	if err := os.MkdirAll(rootdir, 0750); err != nil {
-		return nil, fmt.Errorf("creating rootdir %q: %w", rootdir, err)
-	}
-
+	// Determine the module directory and module address
 	var (
 		modulePaths []string
 		moduleAddr  string
@@ -156,39 +145,6 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		}
 	}
 
-	// Create the import directories
-	var importBaseDirs []string
-	var importModuleDirs []string
-	for i := 0; i < cfg.Parallelism; i++ {
-		dir, err := os.MkdirTemp("", "aztfy-")
-		if err != nil {
-			return nil, fmt.Errorf("creating import directory: %v", err)
-		}
-
-		// Creating the module hierarchy if module path is specified.
-		// The hierarchy used here is not necessarily to be the same as is defined. What we need to guarantee here is the module address in TF is as specified.
-		mdir := dir
-		for _, moduleName := range modulePaths {
-			fpath := filepath.Join(mdir, "main.tf")
-			// #nosec G306
-			if err := os.WriteFile(fpath, []byte(fmt.Sprintf(`module "%s" {
-  source = "./%s"
-}
-`, moduleName, moduleName)), 0644); err != nil {
-				return nil, fmt.Errorf("creating %s: %v", fpath, err)
-			}
-
-			mdir = filepath.Join(mdir, moduleName)
-			// #nosec G301
-			if err := os.Mkdir(mdir, 0750); err != nil {
-				return nil, fmt.Errorf("creating module dir %s: %v", mdir, err)
-			}
-		}
-
-		importModuleDirs = append(importModuleDirs, mdir)
-		importBaseDirs = append(importBaseDirs, dir)
-	}
-
 	// Construct Azure resources client
 	b := client.ClientBuilder{
 		Credential: cfg.AzureSDKCredential,
@@ -199,9 +155,11 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		return nil, fmt.Errorf("new resource client")
 	}
 
+	// Consider setting below environment variables via `tf.SetEnv()` once issue https://github.com/hashicorp/terraform-exec/issues/337 is resolved.
+
 	// AzureRM provider will honor env.var "AZURE_HTTP_USER_AGENT" when constructing for HTTP "User-Agent" header.
 	// #nosec G104
-	os.Setenv("AZURE_HTTP_USER_AGENT", "aztfy")
+	os.Setenv("AZURE_HTTP_USER_AGENT", cfg.AzureSDKClientOption.Telemetry.ApplicationID)
 
 	// Avoid the AzureRM provider to call the expensive RP listing API, repeatedly.
 	// #nosec G104
@@ -213,7 +171,6 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		subscriptionId:    cfg.SubscriptionId,
 		azureSDKCred:      cfg.AzureSDKCredential,
 		azureSDKClientOpt: cfg.AzureSDKClientOption,
-		rootdir:           rootdir,
 		outdir:            cfg.OutputDir,
 		resourceClient:    resClient,
 		devProvider:       cfg.DevProvider,
@@ -224,8 +181,6 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		parallelism:       cfg.Parallelism,
 		useSafeFilename:   cfg.Append,
 		hclOnly:           cfg.HCLOnly,
-		importBaseDirs:    importBaseDirs,
-		importModuleDirs:  importModuleDirs,
 
 		moduleAddr: moduleAddr,
 		moduleDir:  moduleDir,
@@ -239,14 +194,58 @@ func (meta baseMeta) Workspace() string {
 }
 
 func (meta *baseMeta) Init(ctx context.Context) error {
+	// Create the import directories per parallelism
+	var importBaseDirs []string
+	var importModuleDirs []string
+	modulePaths := []string{}
+	for i, v := range strings.Split(meta.moduleAddr, ".") {
+		if i%2 == 1 {
+			modulePaths = append(modulePaths, v)
+		}
+	}
+	for i := 0; i < meta.parallelism; i++ {
+		dir, err := os.MkdirTemp("", "aztfy-")
+		if err != nil {
+			return fmt.Errorf("creating import directory: %v", err)
+		}
+
+		// Creating the module hierarchy if module path is specified.
+		// The hierarchy used here is not necessarily to be the same as is defined. What we need to guarantee here is the module address in TF is as specified.
+		mdir := dir
+		for _, moduleName := range modulePaths {
+			fpath := filepath.Join(mdir, "main.tf")
+			// #nosec G306
+			if err := os.WriteFile(fpath, []byte(fmt.Sprintf(`module "%s" {
+  source = "./%s"
+}
+`, moduleName, moduleName)), 0644); err != nil {
+				return fmt.Errorf("creating %s: %v", fpath, err)
+			}
+
+			mdir = filepath.Join(mdir, moduleName)
+			// #nosec G301
+			if err := os.Mkdir(mdir, 0750); err != nil {
+				return fmt.Errorf("creating module dir %s: %v", mdir, err)
+			}
+		}
+
+		importModuleDirs = append(importModuleDirs, mdir)
+		importBaseDirs = append(importBaseDirs, dir)
+	}
+	meta.importBaseDirs = importBaseDirs
+	meta.importModuleDirs = importModuleDirs
+
+	// Init terraform
 	if err := meta.initTF(ctx); err != nil {
 		return err
 	}
 
+	// Init provider
 	if err := meta.initProvider(ctx); err != nil {
 		return err
 	}
 
+	// Pull TF state
 	baseState, err := meta.tf.StatePull(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to pull state: %v", err)
@@ -513,12 +512,7 @@ func (meta baseMeta) filenameTmpCfg() string {
 
 func (meta *baseMeta) initTF(ctx context.Context) error {
 	log.Printf("[INFO] Init Terraform")
-	tfDir := filepath.Join(meta.rootdir, "terraform")
-	// #nosec G301
-	if err := os.MkdirAll(tfDir, 0750); err != nil {
-		return fmt.Errorf("creating terraform cache dir %q: %w", meta.rootdir, err)
-	}
-	execPath, err := FindTerraform(ctx, tfDir)
+	execPath, err := FindTerraform(ctx)
 	if err != nil {
 		return fmt.Errorf("error finding a terraform exectuable: %w", err)
 	}
