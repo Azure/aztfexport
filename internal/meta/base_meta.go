@@ -68,6 +68,7 @@ type baseMeta struct {
 	azureSDKCred      azcore.TokenCredential
 	azureSDKClientOpt arm.ClientOptions
 	outdir            string
+	outputFileNames   config.OutputFileNames
 	tf                *tfexec.Terraform
 	resourceClient    *armresources.Client
 	devProvider       bool
@@ -94,10 +95,6 @@ type baseMeta struct {
 	// The current base state, which is mutated during the importing
 	baseState []byte
 	importTFs []*tfexec.Terraform
-
-	// Use a safer name which is less likely to conflicts with users' existing files.
-	// This is mainly used for the --append option.
-	useSafeFilename bool
 }
 
 func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
@@ -167,11 +164,22 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	// #nosec G104
 	os.Setenv("ARM_SKIP_PROVIDER_REGISTRATION", "true")
 
+	outputFileNames := cfg.OutputFileNames
+	if outputFileNames.TerraformFileName == "" {
+		outputFileNames.TerraformFileName = "terraform.tf"
+	}
+	if outputFileNames.ProviderFileName == "" {
+		outputFileNames.ProviderFileName = "provider.tf"
+	}
+	if outputFileNames.MainFileName == "" {
+		outputFileNames.MainFileName = "main.tf"
+	}
 	meta := &baseMeta{
 		subscriptionId:    cfg.SubscriptionId,
 		azureSDKCred:      cfg.AzureSDKCredential,
 		azureSDKClientOpt: cfg.AzureSDKClientOption,
 		outdir:            cfg.OutputDir,
+		outputFileNames:   outputFileNames,
 		resourceClient:    resClient,
 		devProvider:       cfg.DevProvider,
 		backendType:       cfg.BackendType,
@@ -179,7 +187,6 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		providerConfig:    cfg.ProviderConfig,
 		fullConfig:        cfg.FullConfig,
 		parallelism:       cfg.Parallelism,
-		useSafeFilename:   cfg.Append,
 		hclOnly:           cfg.HCLOnly,
 
 		moduleAddr: moduleAddr,
@@ -416,13 +423,13 @@ func (meta baseMeta) CleanUpWorkspace(_ context.Context) error {
 			os.RemoveAll(tmpDir)
 		}()
 
-		tmpMainCfg := filepath.Join(tmpDir, meta.filenameMainCfg())
-		tmpProviderCfg := filepath.Join(tmpDir, meta.filenameProviderSetting())
+		tmpMainCfg := filepath.Join(tmpDir, meta.outputFileNames.MainFileName)
+		tmpProviderCfg := filepath.Join(tmpDir, meta.outputFileNames.ProviderFileName)
 
-		if err := utils.CopyFile(filepath.Join(meta.outdir, meta.filenameMainCfg()), tmpMainCfg); err != nil {
+		if err := utils.CopyFile(filepath.Join(meta.outdir, meta.outputFileNames.MainFileName), tmpMainCfg); err != nil {
 			return err
 		}
-		if err := utils.CopyFile(filepath.Join(meta.outdir, meta.filenameProviderSetting()), tmpProviderCfg); err != nil {
+		if err := utils.CopyFile(filepath.Join(meta.outdir, meta.outputFileNames.ProviderFileName), tmpProviderCfg); err != nil {
 			return err
 		}
 
@@ -430,10 +437,10 @@ func (meta baseMeta) CleanUpWorkspace(_ context.Context) error {
 			return err
 		}
 
-		if err := utils.CopyFile(tmpMainCfg, filepath.Join(meta.outdir, meta.filenameMainCfg())); err != nil {
+		if err := utils.CopyFile(tmpMainCfg, filepath.Join(meta.outdir, meta.outputFileNames.MainFileName)); err != nil {
 			return err
 		}
-		if err := utils.CopyFile(tmpProviderCfg, filepath.Join(meta.outdir, meta.filenameProviderSetting())); err != nil {
+		if err := utils.CopyFile(tmpProviderCfg, filepath.Join(meta.outdir, meta.outputFileNames.ProviderFileName)); err != nil {
 			return err
 		}
 	}
@@ -483,31 +490,6 @@ func (meta *baseMeta) buildProviderConfig() string {
 %s
 }
 `, strings.Join(lines, "\n"))
-}
-
-func (meta baseMeta) filenameTerraformSetting() string {
-	if meta.useSafeFilename {
-		return "terraform.aztfy.tf"
-	}
-	return "terraform.tf"
-}
-
-func (meta baseMeta) filenameProviderSetting() string {
-	if meta.useSafeFilename {
-		return "provider.aztfy.tf"
-	}
-	return "provider.tf"
-}
-
-func (meta baseMeta) filenameMainCfg() string {
-	if meta.useSafeFilename {
-		return "main.aztfy.tf"
-	}
-	return "main.tf"
-}
-
-func (meta baseMeta) filenameTmpCfg() string {
-	return "tmp.aztfy.tf"
 }
 
 func (meta *baseMeta) initTF(ctx context.Context) error {
@@ -561,7 +543,7 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 
 	if module.ProviderConfigs["azurerm"] == nil {
 		log.Printf("[INFO] Output directory doesn't contain provider setting, create one then")
-		cfgFile := filepath.Join(meta.outdir, meta.filenameProviderSetting())
+		cfgFile := filepath.Join(meta.outdir, meta.outputFileNames.ProviderFileName)
 		// #nosec G306
 		if err := os.WriteFile(cfgFile, []byte(meta.buildProviderConfig()), 0644); err != nil {
 			return fmt.Errorf("error creating provider config: %w", err)
@@ -570,7 +552,7 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 
 	if len(module.ProviderConfigs) == 0 {
 		log.Printf("[INFO] Output directory doesn't contain terraform required provider setting, create one then")
-		cfgFile := filepath.Join(meta.outdir, meta.filenameTerraformSetting())
+		cfgFile := filepath.Join(meta.outdir, meta.outputFileNames.TerraformFileName)
 		// #nosec G306
 		if err := os.WriteFile(cfgFile, []byte(meta.buildTerraformConfig(meta.backendType)), 0644); err != nil {
 			return fmt.Errorf("error creating terraform config: %w", err)
@@ -628,7 +610,7 @@ func (meta *baseMeta) importItem(ctx context.Context, item *ImportItem, importId
 	tf := meta.importTFs[importIdx]
 
 	// Construct the empty cfg file for importing
-	cfgFile := filepath.Join(moduleDir, meta.filenameTmpCfg())
+	cfgFile := filepath.Join(moduleDir, "tmp.aztfy.tf")
 	tpl := fmt.Sprintf(`resource "%s" "%s" {}`, item.TFAddr.Type, item.TFAddr.Name)
 	// #nosec G306
 	if err := os.WriteFile(cfgFile, []byte(tpl), 0644); err != nil {
@@ -713,7 +695,7 @@ func (meta baseMeta) terraformMetaHook(configs ConfigInfos, cfgTrans ...TFConfig
 }
 
 func (meta baseMeta) generateConfig(cfgs ConfigInfos) error {
-	cfgFile := filepath.Join(meta.moduleDir, meta.filenameMainCfg())
+	cfgFile := filepath.Join(meta.moduleDir, meta.outputFileNames.MainFileName)
 	buf := bytes.NewBuffer([]byte{})
 	for _, cfg := range cfgs {
 		if _, err := cfg.DumpHCL(buf); err != nil {
