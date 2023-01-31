@@ -308,6 +308,7 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) e
 		// We are updating the local thisBaseStateJSON here, will update it to the meta.baseState at the end of this function.
 		if len(meta.originBaseState) == 0 {
 			log.Printf("[DEBUG] Merging terraform state file %s (simple)", stateFile)
+			// #nosec G304
 			b, err := os.ReadFile(stateFile)
 			if err != nil {
 				return fmt.Errorf("failed to read state file: %v", err)
