@@ -302,13 +302,12 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) e
 		// Ensure the state file is removed after this round import, preparing for the next round.
 		defer os.Remove(stateFile)
 
-		log.Printf("[DEBUG] Merging terraform state file %s", stateFile)
-
 		// Performance improvement.
 		// In case there is no TF state in the target workspace (no matter local/remote backend), we can avoid using tfmerge (which takes care of terraform internals, like keeping the lineage, etc).
 		// As long as the user ensure there is no address conflicts in the import list (which is always the case by aztfy as the resource names are almost unique),
 		// We are updating the local thisBaseStateJSON here, will update it to the meta.baseState at the end of this function.
 		if len(meta.originBaseState) == 0 {
+			log.Printf("[DEBUG] Merging terraform state file %s (simple)", stateFile)
 			b, err := os.ReadFile(stateFile)
 			if err != nil {
 				return fmt.Errorf("failed to read state file: %v", err)
@@ -328,6 +327,7 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) e
 		}
 
 		// Otherwise, we use tfmerge to move resources from the importing state file to the target base state file.
+		log.Printf("[DEBUG] Merging terraform state file %s (tfmerge)", stateFile)
 		newState, err := tfmerge.Merge(ctx, meta.tf, meta.baseState, stateFile)
 		if err != nil {
 			return fmt.Errorf("failed to merge state file: %v", err)
