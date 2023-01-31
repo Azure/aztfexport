@@ -45,7 +45,8 @@ type BaseMeta interface {
 	// Workspace returns the path of the output directory.
 	Workspace() string
 	// ParallelImport imports the specified import list in parallel (parallelism is set during the meta builder function).
-	ParallelImport(ctx context.Context, items []*ImportItem)
+	// Import error won't be returned in the error, but is recorded in each ImportItem.
+	ParallelImport(ctx context.Context, items []*ImportItem) error
 	// PushState pushes the terraform state file (the base state of the workspace, adding the newly imported resources) back to the workspace.
 	PushState(ctx context.Context) error
 	// CleanTFState clean up the specified TF resource from the workspace's state file.
@@ -89,12 +90,13 @@ type baseMeta struct {
 	// Parallel import supports
 	importBaseDirs   []string
 	importModuleDirs []string
+	importTFs        []*tfexec.Terraform
+
 	// The original base state, which is retrieved prior to the import, and is compared with the actual base state prior to the mutated state is pushed,
 	// to ensure the base state has no out of band changes during the importing.
 	originBaseState []byte
 	// The current base state, which is mutated during the importing
 	baseState []byte
-	importTFs []*tfexec.Terraform
 }
 
 func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
@@ -277,7 +279,7 @@ func (meta *baseMeta) CleanTFState(ctx context.Context, addr string) {
 	meta.tf.StateRm(ctx, addr)
 }
 
-func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) {
+func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) error {
 	itemsCh := make(chan *ImportItem, len(items))
 	for _, item := range items {
 		itemsCh <- item
@@ -285,6 +287,8 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) {
 	close(itemsCh)
 
 	wp := workerpool.NewWorkPool(meta.parallelism)
+
+	var thisBaseStateJSON map[string]interface{}
 
 	wp.Run(func(i interface{}) error {
 		idx := i.(int)
@@ -299,10 +303,34 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) {
 		defer os.Remove(stateFile)
 
 		log.Printf("[DEBUG] Merging terraform state file %s", stateFile)
+
+		// Performance improvement.
+		// In case there is no TF state in the target workspace (no matter local/remote backend), we can avoid using tfmerge (which takes care of terraform internals, like keeping the lineage, etc).
+		// As long as the user ensure there is no address conflicts in the import list (which is always the case by aztfy as the resource names are almost unique),
+		// We are updating the local thisBaseStateJSON here, will update it to the meta.baseState at the end of this function.
+		if len(meta.originBaseState) == 0 {
+			b, err := os.ReadFile(stateFile)
+			if err != nil {
+				return fmt.Errorf("failed to read state file: %v", err)
+			}
+			var stateJSON map[string]interface{}
+			if err := json.Unmarshal(b, &stateJSON); err != nil {
+				return fmt.Errorf("failed to unmarshal state file: %v", err)
+			}
+			// The first state file to be merged will be took as the base state.
+			if thisBaseStateJSON == nil {
+				thisBaseStateJSON = stateJSON
+				return nil
+			}
+			// The other merges will simply append the "resources".
+			thisBaseStateJSON["resources"] = append(thisBaseStateJSON["resources"].([]interface{}), stateJSON["resources"].([]interface{})...)
+			return nil
+		}
+
+		// Otherwise, we use tfmerge to move resources from the importing state file to the target base state file.
 		newState, err := tfmerge.Merge(ctx, meta.tf, meta.baseState, stateFile)
 		if err != nil {
-			items[idx].ImportError = fmt.Errorf("failed to merge state file: %v", err)
-			return nil
+			return fmt.Errorf("failed to merge state file: %v", err)
 		}
 		meta.baseState = newState
 		return nil
@@ -319,7 +347,29 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) {
 	}
 
 	// #nosec G104
-	wp.Done()
+	if err := wp.Done(); err != nil {
+		return err
+	}
+
+	if thisBaseStateJSON != nil {
+		var baseStateJSON map[string]interface{}
+		if len(meta.baseState) == 0 {
+			baseStateJSON = thisBaseStateJSON
+		} else {
+			if err := json.Unmarshal(meta.baseState, &baseStateJSON); err != nil {
+				return fmt.Errorf("unmarshalling the base state at the end of import: %v", err)
+			}
+			baseStateJSON["resources"] = append(baseStateJSON["resources"].([]interface{}), thisBaseStateJSON["resources"].([]interface{})...)
+		}
+		var err error
+		meta.baseState, err = json.Marshal(baseStateJSON)
+		if err != nil {
+			return fmt.Errorf("marshalling the base state at the end of import: %v", err)
+		}
+		return nil
+	}
+
+	return nil
 }
 
 func (meta baseMeta) PushState(ctx context.Context) error {
