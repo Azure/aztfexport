@@ -56,9 +56,9 @@ func (m MetaGroupDummy) CleanTFState(_ context.Context, _ string) {
 	return
 }
 
-func (m MetaGroupDummy) ParallelImport(_ context.Context, items []*ImportItem) {
+func (m MetaGroupDummy) ParallelImport(_ context.Context, items []*ImportItem) error {
 	time.Sleep(time.Second)
-	return
+	return nil
 }
 
 func (m MetaGroupDummy) PushState(_ context.Context) error {

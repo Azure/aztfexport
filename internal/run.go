@@ -81,7 +81,9 @@ func BatchImport(ctx context.Context, cfg config.NonInteractiveModeConfig) error
 			}
 
 			msg.SetStatus(strings.Join(messages, "\n"))
-			c.ParallelImport(ctx, importList)
+			if err := c.ParallelImport(ctx, importList); err != nil {
+				return fmt.Errorf("parallel importing: %v", err)
+			}
 
 			var thisErrors []string
 			for j := 0; j < n; j++ {

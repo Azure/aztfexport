@@ -5,6 +5,15 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
 )
 
+type OutputFileNames struct {
+	// The filename for the generated "terraform.tf" (default)
+	TerraformFileName string
+	// The filename for the generated "provider.tf" (default)
+	ProviderFileName string
+	// The filename for the generated "main.tf" (default)
+	MainFileName string
+}
+
 type CommonConfig struct {
 	// SubscriptionId specifies the user's Azure subscription id.
 	SubscriptionId string
@@ -14,8 +23,8 @@ type CommonConfig struct {
 	AzureSDKClientOption arm.ClientOptions
 	// OutputDir specifies the Terraform working directory for aztfy to import resources and generate TF configs.
 	OutputDir string
-	// Append specifies whether this run is in append mode, in which case aztfy will generate some "safe" file name to avoid conflicts to usre's existing files.
-	Append bool
+	// OutputFileNames specifies the output terraform filenames
+	OutputFileNames OutputFileNames
 	// DevProvider specifies whether to use a development provider built locally rather than using a version pinned provider from official Terraform registry.
 	DevProvider bool
 	// ContinueOnError specifies whether continue the progress even hit an import error.

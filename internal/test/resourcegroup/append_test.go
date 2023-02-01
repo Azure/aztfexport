@@ -106,7 +106,6 @@ resource "azurerm_resource_group" "test3" {
 		t.Fatalf("failed to run first batch import: %v", err)
 	}
 	// Import the second resource group mutably
-	cfg.Append = true
 	cfg.ResourceGroupName = d.RandomRgName() + "2"
 	cfg.ResourceNamePattern = "round2_"
 	t.Log("Batch importing the 2nd rg")
@@ -114,7 +113,6 @@ resource "azurerm_resource_group" "test3" {
 		t.Fatalf("failed to run second batch import: %v", err)
 	}
 	// Import the third resource group mutably
-	cfg.Append = true
 	cfg.ResourceGroupName = d.RandomRgName() + "3"
 	cfg.ResourceNamePattern = "round3_"
 	t.Log("Batch importing the 3rd rg")

@@ -45,7 +45,8 @@ type BaseMeta interface {
 	// Workspace returns the path of the output directory.
 	Workspace() string
 	// ParallelImport imports the specified import list in parallel (parallelism is set during the meta builder function).
-	ParallelImport(ctx context.Context, items []*ImportItem)
+	// Import error won't be returned in the error, but is recorded in each ImportItem.
+	ParallelImport(ctx context.Context, items []*ImportItem) error
 	// PushState pushes the terraform state file (the base state of the workspace, adding the newly imported resources) back to the workspace.
 	PushState(ctx context.Context) error
 	// CleanTFState clean up the specified TF resource from the workspace's state file.
@@ -67,8 +68,8 @@ type baseMeta struct {
 	subscriptionId    string
 	azureSDKCred      azcore.TokenCredential
 	azureSDKClientOpt arm.ClientOptions
-	rootdir           string
 	outdir            string
+	outputFileNames   config.OutputFileNames
 	tf                *tfexec.Terraform
 	resourceClient    *armresources.Client
 	devProvider       bool
@@ -89,16 +90,13 @@ type baseMeta struct {
 	// Parallel import supports
 	importBaseDirs   []string
 	importModuleDirs []string
+	importTFs        []*tfexec.Terraform
+
 	// The original base state, which is retrieved prior to the import, and is compared with the actual base state prior to the mutated state is pushed,
 	// to ensure the base state has no out of band changes during the importing.
 	originBaseState []byte
 	// The current base state, which is mutated during the importing
 	baseState []byte
-	importTFs []*tfexec.Terraform
-
-	// Use a safer name which is less likely to conflicts with users' existing files.
-	// This is mainly used for the --append option.
-	useSafeFilename bool
 }
 
 func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
@@ -106,17 +104,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		return nil, fmt.Errorf("Parallelism not set in the config")
 	}
 
-	// Initialize the rootdir
-	cachedir, err := os.UserCacheDir()
-	if err != nil {
-		return nil, fmt.Errorf("error finding the user cache directory: %w", err)
-	}
-	rootdir := filepath.Join(cachedir, "aztfy")
-	// #nosec G301
-	if err := os.MkdirAll(rootdir, 0750); err != nil {
-		return nil, fmt.Errorf("creating rootdir %q: %w", rootdir, err)
-	}
-
+	// Determine the module directory and module address
 	var (
 		modulePaths []string
 		moduleAddr  string
@@ -156,39 +144,6 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		}
 	}
 
-	// Create the import directories
-	var importBaseDirs []string
-	var importModuleDirs []string
-	for i := 0; i < cfg.Parallelism; i++ {
-		dir, err := os.MkdirTemp("", "aztfy-")
-		if err != nil {
-			return nil, fmt.Errorf("creating import directory: %v", err)
-		}
-
-		// Creating the module hierarchy if module path is specified.
-		// The hierarchy used here is not necessarily to be the same as is defined. What we need to guarantee here is the module address in TF is as specified.
-		mdir := dir
-		for _, moduleName := range modulePaths {
-			fpath := filepath.Join(mdir, "main.tf")
-			// #nosec G306
-			if err := os.WriteFile(fpath, []byte(fmt.Sprintf(`module "%s" {
-  source = "./%s"
-}
-`, moduleName, moduleName)), 0644); err != nil {
-				return nil, fmt.Errorf("creating %s: %v", fpath, err)
-			}
-
-			mdir = filepath.Join(mdir, moduleName)
-			// #nosec G301
-			if err := os.Mkdir(mdir, 0750); err != nil {
-				return nil, fmt.Errorf("creating module dir %s: %v", mdir, err)
-			}
-		}
-
-		importModuleDirs = append(importModuleDirs, mdir)
-		importBaseDirs = append(importBaseDirs, dir)
-	}
-
 	// Construct Azure resources client
 	b := client.ClientBuilder{
 		Credential: cfg.AzureSDKCredential,
@@ -199,9 +154,11 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		return nil, fmt.Errorf("new resource client")
 	}
 
+	// Consider setting below environment variables via `tf.SetEnv()` once issue https://github.com/hashicorp/terraform-exec/issues/337 is resolved.
+
 	// AzureRM provider will honor env.var "AZURE_HTTP_USER_AGENT" when constructing for HTTP "User-Agent" header.
 	// #nosec G104
-	os.Setenv("AZURE_HTTP_USER_AGENT", "aztfy")
+	os.Setenv("AZURE_HTTP_USER_AGENT", cfg.AzureSDKClientOption.Telemetry.ApplicationID)
 
 	// Avoid the AzureRM provider to call the expensive RP listing API, repeatedly.
 	// #nosec G104
@@ -209,12 +166,22 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	// #nosec G104
 	os.Setenv("ARM_SKIP_PROVIDER_REGISTRATION", "true")
 
+	outputFileNames := cfg.OutputFileNames
+	if outputFileNames.TerraformFileName == "" {
+		outputFileNames.TerraformFileName = "terraform.tf"
+	}
+	if outputFileNames.ProviderFileName == "" {
+		outputFileNames.ProviderFileName = "provider.tf"
+	}
+	if outputFileNames.MainFileName == "" {
+		outputFileNames.MainFileName = "main.tf"
+	}
 	meta := &baseMeta{
 		subscriptionId:    cfg.SubscriptionId,
 		azureSDKCred:      cfg.AzureSDKCredential,
 		azureSDKClientOpt: cfg.AzureSDKClientOption,
-		rootdir:           rootdir,
 		outdir:            cfg.OutputDir,
+		outputFileNames:   outputFileNames,
 		resourceClient:    resClient,
 		devProvider:       cfg.DevProvider,
 		backendType:       cfg.BackendType,
@@ -222,10 +189,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		providerConfig:    cfg.ProviderConfig,
 		fullConfig:        cfg.FullConfig,
 		parallelism:       cfg.Parallelism,
-		useSafeFilename:   cfg.Append,
 		hclOnly:           cfg.HCLOnly,
-		importBaseDirs:    importBaseDirs,
-		importModuleDirs:  importModuleDirs,
 
 		moduleAddr: moduleAddr,
 		moduleDir:  moduleDir,
@@ -239,14 +203,58 @@ func (meta baseMeta) Workspace() string {
 }
 
 func (meta *baseMeta) Init(ctx context.Context) error {
+	// Create the import directories per parallelism
+	var importBaseDirs []string
+	var importModuleDirs []string
+	modulePaths := []string{}
+	for i, v := range strings.Split(meta.moduleAddr, ".") {
+		if i%2 == 1 {
+			modulePaths = append(modulePaths, v)
+		}
+	}
+	for i := 0; i < meta.parallelism; i++ {
+		dir, err := os.MkdirTemp("", "aztfy-")
+		if err != nil {
+			return fmt.Errorf("creating import directory: %v", err)
+		}
+
+		// Creating the module hierarchy if module path is specified.
+		// The hierarchy used here is not necessarily to be the same as is defined. What we need to guarantee here is the module address in TF is as specified.
+		mdir := dir
+		for _, moduleName := range modulePaths {
+			fpath := filepath.Join(mdir, "main.tf")
+			// #nosec G306
+			if err := os.WriteFile(fpath, []byte(fmt.Sprintf(`module "%s" {
+  source = "./%s"
+}
+`, moduleName, moduleName)), 0644); err != nil {
+				return fmt.Errorf("creating %s: %v", fpath, err)
+			}
+
+			mdir = filepath.Join(mdir, moduleName)
+			// #nosec G301
+			if err := os.Mkdir(mdir, 0750); err != nil {
+				return fmt.Errorf("creating module dir %s: %v", mdir, err)
+			}
+		}
+
+		importModuleDirs = append(importModuleDirs, mdir)
+		importBaseDirs = append(importBaseDirs, dir)
+	}
+	meta.importBaseDirs = importBaseDirs
+	meta.importModuleDirs = importModuleDirs
+
+	// Init terraform
 	if err := meta.initTF(ctx); err != nil {
 		return err
 	}
 
+	// Init provider
 	if err := meta.initProvider(ctx); err != nil {
 		return err
 	}
 
+	// Pull TF state
 	baseState, err := meta.tf.StatePull(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to pull state: %v", err)
@@ -271,7 +279,7 @@ func (meta *baseMeta) CleanTFState(ctx context.Context, addr string) {
 	meta.tf.StateRm(ctx, addr)
 }
 
-func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) {
+func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) error {
 	itemsCh := make(chan *ImportItem, len(items))
 	for _, item := range items {
 		itemsCh <- item
@@ -279,6 +287,8 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) {
 	close(itemsCh)
 
 	wp := workerpool.NewWorkPool(meta.parallelism)
+
+	var thisBaseStateJSON map[string]interface{}
 
 	wp.Run(func(i interface{}) error {
 		idx := i.(int)
@@ -292,11 +302,36 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) {
 		// Ensure the state file is removed after this round import, preparing for the next round.
 		defer os.Remove(stateFile)
 
-		log.Printf("[DEBUG] Merging terraform state file %s", stateFile)
+		// Performance improvement.
+		// In case there is no TF state in the target workspace (no matter local/remote backend), we can avoid using tfmerge (which takes care of terraform internals, like keeping the lineage, etc).
+		// As long as the user ensure there is no address conflicts in the import list (which is always the case by aztfy as the resource names are almost unique),
+		// We are updating the local thisBaseStateJSON here, will update it to the meta.baseState at the end of this function.
+		if len(meta.originBaseState) == 0 {
+			log.Printf("[DEBUG] Merging terraform state file %s (simple)", stateFile)
+			// #nosec G304
+			b, err := os.ReadFile(stateFile)
+			if err != nil {
+				return fmt.Errorf("failed to read state file: %v", err)
+			}
+			var stateJSON map[string]interface{}
+			if err := json.Unmarshal(b, &stateJSON); err != nil {
+				return fmt.Errorf("failed to unmarshal state file: %v", err)
+			}
+			// The first state file to be merged will be took as the base state.
+			if thisBaseStateJSON == nil {
+				thisBaseStateJSON = stateJSON
+				return nil
+			}
+			// The other merges will simply append the "resources".
+			thisBaseStateJSON["resources"] = append(thisBaseStateJSON["resources"].([]interface{}), stateJSON["resources"].([]interface{})...)
+			return nil
+		}
+
+		// Otherwise, we use tfmerge to move resources from the importing state file to the target base state file.
+		log.Printf("[DEBUG] Merging terraform state file %s (tfmerge)", stateFile)
 		newState, err := tfmerge.Merge(ctx, meta.tf, meta.baseState, stateFile)
 		if err != nil {
-			items[idx].ImportError = fmt.Errorf("failed to merge state file: %v", err)
-			return nil
+			return fmt.Errorf("failed to merge state file: %v", err)
 		}
 		meta.baseState = newState
 		return nil
@@ -313,7 +348,29 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) {
 	}
 
 	// #nosec G104
-	wp.Done()
+	if err := wp.Done(); err != nil {
+		return err
+	}
+
+	if thisBaseStateJSON != nil {
+		var baseStateJSON map[string]interface{}
+		if len(meta.baseState) == 0 {
+			baseStateJSON = thisBaseStateJSON
+		} else {
+			if err := json.Unmarshal(meta.baseState, &baseStateJSON); err != nil {
+				return fmt.Errorf("unmarshalling the base state at the end of import: %v", err)
+			}
+			baseStateJSON["resources"] = append(baseStateJSON["resources"].([]interface{}), thisBaseStateJSON["resources"].([]interface{})...)
+		}
+		var err error
+		meta.baseState, err = json.Marshal(baseStateJSON)
+		if err != nil {
+			return fmt.Errorf("marshalling the base state at the end of import: %v", err)
+		}
+		return nil
+	}
+
+	return nil
 }
 
 func (meta baseMeta) PushState(ctx context.Context) error {
@@ -417,13 +474,13 @@ func (meta baseMeta) CleanUpWorkspace(_ context.Context) error {
 			os.RemoveAll(tmpDir)
 		}()
 
-		tmpMainCfg := filepath.Join(tmpDir, meta.filenameMainCfg())
-		tmpProviderCfg := filepath.Join(tmpDir, meta.filenameProviderSetting())
+		tmpMainCfg := filepath.Join(tmpDir, meta.outputFileNames.MainFileName)
+		tmpProviderCfg := filepath.Join(tmpDir, meta.outputFileNames.ProviderFileName)
 
-		if err := utils.CopyFile(filepath.Join(meta.outdir, meta.filenameMainCfg()), tmpMainCfg); err != nil {
+		if err := utils.CopyFile(filepath.Join(meta.outdir, meta.outputFileNames.MainFileName), tmpMainCfg); err != nil {
 			return err
 		}
-		if err := utils.CopyFile(filepath.Join(meta.outdir, meta.filenameProviderSetting()), tmpProviderCfg); err != nil {
+		if err := utils.CopyFile(filepath.Join(meta.outdir, meta.outputFileNames.ProviderFileName), tmpProviderCfg); err != nil {
 			return err
 		}
 
@@ -431,10 +488,10 @@ func (meta baseMeta) CleanUpWorkspace(_ context.Context) error {
 			return err
 		}
 
-		if err := utils.CopyFile(tmpMainCfg, filepath.Join(meta.outdir, meta.filenameMainCfg())); err != nil {
+		if err := utils.CopyFile(tmpMainCfg, filepath.Join(meta.outdir, meta.outputFileNames.MainFileName)); err != nil {
 			return err
 		}
-		if err := utils.CopyFile(tmpProviderCfg, filepath.Join(meta.outdir, meta.filenameProviderSetting())); err != nil {
+		if err := utils.CopyFile(tmpProviderCfg, filepath.Join(meta.outdir, meta.outputFileNames.ProviderFileName)); err != nil {
 			return err
 		}
 	}
@@ -486,39 +543,9 @@ func (meta *baseMeta) buildProviderConfig() string {
 `, strings.Join(lines, "\n"))
 }
 
-func (meta baseMeta) filenameTerraformSetting() string {
-	if meta.useSafeFilename {
-		return "terraform.aztfy.tf"
-	}
-	return "terraform.tf"
-}
-
-func (meta baseMeta) filenameProviderSetting() string {
-	if meta.useSafeFilename {
-		return "provider.aztfy.tf"
-	}
-	return "provider.tf"
-}
-
-func (meta baseMeta) filenameMainCfg() string {
-	if meta.useSafeFilename {
-		return "main.aztfy.tf"
-	}
-	return "main.tf"
-}
-
-func (meta baseMeta) filenameTmpCfg() string {
-	return "tmp.aztfy.tf"
-}
-
 func (meta *baseMeta) initTF(ctx context.Context) error {
 	log.Printf("[INFO] Init Terraform")
-	tfDir := filepath.Join(meta.rootdir, "terraform")
-	// #nosec G301
-	if err := os.MkdirAll(tfDir, 0750); err != nil {
-		return fmt.Errorf("creating terraform cache dir %q: %w", meta.rootdir, err)
-	}
-	execPath, err := FindTerraform(ctx, tfDir)
+	execPath, err := FindTerraform(ctx)
 	if err != nil {
 		return fmt.Errorf("error finding a terraform exectuable: %w", err)
 	}
@@ -567,7 +594,7 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 
 	if module.ProviderConfigs["azurerm"] == nil {
 		log.Printf("[INFO] Output directory doesn't contain provider setting, create one then")
-		cfgFile := filepath.Join(meta.outdir, meta.filenameProviderSetting())
+		cfgFile := filepath.Join(meta.outdir, meta.outputFileNames.ProviderFileName)
 		// #nosec G306
 		if err := os.WriteFile(cfgFile, []byte(meta.buildProviderConfig()), 0644); err != nil {
 			return fmt.Errorf("error creating provider config: %w", err)
@@ -576,7 +603,7 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 
 	if len(module.ProviderConfigs) == 0 {
 		log.Printf("[INFO] Output directory doesn't contain terraform required provider setting, create one then")
-		cfgFile := filepath.Join(meta.outdir, meta.filenameTerraformSetting())
+		cfgFile := filepath.Join(meta.outdir, meta.outputFileNames.TerraformFileName)
 		// #nosec G306
 		if err := os.WriteFile(cfgFile, []byte(meta.buildTerraformConfig(meta.backendType)), 0644); err != nil {
 			return fmt.Errorf("error creating terraform config: %w", err)
@@ -634,7 +661,7 @@ func (meta *baseMeta) importItem(ctx context.Context, item *ImportItem, importId
 	tf := meta.importTFs[importIdx]
 
 	// Construct the empty cfg file for importing
-	cfgFile := filepath.Join(moduleDir, meta.filenameTmpCfg())
+	cfgFile := filepath.Join(moduleDir, "tmp.aztfy.tf")
 	tpl := fmt.Sprintf(`resource "%s" "%s" {}`, item.TFAddr.Type, item.TFAddr.Name)
 	// #nosec G306
 	if err := os.WriteFile(cfgFile, []byte(tpl), 0644); err != nil {
@@ -719,7 +746,7 @@ func (meta baseMeta) terraformMetaHook(configs ConfigInfos, cfgTrans ...TFConfig
 }
 
 func (meta baseMeta) generateConfig(cfgs ConfigInfos) error {
-	cfgFile := filepath.Join(meta.moduleDir, meta.filenameMainCfg())
+	cfgFile := filepath.Join(meta.moduleDir, meta.outputFileNames.MainFileName)
 	buf := bytes.NewBuffer([]byte{})
 	for _, cfg := range cfgs {
 		if _, err := cfg.DumpHCL(buf); err != nil {

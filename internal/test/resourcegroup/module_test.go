@@ -118,7 +118,6 @@ module "sub-module" {
 				BackendType:          "local",
 				DevProvider:          true,
 				Parallelism:          1,
-				Append:               true,
 				ModulePath:           "", // Import to the root module
 			},
 		},

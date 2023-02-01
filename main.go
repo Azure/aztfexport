@@ -348,6 +348,12 @@ The output directory is not empty. Please choose one of actions below:
 
 	mappingFileFlags := append([]cli.Flag{}, commonFlags...)
 
+	safeOutputFileNames := config.OutputFileNames{
+		TerraformFileName: "terraform.aztfy.tf",
+		ProviderFileName:  "provider.aztfy.tf",
+		MainFileName:      "main.aztfy.tf",
+	}
+
 	app := &cli.App{
 		Name:      "aztfy",
 		Version:   getVersion(),
@@ -387,7 +393,6 @@ The output directory is not empty. Please choose one of actions below:
 							AzureSDKCredential:   cred,
 							AzureSDKClientOption: *clientOpt,
 							OutputDir:            flagOutputDir,
-							Append:               flagAppend,
 							DevProvider:          flagDevProvider,
 							ContinueOnError:      flagContinue,
 							BackendType:          flagBackendType,
@@ -400,6 +405,10 @@ The output directory is not empty. Please choose one of actions below:
 						ResourceId:     resId,
 						TFResourceName: flagResName,
 						TFResourceType: flagResType,
+					}
+
+					if flagAppend {
+						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
 					}
 
 					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile)
@@ -434,7 +443,6 @@ The output directory is not empty. Please choose one of actions below:
 							AzureSDKCredential:   cred,
 							AzureSDKClientOption: *clientOpt,
 							OutputDir:            flagOutputDir,
-							Append:               flagAppend,
 							DevProvider:          flagDevProvider,
 							ContinueOnError:      flagContinue,
 							BackendType:          flagBackendType,
@@ -447,6 +455,10 @@ The output directory is not empty. Please choose one of actions below:
 						ResourceGroupName:   rg,
 						ResourceNamePattern: flagPattern,
 						RecursiveQuery:      true,
+					}
+
+					if flagAppend {
+						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
 					}
 
 					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile)
@@ -480,7 +492,6 @@ The output directory is not empty. Please choose one of actions below:
 							AzureSDKCredential:   cred,
 							AzureSDKClientOption: *clientOpt,
 							OutputDir:            flagOutputDir,
-							Append:               flagAppend,
 							DevProvider:          flagDevProvider,
 							ContinueOnError:      flagContinue,
 							BackendType:          flagBackendType,
@@ -493,6 +504,10 @@ The output directory is not empty. Please choose one of actions below:
 						ARGPredicate:        predicate,
 						ResourceNamePattern: flagPattern,
 						RecursiveQuery:      flagRecursive,
+					}
+
+					if flagAppend {
+						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
 					}
 
 					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile)
@@ -527,7 +542,6 @@ The output directory is not empty. Please choose one of actions below:
 							AzureSDKCredential:   cred,
 							AzureSDKClientOption: *clientOpt,
 							OutputDir:            flagOutputDir,
-							Append:               flagAppend,
 							DevProvider:          flagDevProvider,
 							ContinueOnError:      flagContinue,
 							BackendType:          flagBackendType,
@@ -538,6 +552,10 @@ The output directory is not empty. Please choose one of actions below:
 							ModulePath:           flagModulePath,
 						},
 						MappingFile: mapFile,
+					}
+
+					if flagAppend {
+						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
 					}
 
 					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile)

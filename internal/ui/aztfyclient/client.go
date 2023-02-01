@@ -2,6 +2,7 @@ package aztfyclient
 
 import (
 	"context"
+
 	"github.com/Azure/aztfy/pkg/meta"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -104,7 +105,9 @@ func ImportItems(ctx context.Context, c meta.Meta, items []meta.ImportItem) tea.
 			}
 			l = append(l, &items[i])
 		}
-		c.ParallelImport(ctx, l)
+		if err := c.ParallelImport(ctx, l); err != nil {
+			return ErrMsg(err)
+		}
 		return ImportItemsDoneMsg{Items: items}
 	}
 }
