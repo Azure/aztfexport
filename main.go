@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	internalconfig "github.com/Azure/aztfy/internal/config"
+	"github.com/pkg/profile"
 
 	"github.com/Azure/aztfy/pkg/config"
 	"github.com/Azure/aztfy/pkg/log"
@@ -60,6 +61,7 @@ func main() {
 		// common flags (hidden)
 		hflagMockClient bool
 		hflagPlainUI    bool
+		hflagProfile    string
 
 		// Subcommand specific flags
 		//
@@ -307,6 +309,13 @@ The output directory is not empty. Please choose one of actions below:
 			Hidden:      true,
 			Destination: &hflagPlainUI,
 		},
+		&cli.StringFlag{
+			Name:        "profile",
+			EnvVars:     []string{"AZTFY_PROFILE"},
+			Usage:       "Profile the program, possible values are `cpu` and `memory`",
+			Hidden:      true,
+			Destination: &hflagProfile,
+		},
 	}
 
 	resourceFlags := append([]cli.Flag{
@@ -411,7 +420,7 @@ The output directory is not empty. Please choose one of actions below:
 						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
 					}
 
-					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile)
+					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile, hflagProfile)
 				},
 			},
 			{
@@ -461,7 +470,7 @@ The output directory is not empty. Please choose one of actions below:
 						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
 					}
 
-					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile)
+					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile, hflagProfile)
 				},
 			},
 			{
@@ -510,7 +519,7 @@ The output directory is not empty. Please choose one of actions below:
 						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
 					}
 
-					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile)
+					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile, hflagProfile)
 				},
 			},
 			{
@@ -558,7 +567,7 @@ The output directory is not empty. Please choose one of actions below:
 						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
 					}
 
-					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile)
+					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile, hflagProfile)
 				},
 			},
 		},
@@ -702,7 +711,14 @@ func subscriptionIdFromCLI() (string, error) {
 	return strconv.Unquote(strings.TrimSpace(stdout.String()))
 }
 
-func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, genMapFile bool) (result error) {
+func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, genMapFile bool, profileType string) (result error) {
+	switch strings.ToLower(profileType) {
+	case "cpu":
+		defer profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook).Stop()
+	case "mem":
+		defer profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook).Stop()
+	}
+
 	// Initialize log
 	logLevel, err := logLevel(flagLogLevel)
 	if err != nil {
