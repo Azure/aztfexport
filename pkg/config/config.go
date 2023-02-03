@@ -25,7 +25,8 @@ type CommonConfig struct {
 	OutputDir string
 	// OutputFileNames specifies the output terraform filenames
 	OutputFileNames OutputFileNames
-	// DevProvider specifies whether to use a development provider built locally rather than using a version pinned provider from official Terraform registry.
+	// DevProvider specifies whether users have configured the `dev_overrides` for the provider, which then uses a development provider built locally rather than using a version pinned provider from official Terraform registry.
+	// Meanwhile, it will also avoid running `terraform init` during `Init()` for the import directories to avoid caculating the provider hash and populating the lock file (See: https://developer.hashicorp.com/terraform/language/files/dependency-lock). Though the init for the output directory is still needed for initializing the backend.
 	DevProvider bool
 	// ContinueOnError specifies whether continue the progress even hit an import error.
 	ContinueOnError bool
