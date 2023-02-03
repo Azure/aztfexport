@@ -512,6 +512,22 @@ func (meta baseMeta) generateCfg(ctx context.Context, l ImportList, cfgTrans ...
 	return meta.generateConfig(cfginfos)
 }
 
+func (meta *baseMeta) buildTerraformConfigForImportDir() string {
+	if meta.devProvider {
+		return "terraform {}"
+	}
+
+	return fmt.Sprintf(`terraform {
+  required_providers {
+    azurerm = {
+      source = "hashicorp/azurerm"
+      version = "%s"
+    }
+  }
+}
+`, azurerm.ProviderSchemaInfo.Version)
+}
+
 func (meta *baseMeta) buildTerraformConfig(backendType string) string {
 	if meta.devProvider {
 		return fmt.Sprintf(`terraform {
@@ -634,12 +650,16 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 			}
 			terraformFile := filepath.Join(meta.importBaseDirs[i], "terraform.tf")
 			// #nosec G306
-			if err := os.WriteFile(terraformFile, []byte(meta.buildTerraformConfig("local")), 0644); err != nil {
+			if err := os.WriteFile(terraformFile, []byte(meta.buildTerraformConfigForImportDir()), 0644); err != nil {
 				return nil, fmt.Errorf("error creating terraform config: %w", err)
 			}
-			log.Printf(`[DEBUG] Run "terraform init" for the import directory %s`, meta.importBaseDirs[i])
-			if err := meta.importTFs[i].Init(ctx); err != nil {
-				return nil, fmt.Errorf("error running terraform init: %s", err)
+			if meta.devProvider {
+				log.Printf(`[DEBUG] Skip running "terraform init" for the import directory (dev provider): %s`, meta.importBaseDirs[i])
+			} else {
+				log.Printf(`[DEBUG] Run "terraform init" for the import directory %s`, meta.importBaseDirs[i])
+				if err := meta.importTFs[i].Init(ctx); err != nil {
+					return nil, fmt.Errorf("error running terraform init: %s", err)
+				}
 			}
 			return nil, nil
 		})
