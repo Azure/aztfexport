@@ -1,7 +1,7 @@
 package telemetry
 
 import (
-	"fmt"
+	"encoding/json"
 
 	"github.com/microsoft/ApplicationInsights-Go/appinsights"
 	"github.com/microsoft/ApplicationInsights-Go/appinsights/contracts"
@@ -47,9 +47,20 @@ func NewAppInsight(installId string, sessionid string) Client {
 	}
 }
 
-func (c AppInsightClient) Trace(level Level, msg string) {
-	msg = fmt.Sprintf("[%s (%s)] %s", c.installId, c.sessionId, msg)
-	c.TrackTrace(msg, contracts.SeverityLevel(level))
+type ApplicationInsightMessage struct {
+	InstallationId string `json:"installation_id"`
+	SessionId      string `json:"session_id"`
+	Payload        string `json:"payload"`
+}
+
+func (c AppInsightClient) Trace(level Level, payload string) {
+	msg := ApplicationInsightMessage{
+		InstallationId: c.installId,
+		SessionId:      c.sessionId,
+		Payload:        payload,
+	}
+	b, _ := json.Marshal(msg)
+	c.TrackTrace(string(b), contracts.SeverityLevel(level))
 }
 
 func (c AppInsightClient) Close() {
