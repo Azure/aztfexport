@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,6 +15,7 @@ import (
 	"github.com/Azure/aztfy/internal/client"
 	"github.com/Azure/aztfy/internal/resmap"
 	"github.com/Azure/aztfy/internal/utils"
+	"github.com/Azure/aztfy/pkg/telemetry"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
@@ -97,6 +97,8 @@ type baseMeta struct {
 	originBaseState []byte
 	// The current base state, which is mutated during the importing
 	baseState []byte
+
+	tc telemetry.Client
 }
 
 func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
@@ -176,6 +178,12 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	if outputFileNames.MainFileName == "" {
 		outputFileNames.MainFileName = "main.tf"
 	}
+
+	tc := cfg.TelemetryClient
+	if tc == nil {
+		tc = telemetry.NewNullClient()
+	}
+
 	meta := &baseMeta{
 		subscriptionId:    cfg.SubscriptionId,
 		azureSDKCred:      cfg.AzureSDKCredential,
@@ -193,6 +201,8 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 
 		moduleAddr: moduleAddr,
 		moduleDir:  moduleDir,
+
+		tc: tc,
 	}
 
 	return meta, nil
@@ -203,6 +213,8 @@ func (meta baseMeta) Workspace() string {
 }
 
 func (meta *baseMeta) Init(ctx context.Context) error {
+	meta.tc.Trace(telemetry.Info, "Init Enter")
+	defer meta.tc.Trace(telemetry.Info, "Init Leave")
 	// Create the import directories per parallelism
 	var importBaseDirs []string
 	var importModuleDirs []string
@@ -266,6 +278,8 @@ func (meta *baseMeta) Init(ctx context.Context) error {
 }
 
 func (meta baseMeta) DeInit(_ context.Context) error {
+	meta.tc.Trace(telemetry.Info, "DeInit Enter")
+	defer meta.tc.Trace(telemetry.Info, "DeInit Leave")
 	// Clean up the temporary workspaces for parallel import
 	for _, dir := range meta.importBaseDirs {
 		// #nosec G104
@@ -280,6 +294,8 @@ func (meta *baseMeta) CleanTFState(ctx context.Context, addr string) {
 }
 
 func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) error {
+	meta.tc.Trace(telemetry.Info, "ParallelImport Enter")
+	defer meta.tc.Trace(telemetry.Info, "ParallelImport Leave")
 	itemsCh := make(chan *ImportItem, len(items))
 	for _, item := range items {
 		itemsCh <- item
@@ -296,7 +312,7 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) e
 		stateFile := filepath.Join(meta.importBaseDirs[idx], "terraform.tfstate")
 
 		// Don't merge state file if this import dir doesn't contain state file, which can because either this import dir imported nothing, or it encountered import error
-		if _, err := os.Stat(stateFile); errors.Is(err, os.ErrNotExist) {
+		if _, err := os.Stat(stateFile); os.IsNotExist(err) {
 			return nil
 		}
 		// Ensure the state file is removed after this round import, preparing for the next round.
@@ -374,6 +390,8 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) e
 }
 
 func (meta baseMeta) PushState(ctx context.Context) error {
+	meta.tc.Trace(telemetry.Info, "PushState Enter")
+	defer meta.tc.Trace(telemetry.Info, "PushState Leave")
 	// Don't push state if there is no state to push. This might happen when all the resources failed to import with "--continue".
 	if len(meta.baseState) == 0 {
 		return nil
@@ -413,6 +431,8 @@ func (meta baseMeta) PushState(ctx context.Context) error {
 }
 
 func (meta baseMeta) GenerateCfg(ctx context.Context, l ImportList) error {
+	meta.tc.Trace(telemetry.Info, "GenerateCfg Enter")
+	defer meta.tc.Trace(telemetry.Info, "GenerateCfg Leave")
 	return meta.generateCfg(ctx, l, meta.lifecycleAddon, meta.addDependency)
 }
 
@@ -697,11 +717,17 @@ func (meta *baseMeta) importItem(ctx context.Context, item *ImportItem, importId
 	if meta.moduleAddr != "" {
 		addr = meta.moduleAddr + "." + addr
 	}
+
 	log.Printf("[INFO] Importing %s as %s", item.TFResourceId, addr)
+	// The actual resource type names in telemetry is redacted
+	meta.tc.Trace(telemetry.Info, fmt.Sprintf("Importing %s as %s", item.AzureResourceID.TypeString(), addr))
+
 	err := tf.Import(ctx, addr, item.TFResourceId)
 	if err != nil {
-		err = fmt.Errorf("importing %s: %w", item.TFAddr, err)
-		log.Printf("[ERROR] %v", err)
+		log.Printf("[ERROR] Importing %s: %v", item.TFAddr, err)
+		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Importing %s: %v", item.AzureResourceID.TypeString(), err))
+	} else {
+		meta.tc.Trace(telemetry.Info, fmt.Sprintf("Importing %s as %s successfully", item.AzureResourceID.TypeString(), addr))
 	}
 	item.ImportError = err
 	item.Imported = err == nil

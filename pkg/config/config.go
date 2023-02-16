@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/Azure/aztfy/pkg/telemetry"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
 )
@@ -49,6 +50,8 @@ type CommonConfig struct {
 	// HCLOnly is a strange field, which is only used internally by aztfy to indicate whether to remove other files other than TF config at the end.
 	// External Go modules shoudl just ignore it.
 	HCLOnly bool
+	// TelemetryClient is a client to send telemetry
+	TelemetryClient telemetry.Client
 }
 
 type Config struct {
