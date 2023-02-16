@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	internalconfig "github.com/Azure/aztfy/internal/config"
+	"github.com/Azure/aztfy/internal/meta"
 	"github.com/pkg/profile"
 
 	"github.com/Azure/aztfy/pkg/config"
@@ -130,7 +131,7 @@ func main() {
 		if !empty {
 			switch {
 			case flagOverwrite:
-				if err := utils.RemoveEverythingUnder(flagOutputDir); err != nil {
+				if err := utils.RemoveEverythingUnder(flagOutputDir, meta.ResourceMappingFileName); err != nil {
 					return fmt.Errorf("failed to clean up output directory %q: %v", flagOutputDir, err)
 				}
 			case flagAppend:
@@ -154,7 +155,7 @@ The output directory is not empty. Please choose one of actions below:
 				fmt.Scanf("%s", &ans)
 				switch strings.ToLower(ans) {
 				case "y":
-					if err := utils.RemoveEverythingUnder(flagOutputDir); err != nil {
+					if err := utils.RemoveEverythingUnder(flagOutputDir, meta.ResourceMappingFileName); err != nil {
 						return err
 					}
 				case "n":
