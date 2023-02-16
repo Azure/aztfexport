@@ -19,7 +19,6 @@ import (
 	"github.com/Azure/aztfy/pkg/telemetry"
 	"github.com/gofrs/uuid"
 	"github.com/pkg/profile"
-	"github.com/tidwall/gjson"
 
 	"github.com/Azure/aztfy/pkg/config"
 	"github.com/Azure/aztfy/pkg/log"
@@ -94,7 +93,7 @@ func main() {
 			return fmt.Errorf("retrieving the user's HOME directory: %v", err)
 		}
 		configDir := filepath.Join(homeDir, cfgfile.CfgDirName)
-		if err := os.MkdirAll(configDir, 0755); err != nil {
+		if err := os.MkdirAll(configDir, 0750); err != nil {
 			return fmt.Errorf("creating the config directory at %s: %v", configDir, err)
 		}
 		configFile := filepath.Join(configDir, cfgfile.CfgFileName)
@@ -456,37 +455,7 @@ The output directory is not empty. Please choose one of actions below:
 							key := c.Args().Get(0)
 							value := c.Args().Get(1)
 
-							homeDir, err := os.UserHomeDir()
-							if err != nil {
-								return fmt.Errorf("retrieving the user's HOME directory: %v", err)
-							}
-							path := filepath.Join(homeDir, cfgfile.CfgDirName, cfgfile.CfgFileName)
-							b, err := os.ReadFile(path)
-							if err != nil {
-								return fmt.Errorf("reading config: %v", err)
-							}
-
-							var cfg cfgfile.Configuration
-							if err := json.Unmarshal(b, &cfg); err != nil {
-								return fmt.Errorf("unmarshalling the config: %v", err)
-							}
-							newCfg, err := cfgfile.UpdateConfiguration(cfg, key, value)
-							if err != nil {
-								return err
-							}
-							b, err = json.Marshal(*newCfg)
-							if err != nil {
-								return fmt.Errorf("marshalling the updated config: %v", err)
-							}
-							f, err := os.OpenFile(path, os.O_TRUNC|os.O_WRONLY, 0)
-							if err != nil {
-								return fmt.Errorf("open config for writing: %v", err)
-							}
-							defer f.Close()
-							if _, err := f.Write(b); err != nil {
-								return fmt.Errorf("writing config: %v", err)
-							}
-							return nil
+							return cfgfile.SetKey(key, value)
 						},
 					},
 					{
@@ -499,28 +468,11 @@ The output directory is not empty. Please choose one of actions below:
 							}
 
 							key := c.Args().Get(0)
-
-							homeDir, err := os.UserHomeDir()
+							v, err := cfgfile.GetKey(key)
 							if err != nil {
-								return fmt.Errorf("retrieving the user's HOME directory: %v", err)
+								return err
 							}
-							path := filepath.Join(homeDir, cfgfile.CfgDirName, cfgfile.CfgFileName)
-							f, err := os.Open(path)
-							if err != nil {
-								return fmt.Errorf("opening config: %v", err)
-							}
-							defer f.Close()
-
-							b, err := io.ReadAll(f)
-							if err != nil {
-								return fmt.Errorf("reading config: %v", err)
-							}
-
-							result := gjson.Get(string(b), key)
-							if !result.Exists() {
-								return fmt.Errorf("invalid key")
-							}
-							fmt.Println(result.String())
+							fmt.Println(v)
 							return nil
 						},
 					},
@@ -529,27 +481,11 @@ The output directory is not empty. Please choose one of actions below:
 						Usage:     `Show the full configuration for aztfy`,
 						UsageText: "aztfy config show",
 						Action: func(c *cli.Context) error {
-							homeDir, err := os.UserHomeDir()
+							cfg, err := cfgfile.GetConfig()
 							if err != nil {
-								return fmt.Errorf("retrieving the user's HOME directory: %v", err)
-							}
-							path := filepath.Join(homeDir, cfgfile.CfgDirName, cfgfile.CfgFileName)
-							f, err := os.Open(path)
-							if err != nil {
-								return fmt.Errorf("opening config: %v", err)
-							}
-							defer f.Close()
-
-							b, err := io.ReadAll(f)
-							if err != nil {
-								return fmt.Errorf("reading config: %v", err)
-							}
-
-							var v interface{}
-							if err := json.Unmarshal(b, &v); err != nil {
 								return err
 							}
-							b, err = json.MarshalIndent(v, "", "  ")
+							b, err := json.MarshalIndent(cfg, "", "  ")
 							if err != nil {
 								return err
 							}
@@ -831,23 +767,11 @@ func initLog(path string, flagLevel string) error {
 }
 
 func initTelemetryClient() telemetry.Client {
-	telemetrySettingFromConfig := func() (enabled bool, id string) {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return false, ""
-		}
-		path := filepath.Join(homeDir, cfgfile.CfgDirName, cfgfile.CfgFileName)
-		b, err := os.ReadFile(path)
-		if err != nil {
-			return false, ""
-		}
-		var cfg cfgfile.Configuration
-		if err := json.Unmarshal(b, &cfg); err != nil {
-			return false, ""
-		}
-		return cfg.TelemetryEnabled, cfg.InstallationId
+	cfg, err := cfgfile.GetConfig()
+	if err != nil {
+		return telemetry.NewNullClient()
 	}
-	enabled, id := telemetrySettingFromConfig()
+	enabled, id := cfg.TelemetryEnabled, cfg.InstallationId
 	if !enabled {
 		return telemetry.NewNullClient()
 	}

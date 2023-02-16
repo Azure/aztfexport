@@ -14,6 +14,7 @@ func GetInstallationIdFromCLI() (string, error) {
 		return "", fmt.Errorf("retrieving user's HOME dir")
 	}
 	path := filepath.Join(home, ".azure", "azureProfile.json")
+	// #nosec G304
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return "", fmt.Errorf("reading %s: %v", path, err)
@@ -38,6 +39,7 @@ func GetInstallationIdFromPWSH() (string, error) {
 		return "", fmt.Errorf("retrieving user's HOME dir")
 	}
 	path := filepath.Join(home, ".azure", "AzureRmContextSettings.json")
+	// #nosec G304
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return "", fmt.Errorf("reading %s: %v", path, err)

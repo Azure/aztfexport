@@ -39,7 +39,7 @@ func TestUpdateConfiguration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ncfg, err := UpdateConfiguration(tt.ocfg, tt.k, tt.v)
+			ncfg, err := updateConfiguration(tt.ocfg, tt.k, tt.v)
 			if tt.err != "" {
 				require.ErrorContains(t, err, tt.err)
 				return
