@@ -10,6 +10,7 @@ require (
 	github.com/charmbracelet/bubbles v0.14.0
 	github.com/charmbracelet/bubbletea v0.22.1
 	github.com/charmbracelet/lipgloss v0.5.0
+	github.com/gofrs/uuid v3.3.0+incompatible
 	github.com/hashicorp/go-hclog v1.3.1
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/hc-install v0.4.0
@@ -25,16 +26,19 @@ require (
 	github.com/magodo/tfadd v0.10.1-0.20230203080921-e92a7039ec75
 	github.com/magodo/tfmerge v0.0.0-20221214062955-f52e46d03402
 	github.com/magodo/workerpool v0.0.0-20230119025400-40192d2716ea
+	github.com/microsoft/ApplicationInsights-Go v0.4.4
 	github.com/mitchellh/go-wordwrap v1.0.0
 	github.com/muesli/reflow v0.3.0
 	github.com/pkg/profile v1.7.0
 	github.com/stretchr/testify v1.8.1
-	github.com/tidwall/gjson v1.14.1
+	github.com/tidwall/gjson v1.14.2
+	github.com/tidwall/sjson v1.2.5
 	github.com/urfave/cli/v2 v2.24.1
 	github.com/zclconf/go-cty v1.11.0
 )
 
 require (
+	code.cloudfoundry.org/clock v0.0.0-20180518195852-02e53af36e6c // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.1.2 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/alertsmanagement/armalertsmanagement v0.6.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/apimanagement/armapimanagement v1.0.0 // indirect
