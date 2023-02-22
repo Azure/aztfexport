@@ -11,6 +11,7 @@ import (
 
 	"github.com/Azure/aztfy/pkg/config"
 	"github.com/Azure/aztfy/pkg/log"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/Azure/aztfy/internal/client"
 	"github.com/Azure/aztfy/internal/resmap"
@@ -75,7 +76,7 @@ type baseMeta struct {
 	devProvider       bool
 	backendType       string
 	backendConfig     []string
-	providerConfig    map[string]string
+	providerConfig    map[string]cty.Value
 	fullConfig        bool
 	parallelism       int
 	hclOnly           bool
@@ -569,14 +570,13 @@ func (meta *baseMeta) buildTerraformConfig(backendType string) string {
 }
 
 func (meta *baseMeta) buildProviderConfig() string {
-	lines := []string{"  features {}"}
+	f := hclwrite.NewEmptyFile()
+	body := f.Body().AppendNewBlock("provider", []string{"azurerm1"}).Body()
+	body.AppendNewBlock("features", nil)
 	for k, v := range meta.providerConfig {
-		lines = append(lines, fmt.Sprintf("  %s = %s", k, v))
+		body.SetAttributeValue(k, v)
 	}
-	return fmt.Sprintf(`provider "azurerm" {
-%s
-}
-`, strings.Join(lines, "\n"))
+	return string(f.Bytes())
 }
 
 func (meta *baseMeta) initTF(ctx context.Context) error {
