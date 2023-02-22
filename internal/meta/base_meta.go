@@ -571,7 +571,7 @@ func (meta *baseMeta) buildTerraformConfig(backendType string) string {
 
 func (meta *baseMeta) buildProviderConfig() string {
 	f := hclwrite.NewEmptyFile()
-	body := f.Body().AppendNewBlock("provider", []string{"azurerm1"}).Body()
+	body := f.Body().AppendNewBlock("provider", []string{"azurerm"}).Body()
 	body.AppendNewBlock("features", nil)
 	for k, v := range meta.providerConfig {
 		body.SetAttributeValue(k, v)
