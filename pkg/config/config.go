@@ -4,6 +4,7 @@ import (
 	"github.com/Azure/aztfy/pkg/telemetry"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type OutputFileNames struct {
@@ -36,10 +37,10 @@ type CommonConfig struct {
 	// BackendConfig specifies an array of Terraform backend configs.
 	BackendConfig []string
 	// ProviderConfig specifies key value pairs that will be expanded to the terraform-provider-azurerm settings (i.e. `azurerm {}` block)
-	// Currently, only the top level attribute whose type is string is supported.
+	// Currently, only the attributes (rather than blocks) are supported.
 	// This is not used directly by aztfy binary as the provider configs can be set by environment variable already.
 	// While it is useful for module users that want support multi-users scenarios in one process (in which case changing env vars affect the whole process).
-	ProviderConfig map[string]string
+	ProviderConfig map[string]cty.Value
 	// FullConfig specifies whether to export all (non computed-only) Terarform properties when generating TF configs.
 	FullConfig bool
 	// Parallelism specifies the parallelism for the process
