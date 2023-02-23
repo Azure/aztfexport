@@ -227,6 +227,9 @@ The output directory is not empty. Please choose one of actions below:
 						return err
 					}
 				case "n":
+					if flagHCLOnly {
+						return fmt.Errorf("`--hcl-only` can only run within an empty directory")
+					}
 					flagAppend = true
 				default:
 					return fmt.Errorf("the output directory %q is not empty", flagOutputDir)
