@@ -192,6 +192,11 @@ func main() {
 		}
 
 		// Initialize output directory
+		if _, err := os.Stat(flagOutputDir); os.IsNotExist(err) {
+			if err := os.MkdirAll(flagOutputDir, 0750); err != nil {
+				return fmt.Errorf("creating output directory %q: %v", flagOutputDir, err)
+			}
+		}
 		empty, err := utils.DirIsEmpty(flagOutputDir)
 		if err != nil {
 			return fmt.Errorf("failed to check emptiness of output directory %q: %v", flagOutputDir, err)
@@ -266,7 +271,7 @@ The output directory is not empty. Please choose one of actions below:
 			Name:    "output-dir",
 			EnvVars: []string{"AZTFY_OUTPUT_DIR"},
 			Aliases: []string{"o"},
-			Usage:   "The output directory",
+			Usage:   "The output directory (will create if not exists)",
 			Value: func() string {
 				dir, _ := os.Getwd()
 				return dir
