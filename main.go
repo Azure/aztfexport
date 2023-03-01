@@ -173,7 +173,7 @@ func main() {
 				return fmt.Errorf("`--hcl-only` only works for local backend")
 			}
 			if flagAppend {
-				return fmt.Errorf("`--appned` conflicts with `--hcl-only`")
+				return fmt.Errorf("`--append` conflicts with `--hcl-only`")
 			}
 			if flagModulePath != "" {
 				return fmt.Errorf("`--module-path` conflicts with `--hcl-only`")
@@ -233,7 +233,7 @@ The output directory is not empty. Please choose one of actions below:
 					}
 				case "n":
 					if flagHCLOnly {
-						return fmt.Errorf("`--hcl-only` can only run within an empty directory")
+						return fmt.Errorf("`--hcl-only` can only run within an empty directory. Use `-o` to specify an empty directory.")
 					}
 					flagAppend = true
 				default:
@@ -271,7 +271,7 @@ The output directory is not empty. Please choose one of actions below:
 			Name:    "output-dir",
 			EnvVars: []string{"AZTFY_OUTPUT_DIR"},
 			Aliases: []string{"o"},
-			Usage:   "The output directory (will create if not exists)",
+			Usage:   "The output directory (will create the dir if it does not exist)",
 			Value: func() string {
 				dir, _ := os.Getwd()
 				return dir
@@ -282,13 +282,13 @@ The output directory is not empty. Please choose one of actions below:
 			Name:        "overwrite",
 			EnvVars:     []string{"AZTFY_OVERWRITE"},
 			Aliases:     []string{"f"},
-			Usage:       "Whether to overwrite the output directory if it is not empty (use with caution)",
+			Usage:       "Overwrites the output directory if it is not empty (use with caution)",
 			Destination: &flagOverwrite,
 		},
 		&cli.BoolFlag{
 			Name:        "append",
 			EnvVars:     []string{"AZTFY_APPEND"},
-			Usage:       "Skip cleaning up the output directory prior to importing, everything will be imported to the existing state file if any (local backend only)",
+			Usage:       "Imports to the existing state file if any and does not clean up current directory (local backend only)",
 			Destination: &flagAppend,
 		},
 		&cli.BoolFlag{
@@ -313,7 +313,7 @@ The output directory is not empty. Please choose one of actions below:
 		&cli.BoolFlag{
 			Name:        "full-properties",
 			EnvVars:     []string{"AZTFY_FULL_PROPERTIES"},
-			Usage:       "Whether to output all non-computed properties in the generated Terraform configuration? This probably needs manual modifications to make it valid",
+			Usage:       "Includes all non-computed properties in the Terraform configuration? This may require manual modifications to produce a valid config",
 			Value:       false,
 			Destination: &flagFullConfig,
 		},
@@ -335,26 +335,26 @@ The output directory is not empty. Please choose one of actions below:
 			Name:        "continue",
 			EnvVars:     []string{"AZTFY_CONTINUE"},
 			Aliases:     []string{"k"},
-			Usage:       "In non-interactive mode, whether to continue on any import error",
+			Usage:       "For non-interactive mode, toggle to continue on any import error",
 			Destination: &flagContinue,
 		},
 		&cli.BoolFlag{
 			Name:        "generate-mapping-file",
 			Aliases:     []string{"g"},
 			EnvVars:     []string{"AZTFY_GENERATE_MAPPING_FILE"},
-			Usage:       "Only generate the resource mapping file, but DO NOT import any resource",
+			Usage:       "Only generate the resource mapping file, but does NOT import any resources",
 			Destination: &flagGenerateMappingFile,
 		},
 		&cli.BoolFlag{
 			Name:        "hcl-only",
 			EnvVars:     []string{"AZTFY_HCL_ONLY"},
-			Usage:       "Only generate HCL code, but not the files for resource management (e.g. the state file)",
+			Usage:       "Only generates HCL code (and mapping file), but not the files for resource management (e.g. the state file)",
 			Destination: &flagHCLOnly,
 		},
 		&cli.StringFlag{
 			Name:        "module-path",
 			EnvVars:     []string{"AZTFY_MODULE_PATH"},
-			Usage:       `The path of the module (e.g. "module1.module2") where the resources will be imported and config generated. Note that only modules whose "source" is local path is supported. By default, it is the root module.`,
+			Usage:       `The path of the module (e.g. "module1.module2") where the resources will be imported and config generated. Note that only modules whose "source" is local path is supported. Defaults to the root module.`,
 			Destination: &flagModulePath,
 		},
 		&cli.StringFlag{
@@ -427,7 +427,7 @@ The output directory is not empty. Please choose one of actions below:
 			Name:        "recursive",
 			EnvVars:     []string{"AZTFY_RECURSIVE"},
 			Aliases:     []string{"r"},
-			Usage:       "Whether to recursively list child resources of the query result",
+			Usage:       "Recursively list child resources of the resulting query resources",
 			Destination: &flagRecursive,
 		},
 	}, resourceGroupFlags...)
@@ -443,8 +443,8 @@ The output directory is not empty. Please choose one of actions below:
 	app := &cli.App{
 		Name:      "aztfy",
 		Version:   getVersion(),
-		Usage:     "Bring existing Azure resources under Terraform's management",
-		UsageText: "aztfy [command] [option]",
+		Usage:     "A tool to help bring existing Azure resources under Terraform's management",
+		UsageText: "aztfy [command] [option] <resource scope>",
 		Before:    prepareConfigFile,
 		Commands: []*cli.Command{
 			{
@@ -507,7 +507,7 @@ The output directory is not empty. Please choose one of actions below:
 			{
 				Name:      "resource",
 				Aliases:   []string{"res"},
-				Usage:     "Terrafying a single resource",
+				Usage:     "Exporting a single resource",
 				UsageText: "aztfy resource [option] <resource id>",
 				Flags:     resourceFlags,
 				Before:    commandBeforeFunc,
@@ -562,7 +562,7 @@ The output directory is not empty. Please choose one of actions below:
 			{
 				Name:      "resource-group",
 				Aliases:   []string{"rg"},
-				Usage:     "Terrafying a resource group and the nested resources resides within it",
+				Usage:     "Exporting a resource group and the nested resources resides within it",
 				UsageText: "aztfy resource-group [option] <resource group name>",
 				Flags:     resourceGroupFlags,
 				Before:    commandBeforeFunc,
@@ -612,7 +612,7 @@ The output directory is not empty. Please choose one of actions below:
 			},
 			{
 				Name:      "query",
-				Usage:     "Terrafying a customized scope of resources determined by an Azure Resource Graph where predicate",
+				Usage:     "Exporting a customized scope of resources determined by an Azure Resource Graph where predicate",
 				UsageText: "aztfy query [option] <ARG where predicate>",
 				Flags:     queryFlags,
 				Before:    commandBeforeFunc,
@@ -621,7 +621,7 @@ The output directory is not empty. Please choose one of actions below:
 						return fmt.Errorf("No query specified")
 					}
 					if c.NArg() > 1 {
-						return fmt.Errorf("More than one queries specified")
+						return fmt.Errorf("More than one queries specified. Use 'and' with double quotes to run multiple query parameters.")
 					}
 
 					predicate := c.Args().First()
@@ -663,7 +663,7 @@ The output directory is not empty. Please choose one of actions below:
 			{
 				Name:      "mapping-file",
 				Aliases:   []string{"map"},
-				Usage:     "Terrafying a customized scope of resources determined by the resource mapping file",
+				Usage:     "Exporting a customized scope of resources determined by the resource mapping file",
 				UsageText: "aztfy mapping-file [option] <resource mapping file>",
 				Flags:     mappingFileFlags,
 				Before:    commandBeforeFunc,
