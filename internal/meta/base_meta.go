@@ -497,11 +497,19 @@ func (meta baseMeta) CleanUpWorkspace(_ context.Context) error {
 
 		tmpMainCfg := filepath.Join(tmpDir, meta.outputFileNames.MainFileName)
 		tmpProviderCfg := filepath.Join(tmpDir, meta.outputFileNames.ProviderFileName)
+		tmpResourceMappingFileName := filepath.Join(tmpDir, ResourceMappingFileName)
+		tmpSkippedResourcesFileName := filepath.Join(tmpDir, SkippedResourcesFileName)
 
 		if err := utils.CopyFile(filepath.Join(meta.outdir, meta.outputFileNames.MainFileName), tmpMainCfg); err != nil {
 			return err
 		}
 		if err := utils.CopyFile(filepath.Join(meta.outdir, meta.outputFileNames.ProviderFileName), tmpProviderCfg); err != nil {
+			return err
+		}
+		if err := utils.CopyFile(filepath.Join(meta.outdir, ResourceMappingFileName), tmpResourceMappingFileName); err != nil {
+			return err
+		}
+		if err := utils.CopyFile(filepath.Join(meta.outdir, SkippedResourcesFileName), tmpSkippedResourcesFileName); err != nil {
 			return err
 		}
 
@@ -513,6 +521,12 @@ func (meta baseMeta) CleanUpWorkspace(_ context.Context) error {
 			return err
 		}
 		if err := utils.CopyFile(tmpProviderCfg, filepath.Join(meta.outdir, meta.outputFileNames.ProviderFileName)); err != nil {
+			return err
+		}
+		if err := utils.CopyFile(tmpResourceMappingFileName, filepath.Join(meta.outdir, ResourceMappingFileName)); err != nil {
+			return err
+		}
+		if err := utils.CopyFile(tmpSkippedResourcesFileName, filepath.Join(meta.outdir, SkippedResourcesFileName)); err != nil {
 			return err
 		}
 	}
