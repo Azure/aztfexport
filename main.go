@@ -313,7 +313,7 @@ The output directory is not empty. Please choose one of actions below:
 		&cli.BoolFlag{
 			Name:        "full-properties",
 			EnvVars:     []string{"AZTFY_FULL_PROPERTIES"},
-			Usage:       "Includes all non-computed properties in the Terraform configuration? This may require manual modifications to produce a valid config",
+			Usage:       "Includes all non-computed properties in the Terraform configuration. This may require manual modifications to produce a valid config",
 			Value:       false,
 			Destination: &flagFullConfig,
 		},
