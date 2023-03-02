@@ -621,7 +621,7 @@ The output directory is not empty. Please choose one of actions below:
 						return fmt.Errorf("No query specified")
 					}
 					if c.NArg() > 1 {
-						return fmt.Errorf("More than one queries specified. Use 'and' with double quotes to run multiple query parameters.")
+						return fmt.Errorf("More than one queries specified. Use `and` with double quotes to run multiple query parameters.")
 					}
 
 					predicate := c.Args().First()
