@@ -444,7 +444,7 @@ The output directory is not empty. Please choose one of actions below:
 		Name:      "aztfy",
 		Version:   getVersion(),
 		Usage:     "A tool to bring existing Azure resources under Terraform's management",
-		UsageText: "aztfy [command] [option] <resource scope>",
+		UsageText: "aztfy <command> [option] <scope>",
 		Before:    prepareConfigFile,
 		Commands: []*cli.Command{
 			{
