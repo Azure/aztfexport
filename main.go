@@ -342,7 +342,7 @@ The output directory is not empty. Please choose one of actions below:
 			Name:        "generate-mapping-file",
 			Aliases:     []string{"g"},
 			EnvVars:     []string{"AZTFY_GENERATE_MAPPING_FILE"},
-			Usage:       "Only generate the resource mapping file, but does NOT import any resources",
+			Usage:       "Only generate the resource mapping file, but does NOT import any resource",
 			Destination: &flagGenerateMappingFile,
 		},
 		&cli.BoolFlag{
