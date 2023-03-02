@@ -335,7 +335,7 @@ The output directory is not empty. Please choose one of actions below:
 			Name:        "continue",
 			EnvVars:     []string{"AZTFY_CONTINUE"},
 			Aliases:     []string{"k"},
-			Usage:       "For non-interactive mode, toggle to continue on any import error",
+			Usage:       "For non-interactive mode, continue on any import error",
 			Destination: &flagContinue,
 		},
 		&cli.BoolFlag{
