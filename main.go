@@ -288,7 +288,7 @@ The output directory is not empty. Please choose one of actions below:
 		&cli.BoolFlag{
 			Name:        "append",
 			EnvVars:     []string{"AZTFY_APPEND"},
-			Usage:       "Imports to the existing state file if any and does not clean up current directory (local backend only)",
+			Usage:       "Imports to the existing state file if any and does not clean up the output directory (local backend only)",
 			Destination: &flagAppend,
 		},
 		&cli.BoolFlag{
