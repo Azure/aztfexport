@@ -443,7 +443,7 @@ The output directory is not empty. Please choose one of actions below:
 	app := &cli.App{
 		Name:      "aztfy",
 		Version:   getVersion(),
-		Usage:     "A tool to help bring existing Azure resources under Terraform's management",
+		Usage:     "A tool to bring existing Azure resources under Terraform's management",
 		UsageText: "aztfy [command] [option] <resource scope>",
 		Before:    prepareConfigFile,
 		Commands: []*cli.Command{
