@@ -427,7 +427,7 @@ The output directory is not empty. Please choose one of actions below:
 			Name:        "recursive",
 			EnvVars:     []string{"AZTFY_RECURSIVE"},
 			Aliases:     []string{"r"},
-			Usage:       "Recursively list child resources of the resulting query resources",
+			Usage:       "Recursively lists child resources of the resulting query resources",
 			Destination: &flagRecursive,
 		},
 	}, resourceGroupFlags...)
