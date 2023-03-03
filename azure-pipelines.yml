@@ -685,7 +685,7 @@ stages:
               # Install brew
               export NONINTERACTIVE=1
               /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-              export PATH=$PATH:/home/linuxbrew/.linuxbrew/bin
+               eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
               # Bump formula
               cd "$(brew --repository homebrew/core)"
