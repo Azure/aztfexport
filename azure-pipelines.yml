@@ -685,9 +685,10 @@ stages:
               # Install brew
               export NONINTERACTIVE=1
               /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-               eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+              eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
               # Bump formula
+              brew tap homebrew/core
               cd "$(brew --repository homebrew/core)"
               git config user.name "azure-terraform-bot"
               git config user.email "azure-terraform@microsoft.com"
