@@ -116,7 +116,6 @@ module "sub-module" {
 				AzureSDKClientOption: *clientOpt,
 				OutputDir:            aztfyDir,
 				BackendType:          "local",
-				DevProvider:          true,
 				Parallelism:          1,
 				ModulePath:           "", // Import to the root module
 			},
