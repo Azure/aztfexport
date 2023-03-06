@@ -261,7 +261,7 @@ func (m model) View() string {
 }
 
 func (m model) logoView() string {
-	return "\n" + common.TitleStyle.Render(" Azure Terrafy ") + "\n\n"
+	return "\n" + common.TitleStyle.Render(" Microsoft Azure Export for Terraform ") + "\n\n"
 }
 
 func importErrorView(m model) string {
