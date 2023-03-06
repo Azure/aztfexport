@@ -6,13 +6,13 @@
     <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
     <?endif ?>
 
-	<Product Id="*" Name="aztfy" Language="1033" Version="$(env.VERSION)" Manufacturer="Microsoft" UpgradeCode="64fec5fc-2cad-4ec0-95ed-bdf283f6f36d">
+	<Product Id="*" Name="aztfexport" Language="1033" Version="$(env.VERSION)" Manufacturer="Microsoft" UpgradeCode="64fec5fc-2cad-4ec0-95ed-bdf283f6f36d">
 		<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
 
-		<MajorUpgrade DowngradeErrorMessage="A newer version of aztfy is already installed." />
+		<MajorUpgrade DowngradeErrorMessage="A newer version of aztfexport is already installed." />
 		<MediaTemplate EmbedCab="yes" />
 
-		<Feature Id="ProductFeature" Title="aztfy" Level="1">
+		<Feature Id="ProductFeature" Title="aztfexport" Level="1">
 			<ComponentGroupRef Id="ProductComponents" />
 		</Feature>
 	</Product>
@@ -20,7 +20,7 @@
 	<Fragment>
 		<Directory Id="TARGETDIR" Name="SourceDir">
 			<Directory Id="$(var.PlatformProgramFilesFolder)">
-				<Directory Id="INSTALLFOLDER" Name="aztfy" />
+				<Directory Id="INSTALLFOLDER" Name="aztfexport" />
 			</Directory>
 		</Directory>
 	</Fragment>
@@ -28,7 +28,7 @@
 	<Fragment>
 		<ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
 			<Component Id="ProductComponent">
-				<File Id="FILE_aztfyEXE" Source="aztfy.exe" KeyPath="yes" />
+				<File Id="FILE_aztfexportEXE" Source="aztfexport.exe" KeyPath="yes" />
 				<Environment
 					Id = "EnvPath"
 					Action = "set"

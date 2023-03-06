@@ -3,7 +3,7 @@ package resourceset
 import (
 	"sort"
 
-	"github.com/Azure/aztfy/pkg/log"
+	"github.com/Azure/aztfexport/pkg/log"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
 

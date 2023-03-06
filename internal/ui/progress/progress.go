@@ -3,10 +3,10 @@ package progress
 import (
 	"context"
 	"fmt"
-	"github.com/Azure/aztfy/pkg/meta"
+	"github.com/Azure/aztfexport/pkg/meta"
 
-	"github.com/Azure/aztfy/internal/ui/aztfyclient"
-	"github.com/Azure/aztfy/internal/ui/common"
+	"github.com/Azure/aztfexport/internal/ui/aztfexportclient"
+	"github.com/Azure/aztfexport/internal/ui/common"
 	prog "github.com/charmbracelet/bubbles/progress"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -42,7 +42,7 @@ func NewModel(ctx context.Context, c meta.Meta, parallelism int, l meta.ImportLi
 
 func (m Model) Init() tea.Cmd {
 	if m.iterationDone() {
-		return aztfyclient.FinishImport(m.l)
+		return aztfexportclient.FinishImport(m.l)
 	}
 
 	n := m.parallelism
@@ -50,7 +50,7 @@ func (m Model) Init() tea.Cmd {
 		n = len(m.l) - m.idx
 	}
 	return tea.Batch(
-		aztfyclient.ImportItems(m.ctx, m.c, m.l[m.idx:m.idx+n]),
+		aztfexportclient.ImportItems(m.ctx, m.c, m.l[m.idx:m.idx+n]),
 	)
 }
 
@@ -65,7 +65,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.progress = progressModel.(prog.Model)
 		return m, cmd
 
-	case aztfyclient.ImportItemsDoneMsg:
+	case aztfexportclient.ImportItemsDoneMsg:
 		var cmds []tea.Cmd
 
 		// Update results
@@ -88,7 +88,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 		if m.iterationDone() {
 			cmds = append(cmds, m.progress.SetPercent(1))
-			cmds = append(cmds, aztfyclient.FinishImport(m.l))
+			cmds = append(cmds, aztfexportclient.FinishImport(m.l))
 			return m, tea.Batch(cmds...)
 		}
 
@@ -98,7 +98,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		if m.idx+m.parallelism > len(m.l) {
 			n = len(m.l) - m.idx
 		}
-		cmds = append(cmds, aztfyclient.ImportItems(m.ctx, m.c, m.l[m.idx:m.idx+n]))
+		cmds = append(cmds, aztfexportclient.ImportItems(m.ctx, m.c, m.l[m.idx:m.idx+n]))
 		return m, tea.Batch(cmds...)
 
 	default:

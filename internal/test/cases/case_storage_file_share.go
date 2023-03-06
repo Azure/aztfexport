@@ -3,9 +3,9 @@ package cases
 import (
 	"fmt"
 
-	"github.com/Azure/aztfy/internal/test"
+	"github.com/Azure/aztfexport/internal/test"
 
-	"github.com/Azure/aztfy/internal/resmap"
+	"github.com/Azure/aztfexport/internal/resmap"
 )
 
 var _ Case = CaseStorageFileShare{}
@@ -27,14 +27,14 @@ resource "azurerm_resource_group" "test" {
 }
 
 resource "azurerm_storage_account" "test" {
-  name                     = "aztfy%[2]s"
+  name                     = "aztfexport%[2]s"
   resource_group_name      = azurerm_resource_group.test.name
   location                 = azurerm_resource_group.test.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
 }
 resource "azurerm_storage_share" "test" {
-  name                 = "aztfy%[2]s"
+  name                 = "aztfexport%[2]s"
   storage_account_name = azurerm_storage_account.test.name
   quota                = 5
 }
@@ -53,16 +53,16 @@ func (CaseStorageFileShare) ResourceMapping(d test.Data) (resmap.ResourceMapping
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.storage/storageaccounts/aztfy%[3]s" | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.storage/storageaccounts/aztfexport%[3]s" | Quote }}: {
   "resource_type": "azurerm_storage_account",
   "resource_name": "test",
-  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Storage/storageAccounts/aztfy%[3]s"
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Storage/storageAccounts/aztfexport%[3]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.storage/storageaccounts/aztfy%[3]s/fileservices/default/shares/aztfy%[3]s" | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.storage/storageaccounts/aztfexport%[3]s/fileservices/default/shares/aztfexport%[3]s" | Quote }}: {
   "resource_type": "azurerm_storage_share",
   "resource_name": "test",
-  "resource_id": "https://aztfy%[3]s.file.core.windows.net/aztfy%[3]s"
+  "resource_id": "https://aztfexport%[3]s.file.core.windows.net/aztfexport%[3]s"
 }
 
 }
@@ -76,11 +76,11 @@ func (CaseStorageFileShare) SingleResourceContext(d test.Data) ([]SingleResource
 			ExpectResourceCount: 1,
 		},
 		{
-			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Storage/storageAccounts/aztfy%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Storage/storageAccounts/aztfexport%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
 			ExpectResourceCount: 1,
 		},
 		{
-			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Storage/storageAccounts/aztfy%[3]s/fileServices/default/shares/aztfy%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Storage/storageAccounts/aztfexport%[3]s/fileServices/default/shares/aztfexport%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
 			ExpectResourceCount: 1,
 		},
 	}, nil

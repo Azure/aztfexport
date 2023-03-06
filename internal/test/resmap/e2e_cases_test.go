@@ -8,14 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Azure/aztfy/internal/client"
-	internalconfig "github.com/Azure/aztfy/internal/config"
+	"github.com/Azure/aztfexport/internal/client"
+	internalconfig "github.com/Azure/aztfexport/internal/config"
 
-	"github.com/Azure/aztfy/pkg/config"
+	"github.com/Azure/aztfexport/pkg/config"
 
-	"github.com/Azure/aztfy/internal"
-	"github.com/Azure/aztfy/internal/test"
-	"github.com/Azure/aztfy/internal/test/cases"
+	"github.com/Azure/aztfexport/internal"
+	"github.com/Azure/aztfexport/internal/test"
+	"github.com/Azure/aztfexport/internal/test/cases"
 	"github.com/hashicorp/terraform-exec/tfexec"
 	"github.com/stretchr/testify/require"
 )
@@ -59,7 +59,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 	t.Logf("Sleep for %v to wait for the just created resources be recorded in ARG\n", delay)
 	time.Sleep(delay)
 
-	aztfyDir := t.TempDir()
+	aztfexportDir := t.TempDir()
 
 	mapFile := filepath.Join(t.TempDir(), "mapping.json")
 	resMapping, err := c.ResourceMapping(d)
@@ -76,7 +76,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 				SubscriptionId:       os.Getenv("ARM_SUBSCRIPTION_ID"),
 				AzureSDKCredential:   cred,
 				AzureSDKClientOption: *clientOpt,
-				OutputDir:            aztfyDir,
+				OutputDir:            aztfexportDir,
 				BackendType:          "local",
 				DevProvider:          true,
 				Parallelism:          1,
@@ -89,7 +89,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 	if err := internal.BatchImport(ctx, cfg); err != nil {
 		t.Fatalf("failed to run batch import: %v", err)
 	}
-	test.Verify(t, ctx, aztfyDir, tfexecPath, len(resMapping))
+	test.Verify(t, ctx, aztfexportDir, tfexecPath, len(resMapping))
 }
 
 func TestComputeVMDisk(t *testing.T) {

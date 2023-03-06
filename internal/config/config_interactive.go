@@ -1,6 +1,6 @@
 package config
 
-import "github.com/Azure/aztfy/pkg/config"
+import "github.com/Azure/aztfexport/pkg/config"
 
 type InteractiveModeConfig struct {
 	config.Config

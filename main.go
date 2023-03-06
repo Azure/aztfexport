@@ -14,24 +14,24 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Azure/aztfy/internal/cfgfile"
-	internalconfig "github.com/Azure/aztfy/internal/config"
-	"github.com/Azure/aztfy/internal/meta"
-	"github.com/Azure/aztfy/pkg/telemetry"
+	"github.com/Azure/aztfexport/internal/cfgfile"
+	internalconfig "github.com/Azure/aztfexport/internal/config"
+	"github.com/Azure/aztfexport/internal/meta"
+	"github.com/Azure/aztfexport/pkg/telemetry"
 	"github.com/gofrs/uuid"
 	"github.com/pkg/profile"
 
-	"github.com/Azure/aztfy/pkg/config"
-	"github.com/Azure/aztfy/pkg/log"
+	"github.com/Azure/aztfexport/pkg/config"
+	"github.com/Azure/aztfexport/pkg/log"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/magodo/armid"
 	"github.com/magodo/azlist/azlist"
 	"github.com/magodo/tfadd/providers/azurerm"
 
-	"github.com/Azure/aztfy/internal"
-	"github.com/Azure/aztfy/internal/ui"
-	"github.com/Azure/aztfy/internal/utils"
+	"github.com/Azure/aztfexport/internal"
+	"github.com/Azure/aztfexport/internal/ui"
+	"github.com/Azure/aztfexport/internal/utils"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
@@ -88,7 +88,7 @@ func main() {
 	)
 
 	prepareConfigFile := func(ctx *cli.Context) error {
-		// Prepare the config directory at $HOME/.aztfy
+		// Prepare the config directory at $HOME/.aztfexport
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return fmt.Errorf("retrieving the user's HOME directory: %v", err)
@@ -244,7 +244,7 @@ The output directory is not empty. Please choose one of actions below:
 
 		// Identify the subscription id, which comes from one of following (starts from the highest priority):
 		// - Command line option
-		// - Env variable: AZTFY_SUBSCRIPTION_ID
+		// - Env variable: AZTFEXPORT_SUBSCRIPTION_ID
 		// - Env variable: ARM_SUBSCRIPTION_ID
 		// - Output of azure cli, the current active subscription
 		if flagSubscriptionId == "" {
@@ -262,14 +262,14 @@ The output directory is not empty. Please choose one of actions below:
 		&cli.StringFlag{
 			Name: "subscription-id",
 			// Honor the "ARM_SUBSCRIPTION_ID" as is used by the AzureRM provider, for easier use.
-			EnvVars:     []string{"AZTFY_SUBSCRIPTION_ID", "ARM_SUBSCRIPTION_ID"},
+			EnvVars:     []string{"AZTFEXPORT_SUBSCRIPTION_ID", "ARM_SUBSCRIPTION_ID"},
 			Aliases:     []string{"s"},
 			Usage:       "The subscription id",
 			Destination: &flagSubscriptionId,
 		},
 		&cli.StringFlag{
 			Name:    "output-dir",
-			EnvVars: []string{"AZTFY_OUTPUT_DIR"},
+			EnvVars: []string{"AZTFEXPORT_OUTPUT_DIR"},
 			Aliases: []string{"o"},
 			Usage:   "The output directory (will create the dir if it does not exist)",
 			Value: func() string {
@@ -280,60 +280,60 @@ The output directory is not empty. Please choose one of actions below:
 		},
 		&cli.BoolFlag{
 			Name:        "overwrite",
-			EnvVars:     []string{"AZTFY_OVERWRITE"},
+			EnvVars:     []string{"AZTFEXPORT_OVERWRITE"},
 			Aliases:     []string{"f"},
 			Usage:       "Overwrites the output directory if it is not empty (use with caution)",
 			Destination: &flagOverwrite,
 		},
 		&cli.BoolFlag{
 			Name:        "append",
-			EnvVars:     []string{"AZTFY_APPEND"},
+			EnvVars:     []string{"AZTFEXPORT_APPEND"},
 			Usage:       "Imports to the existing state file if any and does not clean up the output directory (local backend only)",
 			Destination: &flagAppend,
 		},
 		&cli.BoolFlag{
 			Name:        "dev-provider",
-			EnvVars:     []string{"AZTFY_DEV_PROVIDER"},
+			EnvVars:     []string{"AZTFEXPORT_DEV_PROVIDER"},
 			Usage:       fmt.Sprintf("Use the local development AzureRM provider, instead of the pinned provider in v%s", azurerm.ProviderSchemaInfo.Version),
 			Destination: &flagDevProvider,
 		},
 		&cli.StringFlag{
 			Name:        "backend-type",
-			EnvVars:     []string{"AZTFY_BACKEND_TYPE"},
+			EnvVars:     []string{"AZTFEXPORT_BACKEND_TYPE"},
 			Usage:       "The Terraform backend used to store the state",
 			Value:       "local",
 			Destination: &flagBackendType,
 		},
 		&cli.StringSliceFlag{
 			Name:        "backend-config",
-			EnvVars:     []string{"AZTFY_BACKEND_CONFIG"},
+			EnvVars:     []string{"AZTFEXPORT_BACKEND_CONFIG"},
 			Usage:       "The Terraform backend config",
 			Destination: &flagBackendConfig,
 		},
 		&cli.BoolFlag{
 			Name:        "full-properties",
-			EnvVars:     []string{"AZTFY_FULL_PROPERTIES"},
+			EnvVars:     []string{"AZTFEXPORT_FULL_PROPERTIES"},
 			Usage:       "Includes all non-computed properties in the Terraform configuration. This may require manual modifications to produce a valid config",
 			Value:       false,
 			Destination: &flagFullConfig,
 		},
 		&cli.IntFlag{
 			Name:        "parallelism",
-			EnvVars:     []string{"AZTFY_PARALLELISM"},
+			EnvVars:     []string{"AZTFEXPORT_PARALLELISM"},
 			Usage:       "Limit the number of parallel operations, i.e., resource discovery, import",
 			Value:       10,
 			Destination: &flagParallelism,
 		},
 		&cli.BoolFlag{
 			Name:        "non-interactive",
-			EnvVars:     []string{"AZTFY_NON_INTERACTIVE"},
+			EnvVars:     []string{"AZTFEXPORT_NON_INTERACTIVE"},
 			Aliases:     []string{"n"},
 			Usage:       "Non-interactive mode",
 			Destination: &flagNonInteractive,
 		},
 		&cli.BoolFlag{
 			Name:        "continue",
-			EnvVars:     []string{"AZTFY_CONTINUE"},
+			EnvVars:     []string{"AZTFEXPORT_CONTINUE"},
 			Aliases:     []string{"k"},
 			Usage:       "For non-interactive mode, continue on any import error",
 			Destination: &flagContinue,
@@ -341,31 +341,29 @@ The output directory is not empty. Please choose one of actions below:
 		&cli.BoolFlag{
 			Name:        "generate-mapping-file",
 			Aliases:     []string{"g"},
-			EnvVars:     []string{"AZTFY_GENERATE_MAPPING_FILE"},
+			EnvVars:     []string{"AZTFEXPORT_GENERATE_MAPPING_FILE"},
 			Usage:       "Only generate the resource mapping file, but does NOT import any resource",
 			Destination: &flagGenerateMappingFile,
 		},
-		&cli.BoolFlag{
-			Name:        "hcl-only",
-			EnvVars:     []string{"AZTFY_HCL_ONLY"},
+			EnvVars:     []string{"AZTFEXPORT_HCL_ONLY"},
 			Usage:       "Only generates HCL code (and mapping file), but not the files for resource management (e.g. the state file)",
 			Destination: &flagHCLOnly,
 		},
 		&cli.StringFlag{
 			Name:        "module-path",
-			EnvVars:     []string{"AZTFY_MODULE_PATH"},
+			EnvVars:     []string{"AZTFEXPORT_MODULE_PATH"},
 			Usage:       `The path of the module (e.g. "module1.module2") where the resources will be imported and config generated. Note that only modules whose "source" is local path is supported. Defaults to the root module.`,
 			Destination: &flagModulePath,
 		},
 		&cli.StringFlag{
 			Name:        "log-path",
-			EnvVars:     []string{"AZTFY_LOG_PATH"},
+			EnvVars:     []string{"AZTFEXPORT_LOG_PATH"},
 			Usage:       "The file path to store the log",
 			Destination: &flagLogPath,
 		},
 		&cli.StringFlag{
 			Name:        "log-level",
-			EnvVars:     []string{"AZTFY_LOG_LEVEL"},
+			EnvVars:     []string{"AZTFEXPORT_LOG_LEVEL"},
 			Usage:       `Log level, can be one of "ERROR", "WARN", "INFO", "DEBUG" and "TRACE"`,
 			Destination: &flagLogLevel,
 			Value:       "INFO",
@@ -374,21 +372,21 @@ The output directory is not empty. Please choose one of actions below:
 		// Hidden flags
 		&cli.BoolFlag{
 			Name:        "mock-client",
-			EnvVars:     []string{"AZTFY_MOCK_CLIENT"},
+			EnvVars:     []string{"AZTFEXPORT_MOCK_CLIENT"},
 			Usage:       "Whether to mock the client. This is for testing UI",
 			Hidden:      true,
 			Destination: &hflagMockClient,
 		},
 		&cli.BoolFlag{
 			Name:        "plain-ui",
-			EnvVars:     []string{"AZTFY_PLAIN_UI"},
+			EnvVars:     []string{"AZTFEXPORT_PLAIN_UI"},
 			Usage:       "In non-interactive mode, print the progress information line by line, rather than the spinner UI",
 			Hidden:      true,
 			Destination: &hflagPlainUI,
 		},
 		&cli.StringFlag{
 			Name:        "profile",
-			EnvVars:     []string{"AZTFY_PROFILE"},
+			EnvVars:     []string{"AZTFEXPORT_PROFILE"},
 			Usage:       "Profile the program, possible values are `cpu` and `memory`",
 			Hidden:      true,
 			Destination: &hflagProfile,
@@ -398,14 +396,14 @@ The output directory is not empty. Please choose one of actions below:
 	resourceFlags := append([]cli.Flag{
 		&cli.StringFlag{
 			Name:        "name",
-			EnvVars:     []string{"AZTFY_NAME"},
+			EnvVars:     []string{"AZTFEXPORT_NAME"},
 			Usage:       `The Terraform resource name.`,
 			Value:       "res-0",
 			Destination: &flagResName,
 		},
 		&cli.StringFlag{
 			Name:        "type",
-			EnvVars:     []string{"AZTFY_TYPE"},
+			EnvVars:     []string{"AZTFEXPORT_TYPE"},
 			Usage:       `The Terraform resource type.`,
 			Destination: &flagResType,
 		},
@@ -414,7 +412,7 @@ The output directory is not empty. Please choose one of actions below:
 	resourceGroupFlags := append([]cli.Flag{
 		&cli.StringFlag{
 			Name:        "name-pattern",
-			EnvVars:     []string{"AZTFY_NAME_PATTERN"},
+			EnvVars:     []string{"AZTFEXPORT_NAME_PATTERN"},
 			Aliases:     []string{"p"},
 			Usage:       `The pattern of the resource name. The semantic of a pattern is the same as Go's os.CreateTemp()`,
 			Value:       "res-",
@@ -425,7 +423,7 @@ The output directory is not empty. Please choose one of actions below:
 	queryFlags := append([]cli.Flag{
 		&cli.BoolFlag{
 			Name:        "recursive",
-			EnvVars:     []string{"AZTFY_RECURSIVE"},
+			EnvVars:     []string{"AZTFEXPORT_RECURSIVE"},
 			Aliases:     []string{"r"},
 			Usage:       "Recursively lists child resources of the resulting query resources",
 			Destination: &flagRecursive,
@@ -435,27 +433,27 @@ The output directory is not empty. Please choose one of actions below:
 	mappingFileFlags := append([]cli.Flag{}, commonFlags...)
 
 	safeOutputFileNames := config.OutputFileNames{
-		TerraformFileName: "terraform.aztfy.tf",
-		ProviderFileName:  "provider.aztfy.tf",
-		MainFileName:      "main.aztfy.tf",
+		TerraformFileName: "terraform.aztfexport.tf",
+		ProviderFileName:  "provider.aztfexport.tf",
+		MainFileName:      "main.aztfexport.tf",
 	}
 
 	app := &cli.App{
-		Name:      "aztfy",
+		Name:      "aztfexport",
 		Version:   getVersion(),
 		Usage:     "A tool to bring existing Azure resources under Terraform's management",
-		UsageText: "aztfy <command> [option] <scope>",
+		UsageText: "aztfexport <command> [option] <scope>",
 		Before:    prepareConfigFile,
 		Commands: []*cli.Command{
 			{
 				Name:      "config",
-				Usage:     `aztfy configuration command`,
-				UsageText: "aztfy config [subcommand]",
+				Usage:     `Configuring the tool`,
+				UsageText: "aztfexport config [subcommand]",
 				Subcommands: []*cli.Command{
 					{
 						Name:      "set",
-						Usage:     `Set a configuration item for aztfy`,
-						UsageText: "aztfy config set key value",
+						Usage:     `Set a configuration item for aztfexport`,
+						UsageText: "aztfexport config set key value",
 						Action: func(c *cli.Context) error {
 							if c.NArg() != 2 {
 								return fmt.Errorf("Please specify a configuration key and value")
@@ -469,8 +467,8 @@ The output directory is not empty. Please choose one of actions below:
 					},
 					{
 						Name:      "get",
-						Usage:     `Get a configuration item for aztfy`,
-						UsageText: "aztfy config get key",
+						Usage:     `Get a configuration item for aztfexport`,
+						UsageText: "aztfexport config get key",
 						Action: func(c *cli.Context) error {
 							if c.NArg() != 1 {
 								return fmt.Errorf("Please specify a configuration key")
@@ -487,8 +485,8 @@ The output directory is not empty. Please choose one of actions below:
 					},
 					{
 						Name:      "show",
-						Usage:     `Show the full configuration for aztfy`,
-						UsageText: "aztfy config show",
+						Usage:     `Show the full configuration for aztfexport`,
+						UsageText: "aztfexport config show",
 						Action: func(c *cli.Context) error {
 							cfg, err := cfgfile.GetConfig()
 							if err != nil {
@@ -508,7 +506,7 @@ The output directory is not empty. Please choose one of actions below:
 				Name:      "resource",
 				Aliases:   []string{"res"},
 				Usage:     "Exporting a single resource",
-				UsageText: "aztfy resource [option] <resource id>",
+				UsageText: "aztfexport resource [option] <resource id>",
 				Flags:     resourceFlags,
 				Before:    commandBeforeFunc,
 				Action: func(c *cli.Context) error {
@@ -563,7 +561,7 @@ The output directory is not empty. Please choose one of actions below:
 				Name:      "resource-group",
 				Aliases:   []string{"rg"},
 				Usage:     "Exporting a resource group and the nested resources resides within it",
-				UsageText: "aztfy resource-group [option] <resource group name>",
+				UsageText: "aztfexport resource-group [option] <resource group name>",
 				Flags:     resourceGroupFlags,
 				Before:    commandBeforeFunc,
 				Action: func(c *cli.Context) error {
@@ -613,7 +611,7 @@ The output directory is not empty. Please choose one of actions below:
 			{
 				Name:      "query",
 				Usage:     "Exporting a customized scope of resources determined by an Azure Resource Graph where predicate",
-				UsageText: "aztfy query [option] <ARG where predicate>",
+				UsageText: "aztfexport query [option] <ARG where predicate>",
 				Flags:     queryFlags,
 				Before:    commandBeforeFunc,
 				Action: func(c *cli.Context) error {
@@ -664,7 +662,7 @@ The output directory is not empty. Please choose one of actions below:
 				Name:      "mapping-file",
 				Aliases:   []string{"map"},
 				Usage:     "Exporting a customized scope of resources determined by the resource mapping file",
-				UsageText: "aztfy mapping-file [option] <resource mapping file>",
+				UsageText: "aztfexport mapping-file [option] <resource mapping file>",
 				Flags:     mappingFileFlags,
 				Before:    commandBeforeFunc,
 				Action: func(c *cli.Context) error {
@@ -753,14 +751,14 @@ func initLog(path string, flagLevel string) error {
 		}
 
 		logger := hclog.New(&hclog.LoggerOptions{
-			Name:   "aztfy",
+			Name:   "aztfexport",
 			Level:  level,
 			Output: f,
 		}).StandardLogger(&hclog.StandardLoggerOptions{
 			InferLevels: true,
 		})
 
-		// Enable log for aztfy
+		// Enable log for aztfexport
 		log.SetLogger(logger)
 
 		// Enable log for azlist
@@ -841,7 +839,7 @@ func buildAzureSDKCredAndClientOpt() (azcore.TokenCredential, *arm.ClientOptions
 		ClientOptions: policy.ClientOptions{
 			Cloud: cloudCfg,
 			Telemetry: policy.TelemetryOptions{
-				ApplicationID: "aztfy",
+				ApplicationID: "aztfexport",
 				Disabled:      false,
 			},
 			Logging: policy.LogOptions{
@@ -898,17 +896,17 @@ func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, 
 
 	defer func() {
 		if result == nil {
-			log.Printf("[INFO] aztfy ends")
-			tc.Trace(telemetry.Info, "aztfy ends")
+			log.Printf("[INFO] aztfexport ends")
+			tc.Trace(telemetry.Info, "aztfexport ends")
 		} else {
-			log.Printf("[ERROR] aztfy ends with error: %v", result)
-			tc.Trace(telemetry.Error, fmt.Sprintf("aztfy ends with error: %v", result))
+			log.Printf("[ERROR] aztfexport ends with error: %v", result)
+			tc.Trace(telemetry.Error, fmt.Sprintf("aztfexport ends with error: %v", result))
 		}
 		tc.Close()
 	}()
 
-	log.Printf("[INFO] aztfy starts with config: %#v", cfg)
-	tc.Trace(telemetry.Info, "aztfy starts")
+	log.Printf("[INFO] aztfexport starts with config: %#v", cfg)
+	tc.Trace(telemetry.Info, "aztfexport starts")
 
 	// Run in non-interactive mode
 	if batch {

@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
-	internalconfig "github.com/Azure/aztfy/internal/config"
-	"github.com/Azure/aztfy/pkg/config"
+	internalconfig "github.com/Azure/aztfexport/internal/config"
+	"github.com/Azure/aztfexport/pkg/config"
 
-	"github.com/Azure/aztfy/internal"
-	"github.com/Azure/aztfy/internal/test"
-	"github.com/Azure/aztfy/internal/utils"
+	"github.com/Azure/aztfexport/internal"
+	"github.com/Azure/aztfexport/internal/test"
+	"github.com/Azure/aztfexport/internal/utils"
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
@@ -86,14 +86,14 @@ resource "azurerm_subnet" "test" {
 	cred, clientOpt := test.BuildCredAndClientOpt(t)
 
 	// Import in non-recursive mode
-	aztfyDir := t.TempDir()
+	aztfexportDir := t.TempDir()
 	cfg := internalconfig.NonInteractiveModeConfig{
 		Config: config.Config{
 			CommonConfig: config.CommonConfig{
 				SubscriptionId:       os.Getenv("ARM_SUBSCRIPTION_ID"),
 				AzureSDKCredential:   cred,
 				AzureSDKClientOption: *clientOpt,
-				OutputDir:            aztfyDir,
+				OutputDir:            aztfexportDir,
 				BackendType:          "local",
 				DevProvider:          true,
 				Parallelism:          1,
@@ -110,7 +110,7 @@ resource "azurerm_subnet" "test" {
 	if err := internal.BatchImport(ctx, cfg); err != nil {
 		t.Fatalf("failed to run batch import non-recursively: %v", err)
 	}
-	test.Verify(t, ctx, aztfyDir, tfexecPath, 1)
+	test.Verify(t, ctx, aztfexportDir, tfexecPath, 1)
 
 	// Import in recursive mode
 	t.Log("Importing in recursive mode")
@@ -121,5 +121,5 @@ resource "azurerm_subnet" "test" {
 	if err := internal.BatchImport(ctx, cfg); err != nil {
 		t.Fatalf("failed to run batch import recursively: %v", err)
 	}
-	test.Verify(t, ctx, aztfyDir, tfexecPath, 2)
+	test.Verify(t, ctx, aztfexportDir, tfexecPath, 2)
 }

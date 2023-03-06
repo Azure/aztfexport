@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Azure/aztfy/internal/resourceset"
-	"github.com/Azure/aztfy/internal/tfaddr"
-	"github.com/Azure/aztfy/pkg/config"
-	"github.com/Azure/aztfy/pkg/log"
+	"github.com/Azure/aztfexport/internal/resourceset"
+	"github.com/Azure/aztfexport/internal/tfaddr"
+	"github.com/Azure/aztfexport/pkg/config"
+	"github.com/Azure/aztfexport/pkg/log"
 	"github.com/magodo/armid"
 	"github.com/magodo/aztft/aztft"
 )
@@ -56,7 +56,7 @@ func (meta *MetaResource) ListResource(_ context.Context) (ImportList, error) {
 
 	// This is to record known resource types. In case there is a known resource type and there comes another same typed resource,
 	// then we need to modify the resource name. Otherwise, there will be a resource address conflict.
-	// See https://github.com/Azure/aztfy/issues/275 for an example.
+	// See https://github.com/Azure/aztfexport/issues/275 for an example.
 	rtCnt := map[string]int{}
 
 	var l ImportList

@@ -17,7 +17,7 @@ type stdoutMessager struct {
 
 func NewStdoutMessager() Messager {
 	return &stdoutMessager{
-		Logger: log.New(os.Stdout, "[aztfy] ", log.LstdFlags),
+		Logger: log.New(os.Stdout, "[aztfexport] ", log.LstdFlags),
 	}
 }
 

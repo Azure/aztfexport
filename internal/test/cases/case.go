@@ -1,8 +1,8 @@
 package cases
 
 import (
-	"github.com/Azure/aztfy/internal/resmap"
-	"github.com/Azure/aztfy/internal/test"
+	"github.com/Azure/aztfexport/internal/resmap"
+	"github.com/Azure/aztfexport/internal/test"
 )
 
 type SingleResourceContext struct {
