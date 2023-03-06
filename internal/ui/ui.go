@@ -4,19 +4,19 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Azure/aztfy/internal/config"
-	internalmeta "github.com/Azure/aztfy/internal/meta"
-	"github.com/Azure/aztfy/pkg/log"
-	"github.com/Azure/aztfy/pkg/meta"
+	"github.com/Azure/aztfexport/internal/config"
+	internalmeta "github.com/Azure/aztfexport/internal/meta"
+	"github.com/Azure/aztfexport/pkg/log"
+	"github.com/Azure/aztfexport/pkg/meta"
 
-	"github.com/Azure/aztfy/internal/ui/aztfyclient"
-	"github.com/Azure/aztfy/internal/ui/common"
+	"github.com/Azure/aztfexport/internal/ui/aztfexportclient"
+	"github.com/Azure/aztfexport/internal/ui/common"
 	"github.com/mitchellh/go-wordwrap"
 
 	"github.com/muesli/reflow/indent"
 
-	"github.com/Azure/aztfy/internal/ui/importlist"
-	"github.com/Azure/aztfy/internal/ui/progress"
+	"github.com/Azure/aztfexport/internal/ui/importlist"
+	"github.com/Azure/aztfexport/internal/ui/progress"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
@@ -82,7 +82,7 @@ type model struct {
 	spinner        spinner.Model
 	importlist     importlist.Model
 	progress       progress.Model
-	importerrormsg aztfyclient.ShowImportErrorMsg
+	importerrormsg aztfexportclient.ShowImportErrorMsg
 }
 
 func newModel(ctx context.Context, cfg config.InteractiveModeConfig) (*model, error) {
@@ -111,7 +111,7 @@ func newModel(ctx context.Context, cfg config.InteractiveModeConfig) (*model, er
 
 func (m model) Init() tea.Cmd {
 	return tea.Batch(
-		aztfyclient.NewClient(m.meta),
+		aztfexportclient.NewClient(m.meta),
 		spinner.Tick,
 	)
 }
@@ -128,20 +128,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyCtrlC:
 			m.status = statusQuitting
-			return m, aztfyclient.Quit(m.ctx, m.meta)
+			return m, aztfexportclient.Quit(m.ctx, m.meta)
 		}
 	case spinner.TickMsg:
 		var cmd tea.Cmd
 		m.spinner, cmd = m.spinner.Update(msg)
 		return m, cmd
-	case aztfyclient.NewClientMsg:
+	case aztfexportclient.NewClientMsg:
 		m.meta = msg
 		m.status = statusInit
-		return m, aztfyclient.Init(m.ctx, m.meta)
-	case aztfyclient.InitProviderDoneMsg:
+		return m, aztfexportclient.Init(m.ctx, m.meta)
+	case aztfexportclient.InitProviderDoneMsg:
 		m.status = statusListingResource
-		return m, aztfyclient.ListResource(m.ctx, m.meta)
-	case aztfyclient.ListResourceDoneMsg:
+		return m, aztfexportclient.ListResource(m.ctx, m.meta)
+	case aztfexportclient.ListResourceDoneMsg:
 		m.status = statusBuildingImportList
 		m.importlist = importlist.NewModel(m.ctx, m.meta, msg.List, 0)
 		// Trigger a windows resize cmd to resize the importlist model.
@@ -149,11 +149,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// But this way we only need to maintain the resizing logic at one place (which takes consideration of the title height).
 		cmd := func() tea.Msg { return m.winsize }
 		return m, cmd
-	case aztfyclient.ShowImportErrorMsg:
+	case aztfexportclient.ShowImportErrorMsg:
 		m.status = statusImportErrorMsg
 		m.importerrormsg = msg
 		return m, nil
-	case aztfyclient.StartImportMsg:
+	case aztfexportclient.StartImportMsg:
 		m.status = statusImporting
 		m.progress = progress.NewModel(m.ctx, m.meta, m.parallelism, msg.List)
 		return m, tea.Batch(
@@ -161,7 +161,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Resize the progress bar
 			func() tea.Msg { return m.winsize },
 		)
-	case aztfyclient.ImportDoneMsg:
+	case aztfexportclient.ImportDoneMsg:
 		for idx, item := range msg.List {
 			if item.ImportError != nil {
 				m.status = statusBuildingImportList
@@ -171,28 +171,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		m.status = statusPushState
-		return m, aztfyclient.PushState(m.ctx, m.meta, msg.List)
-	case aztfyclient.PushStateDoneMsg:
+		return m, aztfexportclient.PushState(m.ctx, m.meta, msg.List)
+	case aztfexportclient.PushStateDoneMsg:
 		m.status = statusExportResourceMapping
-		return m, aztfyclient.ExportResourceMapping(m.ctx, m.meta, msg.List)
-	case aztfyclient.ExportResourceMappingDoneMsg:
+		return m, aztfexportclient.ExportResourceMapping(m.ctx, m.meta, msg.List)
+	case aztfexportclient.ExportResourceMappingDoneMsg:
 		m.status = statusExportSkippedResources
-		return m, aztfyclient.ExportSkippedResources(m.ctx, m.meta, msg.List)
-	case aztfyclient.ExportSkippedResourcesDoneMsg:
+		return m, aztfexportclient.ExportSkippedResources(m.ctx, m.meta, msg.List)
+	case aztfexportclient.ExportSkippedResourcesDoneMsg:
 		m.status = statusGeneratingCfg
-		return m, aztfyclient.GenerateCfg(m.ctx, m.meta, msg.List)
-	case aztfyclient.GenerateCfgDoneMsg:
+		return m, aztfexportclient.GenerateCfg(m.ctx, m.meta, msg.List)
+	case aztfexportclient.GenerateCfgDoneMsg:
 		m.status = statusCleaningUpWorkspaceCfg
-		return m, aztfyclient.CleanUpWorkspace(m.ctx, m.meta)
-	case aztfyclient.WorkspaceCleanupDoneMsg:
+		return m, aztfexportclient.CleanUpWorkspace(m.ctx, m.meta)
+	case aztfexportclient.WorkspaceCleanupDoneMsg:
 		m.status = statusSummary
 		return m, nil
-	case aztfyclient.QuitMsg:
+	case aztfexportclient.QuitMsg:
 		return m, tea.Quit
-	case aztfyclient.CleanTFStateMsg:
+	case aztfexportclient.CleanTFStateMsg:
 		m.meta.CleanTFState(m.ctx, msg.Addr)
 		return m, nil
-	case aztfyclient.ErrMsg:
+	case aztfexportclient.ErrMsg:
 		m.status = statusError
 		m.err = msg
 		return m, nil
@@ -221,7 +221,7 @@ func updateChildren(msg tea.Msg, m model) (model, tea.Cmd) {
 		switch msg.(type) {
 		case tea.KeyMsg:
 			m.status = statusQuitting
-			return m, aztfyclient.Quit(m.ctx, m.meta)
+			return m, aztfexportclient.Quit(m.ctx, m.meta)
 		}
 	}
 	return m, nil
@@ -261,7 +261,7 @@ func (m model) View() string {
 }
 
 func (m model) logoView() string {
-	return "\n" + common.TitleStyle.Render(" Azure Terrafy ") + "\n\n"
+	return "\n" + common.TitleStyle.Render(" Microsoft Azure Export for Terraform ") + "\n\n"
 }
 
 func importErrorView(m model) string {

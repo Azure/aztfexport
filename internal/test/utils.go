@@ -11,7 +11,7 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/Azure/aztfy/internal/resmap"
+	"github.com/Azure/aztfexport/internal/resmap"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
@@ -25,10 +25,10 @@ import (
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
-const TestToggleEnvVar = "AZTFY_E2E"
+const TestToggleEnvVar = "AZTFEXPORT_E2E"
 
 func Keep() bool {
-	return os.Getenv("AZTFY_KEEP") != ""
+	return os.Getenv("AZTFEXPORT_KEEP") != ""
 }
 
 func Precheck(t *testing.T) {
@@ -78,7 +78,7 @@ func BuildCredAndClientOpt(t *testing.T) (azcore.TokenCredential, *arm.ClientOpt
 		ClientOptions: policy.ClientOptions{
 			Cloud: cloudCfg,
 			Telemetry: policy.TelemetryOptions{
-				ApplicationID: "aztfy",
+				ApplicationID: "aztfexport",
 				Disabled:      false,
 			},
 			Logging: policy.LogOptions{
@@ -116,8 +116,8 @@ func EnsureTF(t *testing.T) string {
 	return execPath
 }
 
-func Verify(t *testing.T, ctx context.Context, aztfyDir, tfexecPath string, expectResCnt int) {
-	tf, err := tfexec.NewTerraform(aztfyDir, tfexecPath)
+func Verify(t *testing.T, ctx context.Context, aztfexportDir, tfexecPath string, expectResCnt int) {
+	tf, err := tfexec.NewTerraform(aztfexportDir, tfexecPath)
 	if err != nil {
 		t.Fatalf("failed to new terraform: %v", err)
 	}
@@ -153,7 +153,7 @@ func Verify(t *testing.T, ctx context.Context, aztfyDir, tfexecPath string, expe
 		t.Fatalf("terraform plan has diff")
 	}
 	t.Log("Running: terraform show")
-	state, err := tf.ShowStateFile(ctx, filepath.Join(aztfyDir, "terraform.tfstate"))
+	state, err := tf.ShowStateFile(ctx, filepath.Join(aztfexportDir, "terraform.tfstate"))
 	if err != nil {
 		t.Fatalf("terraform state show in the generated workspace failed: %v", err)
 	}

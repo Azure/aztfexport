@@ -3,9 +3,9 @@ package cases
 import (
 	"fmt"
 
-	"github.com/Azure/aztfy/internal/test"
+	"github.com/Azure/aztfexport/internal/test"
 
-	"github.com/Azure/aztfy/internal/resmap"
+	"github.com/Azure/aztfexport/internal/resmap"
 )
 
 var _ Case = CaseApplicationInsightWebTest{}

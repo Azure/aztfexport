@@ -13,7 +13,7 @@ count=1
 while ((count <= total)); do
     echo "Try ($count/$total)"
     apt-get update
-    apt-get install -y aztfy && grep $version <(aztfy -v) && break
+    apt-get install -y aztfexport && grep $version <(aztfexport -v) && break
     sleep 1m
     ((count++))
 done

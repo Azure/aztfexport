@@ -15,7 +15,7 @@ stages:
   - stage: build
     pool:
       name: pool-ubuntu-2004
-    displayName: "Build aztfy"
+    displayName: "Build"
     jobs:
       - job: build
         displayName: "Build Binaries"
@@ -54,9 +54,9 @@ stages:
               set -e
               REVISION=`git rev-parse --short HEAD`
               mkdir build
-              name=aztfy
+              name=aztfexport
               if [[ $OS = windows ]]; then
-                  name=aztfy.exe
+                  name=aztfexport.exe
               fi
               GOOS="${OS}" GOARCH="${ARCH}" CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X 'main.version=${VERSION}' -X 'main.revision=${REVISION}'" -o build/$name
             displayName: "Go Build"
@@ -123,7 +123,7 @@ stages:
               ARCH: amd64
         steps:
           - task: DownloadPipelineArtifact@2
-            displayName: "Download aztfy binary"
+            displayName: "Download binary"
             inputs:
               artifact: windows-$(ARCH)
               path: $(system.defaultWorkingDirectory)/dist/bin
@@ -147,10 +147,10 @@ stages:
               cd $workdir/scripts/package/windows/build
               declare -A map=( [386]=x86 [amd64]=x64 )
               export VERSION=${VERSION:1}
-              cp $workdir/dist/bin/aztfy.exe .
+              cp $workdir/dist/bin/aztfexport.exe .
               candle.exe -arch ${map[$ARCH]} -o setup.wxobj ./setup.wxs
               mkdir $workdir/dist/output
-              light.exe -out $workdir/dist/output/aztfy.msi ./setup.wxobj
+              light.exe -out $workdir/dist/output/aztfexport.msi ./setup.wxobj
             env:
               workdir: $(system.defaultWorkingDirectory)
               VERSION: ${{ parameters.version }}
@@ -230,7 +230,7 @@ stages:
           - script: |
               set -e
 
-              chmod +x $WORKDIR/dist/source/aztfy
+              chmod +x $WORKDIR/dist/source/aztfexport
 
               declare -A deb_arch_map=( [386]=i386 [amd64]=amd64 [arm]=armhf [arm64]=arm64 )
               declare -A rpm_arch_map=( [386]=i686 [amd64]=x86_64 [arm]=armv7hl [arm64]=aarch64 )
@@ -238,44 +238,44 @@ stages:
 
               # Build the image
               cd $WORKDIR/scripts/package/linux/build
-              docker build -t aztfybuild .
+              docker build -t aztfexportbuild .
 
               # Build deb package
               docker run -t --rm \
                 -v $WORKDIR/dist/source:/build/source \
                 -v $WORKDIR/dist/output:/build/output \
-                aztfybuild \
+                aztfexportbuild \
                 fpm \
-                  --name aztfy \
+                  --name aztfexport \
                   --license MPL-2.0 \
                   --version $version \
                   --description "A tool to bring existing Azure resources under Terraform's management" \
-                  --url "https://github.com/Azure/aztfy" \
+                  --url "https://github.com/Azure/aztfexport" \
                   --maintainer "magodo <wztdyl@sina.com>" \
                   --input-type dir \
                   --output-type deb \
                   --architecture ${deb_arch_map[$ARCH]} \
-                  --package /build/output/aztfy-$version-1-${deb_arch_map[$ARCH]}.deb \
-                  /build/source/aztfy=/usr/bin/aztfy
+                  --package /build/output/aztfexport-$version-1-${deb_arch_map[$ARCH]}.deb \
+                  /build/source/aztfexport=/usr/bin/aztfexport
 
               # Build rpm package
               echo $version
               docker run -t --rm \
                 -v $WORKDIR/dist/source:/build/source \
                 -v $WORKDIR/dist/output:/build/output \
-                aztfybuild \
+                aztfexportbuild \
                 fpm \
-                  --name aztfy \
+                  --name aztfexport \
                   --license MPL-2.0 \
                   --version ${version} \
                   --description "A tool to bring existing Azure resources under Terraform's management" \
-                  --url "https://github.com/Azure/aztfy" \
+                  --url "https://github.com/Azure/aztfexport" \
                   --maintainer "magodo <wztdyl@sina.com>" \
                   --input-type dir \
                   --output-type rpm \
                   --architecture ${rpm_arch_map[$ARCH]} \
-                  --package /build/output/aztfy-$version-1-${rpm_arch_map[$ARCH]}.rpm \
-                  /build/source/aztfy=/usr/bin/aztfy
+                  --package /build/output/aztfexport-$version-1-${rpm_arch_map[$ARCH]}.rpm \
+                  /build/source/aztfexport=/usr/bin/aztfexport
             displayName: "Build Packages"
             env:
               VERSION: ${{ parameters.version }}
@@ -334,7 +334,7 @@ stages:
                 runId: ${{ parameters.artifactBuildId }}
           - script: |
               set -e
-              NAME="aztfy"
+              NAME="aztfexport"
               OS_ARCH=(
                 "windows:amd64"
                 "windows:386"
@@ -349,17 +349,17 @@ stages:
               for os_arch in "${OS_ARCH[@]}" ; do
                 OS=${os_arch%%:*}
                 ARCH=${os_arch#*:}
-                name=aztfy
+                name=aztfexport
                 if [[ $OS = windows ]]; then
-                    name=aztfy.exe
+                    name=aztfexport.exe
                 fi
                 chmod +x dist/${OS}-${ARCH}/${name}
                 zip -j release/${NAME}_${VERSION}_${OS}_${ARCH}.zip dist/${OS}-${ARCH}/${name}
               done
 
               # Copy MSI
-              cp dist/windows-386-msi/aztfy.msi release/${NAME}_${VERSION}_x86.msi
-              cp dist/windows-amd64-msi/aztfy.msi release/${NAME}_${VERSION}_x64.msi
+              cp dist/windows-386-msi/aztfexport.msi release/${NAME}_${VERSION}_x86.msi
+              cp dist/windows-amd64-msi/aztfexport.msi release/${NAME}_${VERSION}_x64.msi
 
               cd release
               shasum -a 256 *.zip *.msi > ${NAME}_SHA256SUMS
@@ -397,7 +397,7 @@ stages:
               git config user.name "azure-terraform-bot"
               git config user.email "azure-terraform@microsoft.com"
               git tag -a "${VERSION}" -m "${VERSION}"
-              git push https://${PAT}@github.com/Azure/aztfy.git --tags
+              git push https://${PAT}@github.com/Azure/aztfexport.git --tags
             displayName: "Create and Push a Git Release"
             env:
               VERSION: ${{ parameters.version }}
@@ -665,7 +665,7 @@ stages:
               iwr https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
               git clone https://github.com/microsoft/winget-pkgs.git
               cd winget-pkgs
-              ..\wingetcreate.exe update --urls https://github.com/Azure/aztfy/releases/download/$env:VERSION/aztfy_$($env:VERSION)_x64.msi https://github.com/Azure/aztfy/releases/download/$env:VERSION/aztfy_$($env:VERSION)_x86.msi --version $env:VERSION.Substring(1) --submit --token $env:PAT Microsoft.Azure.Aztfy
+              ..\wingetcreate.exe update --urls https://github.com/Azure/aztfexport/releases/download/$env:VERSION/aztfexport_$($env:VERSION)_x64.msi https://github.com/Azure/aztfexport/releases/download/$env:VERSION/aztfexport_$($env:VERSION)_x86.msi --version $env:VERSION.Substring(1) --submit --token $env:PAT Microsoft.Azure.AztfExport
             displayName: "Create PR"
             env:
               VERSION: ${{ parameters.version }}
@@ -692,7 +692,7 @@ stages:
               cd "$(brew --repository homebrew/core)"
               git config user.name "azure-terraform-bot"
               git config user.email "azure-terraform@microsoft.com"
-              HOMEBREW_GITHUB_API_TOKEN=${PAT} brew bump-formula-pr --version=${VERSION:1} --no-browse --force aztfy
+              HOMEBREW_GITHUB_API_TOKEN=${PAT} brew bump-formula-pr --version=${VERSION:1} --no-browse --force aztfexport
             displayName: "Create PR"
             env:
               VERSION: ${{ parameters.version }}

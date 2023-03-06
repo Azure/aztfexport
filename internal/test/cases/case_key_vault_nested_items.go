@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Azure/aztfy/internal/test"
+	"github.com/Azure/aztfexport/internal/test"
 
-	"github.com/Azure/aztfy/internal/client"
-	"github.com/Azure/aztfy/internal/resmap"
+	"github.com/Azure/aztfexport/internal/client"
+	"github.com/Azure/aztfexport/internal/resmap"
 )
 
 var _ Case = CaseKeyVaultNestedItems{}
@@ -34,7 +34,7 @@ resource "azurerm_resource_group" "test" {
 data "azurerm_client_config" "current" {}
 resource "azurerm_key_vault" "test" {
   location                   = azurerm_resource_group.test.location
-  name                       = "aztfy-test-%[2]s"
+  name                       = "aztfexport-test-%[2]s"
   resource_group_name        = azurerm_resource_group.test.name
   sku_name                   = "standard"
   soft_delete_retention_days = 7
@@ -135,7 +135,7 @@ func (c CaseKeyVaultNestedItems) getItems(d test.Data) (keyId, secretId, certId 
 		if err != nil {
 			return "", "", "", err
 		}
-		resp, err := client.Get(ctx, d.RandomRgName(), "aztfy-test-"+d.RandomStringOfLength(8), "key-"+d.RandomStringOfLength(8), nil)
+		resp, err := client.Get(ctx, d.RandomRgName(), "aztfexport-test-"+d.RandomStringOfLength(8), "key-"+d.RandomStringOfLength(8), nil)
 		if err != nil {
 			return "", "", "", fmt.Errorf("retrieving the key: %v", err)
 		}
@@ -149,7 +149,7 @@ func (c CaseKeyVaultNestedItems) getItems(d test.Data) (keyId, secretId, certId 
 		if err != nil {
 			return "", "", "", err
 		}
-		resp, err := client.Get(ctx, d.RandomRgName(), "aztfy-test-"+d.RandomStringOfLength(8), "secret-"+d.RandomStringOfLength(8), nil)
+		resp, err := client.Get(ctx, d.RandomRgName(), "aztfexport-test-"+d.RandomStringOfLength(8), "secret-"+d.RandomStringOfLength(8), nil)
 		if err != nil {
 			return "", "", "", fmt.Errorf("retrieving the secret: %v", err)
 		}
@@ -163,7 +163,7 @@ func (c CaseKeyVaultNestedItems) getItems(d test.Data) (keyId, secretId, certId 
 		if err != nil {
 			return "", "", "", err
 		}
-		resp, err := client.Get(ctx, d.RandomRgName(), "aztfy-test-"+d.RandomStringOfLength(8), "cert-"+d.RandomStringOfLength(8), nil)
+		resp, err := client.Get(ctx, d.RandomRgName(), "aztfexport-test-"+d.RandomStringOfLength(8), "cert-"+d.RandomStringOfLength(8), nil)
 		if err != nil {
 			return "", "", "", fmt.Errorf("retrieving the cert (secret): %v", err)
 		}
@@ -190,25 +190,25 @@ func (c CaseKeyVaultNestedItems) ResourceMapping(d test.Data) (resmap.ResourceMa
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.keyvault/vaults/aztfy-test-%[3]s" | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.keyvault/vaults/aztfexport-test-%[3]s" | Quote }}: {
   "resource_type": "azurerm_key_vault",
   "resource_name": "test",
-  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s"
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfexport-test-%[3]s"
 },
 
-{{  "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.keyvault/vaults/aztfy-test-%[3]s/keys/key-%[3]s" | Quote }} : {
+{{  "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.keyvault/vaults/aztfexport-test-%[3]s/keys/key-%[3]s" | Quote }} : {
   "resource_type": "azurerm_key_vault_key",
   "resource_name": "test",
   "resource_id": %[4]q
 },
 
-{{  "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.keyvault/vaults/aztfy-test-%[3]s/secrets/secret-%[3]s" | Quote }} : {
+{{  "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.keyvault/vaults/aztfexport-test-%[3]s/secrets/secret-%[3]s" | Quote }} : {
   "resource_type": "azurerm_key_vault_secret",
   "resource_name": "test",
   "resource_id": %[5]q
 },
 
-{{  "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.keyvault/vaults/aztfy-test-%[3]s/certificates/cert-%[3]s" | Quote }} : {
+{{  "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.keyvault/vaults/aztfexport-test-%[3]s/certificates/cert-%[3]s" | Quote }} : {
   "resource_type": "azurerm_key_vault_certificate",
   "resource_name": "test",
   "resource_id": %[6]q
@@ -246,19 +246,19 @@ func (c CaseKeyVaultNestedItems) SingleResourceContext(d test.Data) ([]SingleRes
 			ExpectResourceCount: 1,
 		},
 		{
-			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfexport-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
 			ExpectResourceCount: 1,
 		},
 		{
-			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s/%[4]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), keyIdSuffix),
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfexport-test-%[3]s/%[4]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), keyIdSuffix),
 			ExpectResourceCount: 1,
 		},
 		{
-			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s/%[4]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), secretIdSuffix),
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfexport-test-%[3]s/%[4]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), secretIdSuffix),
 			ExpectResourceCount: 1,
 		},
 		{
-			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfy-test-%[3]s/%[4]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), certIdSuffix),
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.KeyVault/vaults/aztfexport-test-%[3]s/%[4]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8), certIdSuffix),
 			ExpectResourceCount: 1,
 		},
 	}, nil

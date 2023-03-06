@@ -3,15 +3,15 @@ package importlist
 import (
 	"context"
 	"fmt"
-	"github.com/Azure/aztfy/pkg/meta"
+	"github.com/Azure/aztfexport/pkg/meta"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/Azure/aztfy/internal/tfaddr"
-	"github.com/Azure/aztfy/internal/ui/aztfyclient"
-	"github.com/Azure/aztfy/internal/ui/common"
+	"github.com/Azure/aztfexport/internal/tfaddr"
+	"github.com/Azure/aztfexport/internal/ui/aztfexportclient"
+	"github.com/Azure/aztfexport/internal/ui/common"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -126,7 +126,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				return m, m.list.NewStatusMessage(common.ErrorMsgStyle.Render("One or more user input is invalid"))
 			}
 
-			return m, aztfyclient.StartImport(m.importList(true))
+			return m, aztfexportclient.StartImport(m.importList(true))
 		case key.Matches(msg, m.listkeys.skip):
 			sel := m.list.SelectedItem()
 			if sel == nil {
@@ -153,7 +153,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			if selItem.v.ImportError == nil {
 				return m, nil
 			}
-			return m, aztfyclient.ShowImportError(selItem.v, selItem.idx, m.importList(false))
+			return m, aztfexportclient.ShowImportError(selItem.v, selItem.idx, m.importList(false))
 		case key.Matches(msg, m.listkeys.recommendation):
 			sel := m.list.SelectedItem()
 			if sel == nil {
@@ -174,7 +174,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				m.list.NewStatusMessage(common.ErrorMsgStyle.Render(err.Error()))
 			}
 		case key.Matches(msg, m.list.KeyMap.Quit):
-			return m, aztfyclient.Quit(m.ctx, m.c)
+			return m, aztfexportclient.Quit(m.ctx, m.c)
 		}
 	case tea.WindowSizeMsg:
 		// The height here minus the height occupied by the title

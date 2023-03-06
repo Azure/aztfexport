@@ -7,11 +7,11 @@ import (
 	"os"
 	"sort"
 
-	"github.com/Azure/aztfy/pkg/config"
-	"github.com/Azure/aztfy/pkg/log"
+	"github.com/Azure/aztfexport/pkg/config"
+	"github.com/Azure/aztfexport/pkg/log"
 
-	"github.com/Azure/aztfy/internal/resmap"
-	"github.com/Azure/aztfy/internal/tfaddr"
+	"github.com/Azure/aztfexport/internal/resmap"
+	"github.com/Azure/aztfexport/internal/tfaddr"
 	"github.com/magodo/armid"
 )
 

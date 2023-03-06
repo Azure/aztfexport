@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/Azure/aztfy/pkg/telemetry"
+	"github.com/Azure/aztfexport/pkg/telemetry"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
 	"github.com/zclconf/go-cty/cty"
@@ -23,7 +23,7 @@ type CommonConfig struct {
 	AzureSDKCredential azcore.TokenCredential
 	// AzureSDKClientOption specifies the Azure SDK client option
 	AzureSDKClientOption arm.ClientOptions
-	// OutputDir specifies the Terraform working directory for aztfy to import resources and generate TF configs.
+	// OutputDir specifies the Terraform working directory import resources and generate TF configs.
 	OutputDir string
 	// OutputFileNames specifies the output terraform filenames
 	OutputFileNames OutputFileNames
@@ -38,7 +38,7 @@ type CommonConfig struct {
 	BackendConfig []string
 	// ProviderConfig specifies key value pairs that will be expanded to the terraform-provider-azurerm settings (i.e. `azurerm {}` block)
 	// Currently, only the attributes (rather than blocks) are supported.
-	// This is not used directly by aztfy binary as the provider configs can be set by environment variable already.
+	// This is not used directly by aztfexport as the provider configs can be set by environment variable already.
 	// While it is useful for module users that want support multi-users scenarios in one process (in which case changing env vars affect the whole process).
 	ProviderConfig map[string]cty.Value
 	// FullConfig specifies whether to export all (non computed-only) Terarform properties when generating TF configs.
@@ -48,7 +48,7 @@ type CommonConfig struct {
 	// ModulePath specifies the path of the module (e.g. "module1.module2") where the resources will be imported and config generated.
 	// Note that only modules whose "source" is local path is supported. By default, it is the root module.
 	ModulePath string
-	// HCLOnly is a strange field, which is only used internally by aztfy to indicate whether to remove other files other than TF config at the end.
+	// HCLOnly is a strange field, which is only used internally by aztfexport to indicate whether to remove other files other than TF config at the end.
 	// External Go modules shoudl just ignore it.
 	HCLOnly bool
 	// TelemetryClient is a client to send telemetry
@@ -77,6 +77,6 @@ type Config struct {
 
 	// TFResourceName specifies the TF resource name, this only applies to resource mode.
 	TFResourceName string
-	// TFResourceName specifies the TF resource type (if empty, aztfy will deduce the type), this only applies to resource mode.
+	// TFResourceName specifies the TF resource type (if empty, will try to deduce the type), this only applies to resource mode.
 	TFResourceType string
 }

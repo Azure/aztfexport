@@ -1,9 +1,9 @@
-package aztfyclient
+package aztfexportclient
 
 import (
 	"context"
 
-	"github.com/Azure/aztfy/pkg/meta"
+	"github.com/Azure/aztfexport/pkg/meta"
 
 	tea "github.com/charmbracelet/bubbletea"
 )

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Azure/aztfy/internal/tfaddr"
+	"github.com/Azure/aztfexport/internal/tfaddr"
 
-	"github.com/Azure/aztfy/internal/ui/aztfyclient"
-	"github.com/Azure/aztfy/internal/ui/common"
+	"github.com/Azure/aztfexport/internal/ui/aztfexportclient"
+	"github.com/Azure/aztfexport/internal/ui/common"
 	"github.com/magodo/tfadd/providers/azurerm"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -44,7 +44,7 @@ func NewImportItemDelegate() list.ItemDelegate {
 					// This allows the user to change its mind for importing this resource as another resource type.
 					// (e.g. vm resource -> either azurerm_virtual_machine or azurerm_linux_virtual_machine)
 					if selItem.v.Imported {
-						cmd := aztfyclient.CleanTFState(selItem.v.TFAddr.String())
+						cmd := aztfexportclient.CleanTFState(selItem.v.TFAddr.String())
 						cmds = append(cmds, cmd)
 						selItem.v.Imported = false
 					}

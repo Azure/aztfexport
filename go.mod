@@ -1,4 +1,4 @@
-module github.com/Azure/aztfy
+module github.com/Azure/aztfexport
 
 go 1.19
 

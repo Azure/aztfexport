@@ -86,5 +86,5 @@ func (rd Rd) RandomStringOfLength(len int) string {
 }
 
 func (rd Rd) RandomRgName() string {
-	return fmt.Sprintf("aztfy-rg-%s", rd.RandomStringOfLength(8))
+	return fmt.Sprintf("aztfexport-rg-%s", rd.RandomStringOfLength(8))
 }

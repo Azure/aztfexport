@@ -1,7 +1,7 @@
 package meta
 
 import (
-	"github.com/Azure/aztfy/internal/tfaddr"
+	"github.com/Azure/aztfexport/internal/tfaddr"
 	"github.com/magodo/armid"
 )
 
