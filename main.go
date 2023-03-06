@@ -345,6 +345,8 @@ The output directory is not empty. Please choose one of actions below:
 			Usage:       "Only generate the resource mapping file, but does NOT import any resource",
 			Destination: &flagGenerateMappingFile,
 		},
+		&cli.BoolFlag{
+			Name:        "hcl-only",
 			EnvVars:     []string{"AZTFEXPORT_HCL_ONLY"},
 			Usage:       "Only generates HCL code (and mapping file), but not the files for resource management (e.g. the state file)",
 			Destination: &flagHCLOnly,
