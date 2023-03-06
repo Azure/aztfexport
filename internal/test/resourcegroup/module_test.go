@@ -7,14 +7,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	internalconfig "github.com/Azure/aztfy/internal/config"
+	internalconfig "github.com/Azure/aztfexport/internal/config"
 
-	"github.com/Azure/aztfy/pkg/config"
+	"github.com/Azure/aztfexport/pkg/config"
 
-	"github.com/Azure/aztfy/internal/test"
+	"github.com/Azure/aztfexport/internal/test"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Azure/aztfy/internal"
+	"github.com/Azure/aztfexport/internal"
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
@@ -77,24 +77,24 @@ resource "azurerm_resource_group" "test3" {
 	}
 
 	// Import the first resource group
-	aztfyDir := t.TempDir()
+	aztfexportDir := t.TempDir()
 
-	tf, err = tfexec.NewTerraform(aztfyDir, tfexecPath)
+	tf, err = tfexec.NewTerraform(aztfexportDir, tfexecPath)
 	if err != nil {
 		t.Fatalf("failed to new terraform: %v", err)
 	}
 
-	if err := os.MkdirAll(filepath.Join(aztfyDir, "modules", "submodules"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(aztfexportDir, "modules", "submodules"), 0755); err != nil {
 		t.Fatalf("failed to create the directory `modules/submodules`: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(aztfyDir, "main.tf"), []byte(`
+	if err := os.WriteFile(filepath.Join(aztfexportDir, "main.tf"), []byte(`
 module "my-module" {
   source = "./modules"
 }
 `), 0644); err != nil {
 		t.Fatalf("failed to create the TF config file: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(aztfyDir, "modules", "main.tf"), []byte(`
+	if err := os.WriteFile(filepath.Join(aztfexportDir, "modules", "main.tf"), []byte(`
 module "sub-module" {
   source = "./submodules"
 }
@@ -114,7 +114,7 @@ module "sub-module" {
 				SubscriptionId:       os.Getenv("ARM_SUBSCRIPTION_ID"),
 				AzureSDKCredential:   cred,
 				AzureSDKClientOption: *clientOpt,
-				OutputDir:            aztfyDir,
+				OutputDir:            aztfexportDir,
 				BackendType:          "local",
 				Parallelism:          1,
 				ModulePath:           "", // Import to the root module
@@ -156,7 +156,7 @@ module "sub-module" {
 		t.Fatalf("terraform plan has diff")
 	}
 	t.Log("Running: terraform show")
-	state, err := tf.ShowStateFile(ctx, filepath.Join(aztfyDir, "terraform.tfstate"))
+	state, err := tf.ShowStateFile(ctx, filepath.Join(aztfexportDir, "terraform.tfstate"))
 	if err != nil {
 		t.Fatalf("terraform state show in the generated workspace failed: %v", err)
 	}

@@ -3,9 +3,9 @@ package cases
 import (
 	"fmt"
 
-	"github.com/Azure/aztfy/internal/test"
+	"github.com/Azure/aztfexport/internal/test"
 
-	"github.com/Azure/aztfy/internal/resmap"
+	"github.com/Azure/aztfexport/internal/resmap"
 )
 
 var _ Case = CaseComputeVMDisk{}
@@ -26,7 +26,7 @@ resource "azurerm_resource_group" "test" {
   location = "WestEurope"
 }
 resource "azurerm_virtual_network" "test" {
-  name                = "aztfy-test-%[2]s"
+  name                = "aztfexport-test-%[2]s"
   address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.test.location
   resource_group_name = azurerm_resource_group.test.name
@@ -38,7 +38,7 @@ resource "azurerm_subnet" "test" {
   address_prefixes     = ["10.0.2.0/24"]
 }
 resource "azurerm_network_interface" "test" {
-  name                = "aztfy-test-%[2]s"
+  name                = "aztfexport-test-%[2]s"
   location            = azurerm_resource_group.test.location
   resource_group_name = azurerm_resource_group.test.name
   ip_configuration {
@@ -48,7 +48,7 @@ resource "azurerm_network_interface" "test" {
   }
 }
 resource "azurerm_linux_virtual_machine" "test" {
-  name                            = "aztfy-test-%[2]s"
+  name                            = "aztfexport-test-%[2]s"
   resource_group_name = azurerm_resource_group.test.name
   location            = azurerm_resource_group.test.location
   size                = "Standard_F2"
@@ -72,7 +72,7 @@ resource "azurerm_linux_virtual_machine" "test" {
   }
 }
 resource "azurerm_managed_disk" "test" {
-  name                 = "aztfy-test-%[2]s"
+  name                 = "aztfexport-test-%[2]s"
   location             = azurerm_resource_group.test.location
   resource_group_name  = azurerm_resource_group.test.name
   storage_account_type = "Standard_LRS"
@@ -100,40 +100,40 @@ func (CaseComputeVMDisk) ResourceMapping(d test.Data) (resmap.ResourceMapping, e
   "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.compute/disks/aztfy-test-%[3]s" | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.compute/disks/aztfexport-test-%[3]s" | Quote }}: {
   "resource_type": "azurerm_managed_disk",
   "resource_name": "test",
-  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/disks/aztfy-test-%[3]s"
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/disks/aztfexport-test-%[3]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.compute/virtualmachines/aztfy-test-%[3]s/datadisks/aztfy-test-%[3]s" | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.compute/virtualmachines/aztfexport-test-%[3]s/datadisks/aztfexport-test-%[3]s" | Quote }}: {
   "resource_type": "azurerm_virtual_machine_data_disk_attachment",
   "resource_name": "test",
-  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/virtualMachines/aztfy-test-%[3]s/dataDisks/aztfy-test-%[3]s"
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/virtualMachines/aztfexport-test-%[3]s/dataDisks/aztfexport-test-%[3]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.compute/virtualmachines/aztfy-test-%[3]s" | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.compute/virtualmachines/aztfexport-test-%[3]s" | Quote }}: {
   "resource_type": "azurerm_linux_virtual_machine",
   "resource_name": "test",
-  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/virtualMachines/aztfy-test-%[3]s"
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/virtualMachines/aztfexport-test-%[3]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.network/networkinterfaces/aztfy-test-%[3]s" | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.network/networkinterfaces/aztfexport-test-%[3]s" | Quote }}: {
   "resource_type": "azurerm_network_interface",
   "resource_name": "test",
-  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/networkInterfaces/aztfy-test-%[3]s"
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/networkInterfaces/aztfexport-test-%[3]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.network/virtualnetworks/aztfy-test-%[3]s" | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.network/virtualnetworks/aztfexport-test-%[3]s" | Quote }}: {
   "resource_type": "azurerm_virtual_network",
   "resource_name": "test",
-  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfy-test-%[3]s"
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfexport-test-%[3]s"
 },
 
-{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.network/virtualnetworks/aztfy-test-%[3]s/subnets/internal" | Quote }}: {
+{{ "/subscriptions/%[1]s/resourcegroups/%[2]s/providers/microsoft.network/virtualnetworks/aztfexport-test-%[3]s/subnets/internal" | Quote }}: {
   "resource_type": "azurerm_subnet",
   "resource_name": "test",
-  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfy-test-%[3]s/subnets/internal"
+  "resource_id": "/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfexport-test-%[3]s/subnets/internal"
 }
 
 }
@@ -147,19 +147,19 @@ func (CaseComputeVMDisk) SingleResourceContext(d test.Data) ([]SingleResourceCon
 			ExpectResourceCount: 1,
 		},
 		{
-			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/virtualMachines/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Compute/virtualMachines/aztfexport-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
 			ExpectResourceCount: 2,
 		},
 		{
-			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/networkInterfaces/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/networkInterfaces/aztfexport-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
 			ExpectResourceCount: 1,
 		},
 		{
-			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfy-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfexport-test-%[3]s", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
 			ExpectResourceCount: 1,
 		},
 		{
-			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfy-test-%[3]s/subnets/internal", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
+			AzureId:             fmt.Sprintf("/subscriptions/%[1]s/resourceGroups/%[2]s/providers/Microsoft.Network/virtualNetworks/aztfexport-test-%[3]s/subnets/internal", d.SubscriptionId, d.RandomRgName(), d.RandomStringOfLength(8)),
 			ExpectResourceCount: 1,
 		},
 	}, nil

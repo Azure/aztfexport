@@ -11,7 +11,7 @@ import (
 	"github.com/tidwall/sjson"
 )
 
-const CfgDirName = ".aztfy"
+const CfgDirName = ".aztfexport"
 const CfgFileName = "config.json"
 
 type Configuration struct {

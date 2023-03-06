@@ -3,8 +3,8 @@ package meta
 import (
 	"context"
 	"fmt"
-	"github.com/Azure/aztfy/internal/meta"
-	"github.com/Azure/aztfy/pkg/config"
+	"github.com/Azure/aztfexport/internal/meta"
+	"github.com/Azure/aztfexport/pkg/config"
 )
 
 type ImportItem = meta.ImportItem

@@ -7,14 +7,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	internalconfig "github.com/Azure/aztfy/internal/config"
+	internalconfig "github.com/Azure/aztfexport/internal/config"
 
-	"github.com/Azure/aztfy/pkg/config"
+	"github.com/Azure/aztfexport/pkg/config"
 
-	"github.com/Azure/aztfy/internal/test"
-	"github.com/Azure/aztfy/internal/utils"
+	"github.com/Azure/aztfexport/internal/test"
+	"github.com/Azure/aztfexport/internal/utils"
 
-	"github.com/Azure/aztfy/internal"
+	"github.com/Azure/aztfexport/internal"
 	"github.com/hashicorp/terraform-exec/tfexec"
 )
 
@@ -77,7 +77,7 @@ resource "azurerm_resource_group" "test3" {
 	}
 
 	// Import the first resource group
-	aztfyDir := t.TempDir()
+	aztfexportDir := t.TempDir()
 
 	cred, clientOpt := test.BuildCredAndClientOpt(t)
 
@@ -87,7 +87,7 @@ resource "azurerm_resource_group" "test3" {
 				SubscriptionId:       os.Getenv("ARM_SUBSCRIPTION_ID"),
 				AzureSDKCredential:   cred,
 				AzureSDKClientOption: *clientOpt,
-				OutputDir:            aztfyDir,
+				OutputDir:            aztfexportDir,
 				BackendType:          "local",
 				DevProvider:          true,
 				Parallelism:          1,
@@ -121,5 +121,5 @@ resource "azurerm_resource_group" "test3" {
 	}
 
 	// Verify
-	test.Verify(t, ctx, aztfyDir, tfexecPath, 3)
+	test.Verify(t, ctx, aztfexportDir, tfexecPath, 3)
 }

@@ -9,14 +9,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Azure/aztfy/pkg/config"
-	"github.com/Azure/aztfy/pkg/log"
+	"github.com/Azure/aztfexport/pkg/config"
+	"github.com/Azure/aztfexport/pkg/log"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/Azure/aztfy/internal/client"
-	"github.com/Azure/aztfy/internal/resmap"
-	"github.com/Azure/aztfy/internal/utils"
-	"github.com/Azure/aztfy/pkg/telemetry"
+	"github.com/Azure/aztfexport/internal/client"
+	"github.com/Azure/aztfexport/internal/resmap"
+	"github.com/Azure/aztfexport/internal/utils"
+	"github.com/Azure/aztfexport/pkg/telemetry"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
@@ -33,15 +33,15 @@ import (
 	"github.com/magodo/workerpool"
 )
 
-const ResourceMappingFileName = "aztfyResourceMapping.json"
-const SkippedResourcesFileName = "aztfySkippedResources.txt"
+const ResourceMappingFileName = "aztfexportResourceMapping.json"
+const SkippedResourcesFileName = "aztfexportSkippedResources.txt"
 
 type TFConfigTransformer func(configs ConfigInfos) (ConfigInfos, error)
 
 type BaseMeta interface {
-	// Init initializes aztfy, including initialize terraform, provider and soem runtime temporary resources.
+	// Init initializes the base meta, including initialize terraform, provider and soem runtime temporary resources.
 	Init(ctx context.Context) error
-	// DeInit deinitializes aztfy, including cleaning up runtime temporary resources.
+	// DeInit deinitializes the base meta, including cleaning up runtime temporary resources.
 	DeInit(ctx context.Context) error
 	// Workspace returns the path of the output directory.
 	Workspace() string
@@ -58,7 +58,7 @@ type BaseMeta interface {
 	ExportSkippedResources(ctx context.Context, l ImportList) error
 	// ExportResourceMapping writes a resource mapping file to the output directory.
 	ExportResourceMapping(ctx context.Context, l ImportList) error
-	// CleanUpWorkspace is a weired method that is only meant to be used internally by aztfy, which under the hood will remove everything in the output directory, except the generated TF config.
+	// CleanUpWorkspace is a weired method that is only meant to be used internally by aztfexport, which under the hood will remove everything in the output directory, except the generated TF config.
 	// This method does nothing if HCLOnly in the Config is not set.
 	CleanUpWorkspace(ctx context.Context) error
 }
@@ -226,7 +226,7 @@ func (meta *baseMeta) Init(ctx context.Context) error {
 		}
 	}
 	for i := 0; i < meta.parallelism; i++ {
-		dir, err := os.MkdirTemp("", "aztfy-")
+		dir, err := os.MkdirTemp("", "aztfexport-")
 		if err != nil {
 			return fmt.Errorf("creating import directory: %v", err)
 		}
@@ -321,7 +321,7 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) e
 
 		// Performance improvement.
 		// In case there is no TF state in the target workspace (no matter local/remote backend), we can avoid using tfmerge (which takes care of terraform internals, like keeping the lineage, etc).
-		// As long as the user ensure there is no address conflicts in the import list (which is always the case by aztfy as the resource names are almost unique),
+		// As long as the user ensure there is no address conflicts in the import list (which is always the case as the resource names are almost unique),
 		// We are updating the local thisBaseStateJSON here, will update it to the meta.baseState at the end of this function.
 		if len(meta.originBaseState) == 0 {
 			log.Printf("[DEBUG] Merging terraform state file %s (simple)", stateFile)
@@ -406,7 +406,7 @@ func (meta baseMeta) PushState(ctx context.Context) error {
 	if baseState != string(meta.originBaseState) {
 		edits := myers.ComputeEdits(span.URIFromPath("origin.tfstate"), string(meta.originBaseState), baseState)
 		changes := fmt.Sprint(gotextdiff.ToUnified("origin.tfstate", "current.tfstate", string(meta.originBaseState), edits))
-		return fmt.Errorf("there is out-of-band changes on the state file during running aztfy:\n%s", changes)
+		return fmt.Errorf("there is out-of-band changes on the state file:\n%s", changes)
 	}
 
 	// Create a temporary state file to hold the merged states, then push the state to the output directory.
@@ -715,7 +715,7 @@ func (meta *baseMeta) importItem(ctx context.Context, item *ImportItem, importId
 	tf := meta.importTFs[importIdx]
 
 	// Construct the empty cfg file for importing
-	cfgFile := filepath.Join(moduleDir, "tmp.aztfy.tf")
+	cfgFile := filepath.Join(moduleDir, "tmp.aztfexport.tf")
 	tpl := fmt.Sprintf(`resource "%s" "%s" {}`, item.TFAddr.Type, item.TFAddr.Name)
 	// #nosec G306
 	if err := os.WriteFile(cfgFile, []byte(tpl), 0644); err != nil {

@@ -6,12 +6,12 @@ import (
 	"os"
 	"strings"
 
-	internalmeta "github.com/Azure/aztfy/internal/meta"
+	internalmeta "github.com/Azure/aztfexport/internal/meta"
 
-	"github.com/Azure/aztfy/internal/config"
-	"github.com/Azure/aztfy/pkg/meta"
+	"github.com/Azure/aztfexport/internal/config"
+	"github.com/Azure/aztfexport/pkg/meta"
 
-	"github.com/Azure/aztfy/internal/ui/common"
+	"github.com/Azure/aztfexport/internal/ui/common"
 	bspinner "github.com/charmbracelet/bubbles/spinner"
 	"github.com/magodo/spinner"
 )
