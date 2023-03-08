@@ -28,6 +28,8 @@ func InspecTerraformBlock(dir string) (*TerraformBlockDetail, error) {
 		if filepath.Ext(entry.Name()) != ".tf" {
 			continue
 		}
+
+		// #nosec G304
 		b, err := os.ReadFile(filepath.Join(dir, entry.Name()))
 		if err != nil {
 			return nil, fmt.Errorf("reading file %s: %v", entry.Name(), err)

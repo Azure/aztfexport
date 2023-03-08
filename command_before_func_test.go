@@ -41,7 +41,8 @@ func TestCommondBeforeFunc(t *testing.T) {
 		{
 			name: "only a --append works",
 			fset: FlagSet{
-				flagAppend: true,
+				flagAppend:         true,
+				flagSubscriptionId: "123",
 			},
 		},
 		{
@@ -211,6 +212,11 @@ func TestCommondBeforeFunc(t *testing.T) {
 				tt.dirGen = dirGenEmpty
 			}
 			tt.fset.flagOutputDir = tt.dirGen(t)
+
+			// This is to avoid reading the subscription id from az cli, which is not setup in CI.
+			if tt.fset.flagSubscriptionId == "" {
+				tt.fset.flagSubscriptionId = "test"
+			}
 
 			err := commandBeforeFunc(&tt.fset)(nil)
 			if tt.err == "" {
