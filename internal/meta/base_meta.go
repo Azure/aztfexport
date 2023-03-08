@@ -637,7 +637,11 @@ func (meta *baseMeta) initTF(ctx context.Context) error {
 func (meta *baseMeta) initProvider(ctx context.Context) error {
 	log.Printf("[INFO] Init provider")
 
-	module, err := tfconfig.LoadModule(meta.outdir)
+	module, diags := tfconfig.LoadModule(meta.outdir)
+	if diags.HasErrors() {
+		return diags.Err()
+	}
+	tfblock, err := utils.InspecTerraformBlock(meta.outdir)
 	if err != nil {
 		return err
 	}
@@ -651,8 +655,8 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 		}
 	}
 
-	if len(module.ProviderConfigs) == 0 {
-		log.Printf("[INFO] Output directory doesn't contain terraform required provider setting, create one then")
+	if tfblock == nil {
+		log.Printf("[INFO] Output directory doesn't contain terraform block, create one then")
 		cfgFile := filepath.Join(meta.outdir, meta.outputFileNames.TerraformFileName)
 		// #nosec G306
 		if err := os.WriteFile(cfgFile, []byte(meta.buildTerraformConfig(meta.backendType)), 0644); err != nil {
