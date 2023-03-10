@@ -13,6 +13,7 @@ type FlagSet struct {
 	flagOverwrite           bool
 	flagAppend              bool
 	flagDevProvider         bool
+	flagProviderVersion     string
 	flagBackendType         string
 	flagBackendConfig       cli.StringSlice
 	flagFullConfig          bool

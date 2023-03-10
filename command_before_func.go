@@ -39,6 +39,11 @@ func commandBeforeFunc(fset *FlagSet) func(ctx *cli.Context) error {
 				return fmt.Errorf("`--module-path` must be used together with `--append`")
 			}
 		}
+		if fset.flagDevProvider {
+			if fset.flagProviderVersion != "" {
+				return fmt.Errorf("`--dev-provider` conflicts with `--provider-version`")
+			}
+		}
 
 		if flagLogLevel != "" {
 			if _, err := logLevel(flagLogLevel); err != nil {
