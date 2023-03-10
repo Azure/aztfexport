@@ -7,6 +7,7 @@ import (
 
 	"github.com/Azure/aztfexport/internal/meta"
 	"github.com/Azure/aztfexport/internal/utils"
+	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	"github.com/urfave/cli/v2"
 )
 
@@ -144,6 +145,17 @@ The output directory is not empty. Please choose one of actions below:
 		if fset.flagBackendType != "local" {
 			if fset.flagHCLOnly {
 				return fmt.Errorf("`--hcl-only` only works for local backend")
+			}
+		}
+
+		// Determine any existing provider version constraint if not using a dev provider and the provider version not specified.
+		if !fset.flagDevProvider && fset.flagProviderVersion == "" {
+			module, err := tfconfig.LoadModule(fset.flagOutputDir)
+			if err != nil {
+				return fmt.Errorf("loading terraform config: %v", err)
+			}
+			if azurecfg, ok := module.RequiredProviders["azurerm"]; ok {
+				fset.flagProviderVersion = strings.Join(azurecfg.VersionConstraints, " ")
 			}
 		}
 

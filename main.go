@@ -150,7 +150,7 @@ func main() {
 		&cli.StringFlag{
 			Name:        "provider-version",
 			EnvVars:     []string{"AZTFEXPORT_PROVIDER_VERSION"},
-			Usage:       fmt.Sprintf("The azurerm provider version to use for importing (defaults: %s)", azurerm.ProviderSchemaInfo.Version),
+			Usage:       fmt.Sprintf("The azurerm provider version to use for importing (default: existing version constraints or %s)", azurerm.ProviderSchemaInfo.Version),
 			Destination: &flagset.flagProviderVersion,
 		},
 		&cli.StringFlag{
