@@ -73,6 +73,7 @@ type baseMeta struct {
 	outputFileNames   config.OutputFileNames
 	tf                *tfexec.Terraform
 	resourceClient    *armresources.Client
+	providerVersion   string
 	devProvider       bool
 	backendType       string
 	backendConfig     []string
@@ -105,6 +106,9 @@ type baseMeta struct {
 func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	if cfg.Parallelism == 0 {
 		return nil, fmt.Errorf("Parallelism not set in the config")
+	}
+	if cfg.ProviderVersion != "" && cfg.DevProvider {
+		return nil, fmt.Errorf("ProviderVersion conflicts with DevProvider in the config")
 	}
 
 	// Determine the module directory and module address
@@ -185,6 +189,10 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		tc = telemetry.NewNullClient()
 	}
 
+	if !cfg.DevProvider && cfg.ProviderVersion == "" {
+		cfg.ProviderVersion = azurerm.ProviderSchemaInfo.Version
+	}
+
 	meta := &baseMeta{
 		subscriptionId:    cfg.SubscriptionId,
 		azureSDKCred:      cfg.AzureSDKCredential,
@@ -192,6 +200,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		outdir:            cfg.OutputDir,
 		outputFileNames:   outputFileNames,
 		resourceClient:    resClient,
+		providerVersion:   cfg.ProviderVersion,
 		devProvider:       cfg.DevProvider,
 		backendType:       cfg.BackendType,
 		backendConfig:     cfg.BackendConfig,
@@ -560,7 +569,7 @@ func (meta *baseMeta) buildTerraformConfigForImportDir() string {
     }
   }
 }
-`, azurerm.ProviderSchemaInfo.Version)
+`, meta.providerVersion)
 }
 
 func (meta *baseMeta) buildTerraformConfig(backendType string) string {
@@ -580,7 +589,7 @@ func (meta *baseMeta) buildTerraformConfig(backendType string) string {
     }
   }
 }
-`, backendType, azurerm.ProviderSchemaInfo.Version)
+`, backendType, meta.providerVersion)
 }
 
 func (meta *baseMeta) buildProviderConfig() string {
@@ -641,6 +650,7 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 	if diags.HasErrors() {
 		return diags.Err()
 	}
+
 	tfblock, err := utils.InspecTerraformBlock(meta.outdir)
 	if err != nil {
 		return err
