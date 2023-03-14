@@ -354,7 +354,7 @@ func main() {
 				},
 			},
 			{
-				Name:      "resource",
+				Name:      ModeResource,
 				Aliases:   []string{"res"},
 				Usage:     "Exporting a single resource",
 				UsageText: "aztfexport resource [option] <resource id>",
@@ -405,11 +405,11 @@ func main() {
 						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
 					}
 
-					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.hflagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile)
+					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.hflagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResource))
 				},
 			},
 			{
-				Name:      "resource-group",
+				Name:      ModeResourceGroup,
 				Aliases:   []string{"rg"},
 				Usage:     "Exporting a resource group and the nested resources resides within it",
 				UsageText: "aztfexport resource-group [option] <resource group name>",
@@ -456,11 +456,11 @@ func main() {
 						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
 					}
 
-					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.hflagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile)
+					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.hflagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResourceGroup))
 				},
 			},
 			{
-				Name:      "query",
+				Name:      ModeQuery,
 				Usage:     "Exporting a customized scope of resources determined by an Azure Resource Graph where predicate",
 				UsageText: "aztfexport query [option] <ARG where predicate>",
 				Flags:     queryFlags,
@@ -506,11 +506,11 @@ func main() {
 						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
 					}
 
-					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.hflagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile)
+					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.hflagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeQuery))
 				},
 			},
 			{
-				Name:      "mapping-file",
+				Name:      ModeMappingFile,
 				Aliases:   []string{"map"},
 				Usage:     "Exporting a customized scope of resources determined by the resource mapping file",
 				UsageText: "aztfexport mapping-file [option] <resource mapping file>",
@@ -555,7 +555,7 @@ func main() {
 						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
 					}
 
-					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.hflagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile)
+					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.hflagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeMappingFile))
 				},
 			},
 		},
@@ -729,7 +729,7 @@ func subscriptionIdFromCLI() (string, error) {
 	return strconv.Unquote(strings.TrimSpace(stdout.String()))
 }
 
-func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, genMapFile bool, profileType string) (result error) {
+func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, genMapFile bool, profileType string, effectiveCLI string) (result error) {
 	switch strings.ToLower(profileType) {
 	case "cpu":
 		defer profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook).Stop()
@@ -758,6 +758,7 @@ func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, 
 
 	log.Printf("[INFO] aztfexport starts with config: %#v", cfg)
 	tc.Trace(telemetry.Info, "aztfexport starts")
+	tc.Trace(telemetry.Info, "Effective CLI: "+effectiveCLI)
 
 	// Run in non-interactive mode
 	if batch {
