@@ -116,6 +116,14 @@ func TestCommondBeforeFunc(t *testing.T) {
 			},
 		},
 		{
+			name: "--dev-provider conflicts with --provider-version",
+			fset: FlagSet{
+				flagDevProvider:     true,
+				flagProviderVersion: "= 1.2.3",
+			},
+			err: "`--dev-provider` conflicts with `--provider-version`",
+		},
+		{
 			name: "non empty dir but overwrite",
 			fset: FlagSet{
 				flagOverwrite: true,
