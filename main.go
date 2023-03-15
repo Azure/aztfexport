@@ -110,6 +110,14 @@ func prepareConfigFile(ctx *cli.Context) error {
 func main() {
 	commonFlags := []cli.Flag{
 		&cli.StringFlag{
+			Name: "env",
+			// Honor the "ARM_ENVIRONMENT" as is used by the AzureRM provider, for easier use.
+			EnvVars:     []string{"AZTFEXPORT_ENV", "ARM_ENVIRONMENT"},
+			Usage:       `The cloud environment, can be one of "public", "usgovernment" and "china"`,
+			Destination: &flagset.flagEnv,
+			Value:       "public",
+		},
+		&cli.StringFlag{
 			Name: "subscription-id",
 			// Honor the "ARM_SUBSCRIPTION_ID" as is used by the AzureRM provider, for easier use.
 			EnvVars:     []string{"AZTFEXPORT_SUBSCRIPTION_ID", "ARM_SUBSCRIPTION_ID"},
@@ -380,7 +388,7 @@ func main() {
 						return fmt.Errorf("invalid resource id: %v", err)
 					}
 
-					cred, clientOpt, err := buildAzureSDKCredAndClientOpt()
+					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset.flagEnv)
 					if err != nil {
 						return err
 					}
@@ -432,7 +440,7 @@ func main() {
 
 					rg := c.Args().First()
 
-					cred, clientOpt, err := buildAzureSDKCredAndClientOpt()
+					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset.flagEnv)
 					if err != nil {
 						return err
 					}
@@ -483,7 +491,7 @@ func main() {
 
 					predicate := c.Args().First()
 
-					cred, clientOpt, err := buildAzureSDKCredAndClientOpt()
+					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset.flagEnv)
 					if err != nil {
 						return err
 					}
@@ -535,7 +543,7 @@ func main() {
 
 					mapFile := c.Args().First()
 
-					cred, clientOpt, err := buildAzureSDKCredAndClientOpt()
+					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset.flagEnv)
 					if err != nil {
 						return err
 					}
@@ -660,12 +668,7 @@ func initTelemetryClient() telemetry.Client {
 }
 
 // buildAzureSDKCredAndClientOpt builds the Azure SDK credential and client option from multiple sources (i.e. environment variables, MSI, Azure CLI).
-func buildAzureSDKCredAndClientOpt() (azcore.TokenCredential, *arm.ClientOptions, error) {
-	env := "public"
-	if v := os.Getenv("ARM_ENVIRONMENT"); v != "" {
-		env = v
-	}
-
+func buildAzureSDKCredAndClientOpt(env string) (azcore.TokenCredential, *arm.ClientOptions, error) {
 	var cloudCfg cloud.Configuration
 	switch strings.ToLower(env) {
 	case "public":
