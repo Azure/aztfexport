@@ -11,6 +11,7 @@ var flagset FlagSet
 
 type FlagSet struct {
 	// common flags
+	flagEnv                 string
 	flagSubscriptionId      string
 	flagOutputDir           string
 	flagOverwrite           bool
@@ -69,6 +70,10 @@ func (flag FlagSet) DescribeCLI(mode string) string {
 	// - flagDevProvider
 	// - flagBackendConfig
 	// - all hflags
+
+	if flag.flagEnv != "" {
+		args = append(args, "--env="+flag.flagEnv)
+	}
 
 	if flag.flagOverwrite {
 		args = append(args, "--overwrite=true")
