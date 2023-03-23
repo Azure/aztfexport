@@ -26,12 +26,14 @@ type FlagSet struct {
 	flagNonInteractive      bool
 	flagGenerateMappingFile bool
 	flagHCLOnly             bool
+	flagTFClientPluginPath  string
 	flagModulePath          string
 
 	// common flags (hidden)
-	hflagMockClient bool
-	hflagPlainUI    bool
-	hflagProfile    string
+	hflagMockClient         bool
+	hflagPlainUI            bool
+	hflagProfile            string
+	hflagTFClientPluginPath string
 
 	// Subcommand specific flags
 	//
@@ -74,7 +76,6 @@ func (flag FlagSet) DescribeCLI(mode string) string {
 	if flag.flagEnv != "" {
 		args = append(args, "--env="+flag.flagEnv)
 	}
-
 	if flag.flagOverwrite {
 		args = append(args, "--overwrite=true")
 	}
@@ -104,6 +105,9 @@ func (flag FlagSet) DescribeCLI(mode string) string {
 	}
 	if flag.flagHCLOnly {
 		args = append(args, "--hcl-only=true")
+	}
+	if flag.flagTFClientPluginPath != "" {
+		args = append(args, "--tfclient-plugin-path=%s", flag.flagTFClientPluginPath)
 	}
 	if flag.flagModulePath != "" {
 		args = append(args, "--module-path="+flag.flagModulePath)

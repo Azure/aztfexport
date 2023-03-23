@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/magodo/armid"
 	"github.com/magodo/azlist/azlist"
+	"github.com/magodo/terraform-client-go/tfclient"
 	"github.com/magodo/tfadd/providers/azurerm"
 
 	"github.com/Azure/aztfexport/internal"
@@ -256,6 +257,13 @@ func main() {
 			Hidden:      true,
 			Destination: &flagset.hflagProfile,
 		},
+		&cli.StringFlag{
+			Name:        "tfclient-plugin-path",
+			EnvVars:     []string{"AZTFEXPORT_TFCLIENT_PLUGIN_PATH"},
+			Usage:       "Replace terraform binary with terraform-client-go for importing (must be used with `--hcl-only`)",
+			Hidden:      true,
+			Destination: &flagset.hflagTFClientPluginPath,
+		},
 	}
 
 	resourceFlags := append([]cli.Flag{
@@ -420,6 +428,17 @@ func main() {
 						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
 					}
 
+					if flagset.hflagTFClientPluginPath != "" {
+						tfc, err := tfclient.New(tfclient.Option{
+							Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
+							Logger: hclog.NewNullLogger(),
+						})
+						if err != nil {
+							return err
+						}
+						cfg.CommonConfig.TFClient = tfc
+					}
+
 					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.hflagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResource))
 				},
 			},
@@ -470,6 +489,17 @@ func main() {
 
 					if flagset.flagAppend {
 						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
+					}
+
+					if flagset.hflagTFClientPluginPath != "" {
+						tfc, err := tfclient.New(tfclient.Option{
+							Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
+							Logger: hclog.NewNullLogger(),
+						})
+						if err != nil {
+							return err
+						}
+						cfg.CommonConfig.TFClient = tfc
 					}
 
 					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.hflagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResourceGroup))
@@ -523,6 +553,17 @@ func main() {
 						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
 					}
 
+					if flagset.hflagTFClientPluginPath != "" {
+						tfc, err := tfclient.New(tfclient.Option{
+							Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
+							Logger: hclog.NewNullLogger(),
+						})
+						if err != nil {
+							return err
+						}
+						cfg.CommonConfig.TFClient = tfc
+					}
+
 					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.hflagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeQuery))
 				},
 			},
@@ -571,6 +612,17 @@ func main() {
 
 					if flagset.flagAppend {
 						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
+					}
+
+					if flagset.hflagTFClientPluginPath != "" {
+						tfc, err := tfclient.New(tfclient.Option{
+							Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
+							Logger: hclog.NewNullLogger(),
+						})
+						if err != nil {
+							return err
+						}
+						cfg.CommonConfig.TFClient = tfc
 					}
 
 					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.hflagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeMappingFile))

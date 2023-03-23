@@ -4,6 +4,7 @@ import (
 	"github.com/Azure/aztfexport/pkg/telemetry"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
+	"github.com/magodo/terraform-client-go/tfclient"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -53,6 +54,9 @@ type CommonConfig struct {
 	// HCLOnly is a strange field, which is only used internally by aztfexport to indicate whether to remove other files other than TF config at the end.
 	// External Go modules shoudl just ignore it.
 	HCLOnly bool
+	// TFClient is the terraform-client-go client used to replace terraform binary for importing resources.
+	// This can only be used together with HCLOnly as tfclient can't replace terraform for state file management.
+	TFClient tfclient.Client
 	// TelemetryClient is a client to send telemetry
 	TelemetryClient telemetry.Client
 }

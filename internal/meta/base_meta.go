@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	tfjson "github.com/hashicorp/terraform-json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,10 +28,15 @@ import (
 	"github.com/hexops/gotextdiff"
 	"github.com/hexops/gotextdiff/myers"
 	"github.com/hexops/gotextdiff/span"
+	tfclient "github.com/magodo/terraform-client-go/tfclient"
+	"github.com/magodo/terraform-client-go/tfclient/configschema"
+	"github.com/magodo/terraform-client-go/tfclient/typ"
 	"github.com/magodo/tfadd/providers/azurerm"
 	"github.com/magodo/tfadd/tfadd"
 	"github.com/magodo/tfmerge/tfmerge"
+	"github.com/magodo/tfstate"
 	"github.com/magodo/workerpool"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 const ResourceMappingFileName = "aztfexportResourceMapping.json"
@@ -80,7 +86,9 @@ type baseMeta struct {
 	providerConfig    map[string]cty.Value
 	fullConfig        bool
 	parallelism       int
-	hclOnly           bool
+
+	hclOnly  bool
+	tfclient tfclient.Client
 
 	// The module address prefix in the resource addr. E.g. module.mod1.module.mod2.azurerm_resource_group.test.
 	// This is an empty string if module path is not specified.
@@ -110,44 +118,29 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	if cfg.ProviderVersion != "" && cfg.DevProvider {
 		return nil, fmt.Errorf("ProviderVersion conflicts with DevProvider in the config")
 	}
+	if cfg.TFClient != nil && !cfg.HCLOnly {
+		return nil, fmt.Errorf("TFClient must be used together with HCLOnly")
+	}
 
 	// Determine the module directory and module address
 	var (
-		modulePaths []string
-		moduleAddr  string
-		moduleDir   = cfg.OutputDir
+		moduleAddr string
+		moduleDir  = cfg.OutputDir
 	)
 	if cfg.ModulePath != "" {
-		modulePaths = strings.Split(cfg.ModulePath, ".")
+		modulePaths := strings.Split(cfg.ModulePath, ".")
 
+		// Resolve the Terraform module address
 		var segs []string
 		for _, moduleName := range modulePaths {
 			segs = append(segs, "module."+moduleName)
 		}
 		moduleAddr = strings.Join(segs, ".")
 
-		// Ensure the module path is something called by the main module
-		// We are following the module source and recursively call the LoadModule below. This is valid since we only support local path modules.
-		// (remote sources are not supported since we will end up generating config to that module, it only makes sense for local path modules)
-		module, err := tfconfig.LoadModule(moduleDir)
+		var err error
+		moduleDir, err = getModuleDir(modulePaths, cfg.OutputDir)
 		if err != nil {
-			return nil, fmt.Errorf("loading main module: %v", err)
-		}
-
-		for i, moduleName := range modulePaths {
-			mc := module.ModuleCalls[moduleName]
-			if mc == nil {
-				return nil, fmt.Errorf("no module %q invoked by the root module", strings.Join(modulePaths[:i+1], "."))
-			}
-			// See https://developer.hashicorp.com/terraform/language/modules/sources#local-paths
-			if !strings.HasPrefix(mc.Source, "./") && !strings.HasPrefix(mc.Source, "../") {
-				return nil, fmt.Errorf("the source of module %q is not a local path", strings.Join(modulePaths[:i+1], "."))
-			}
-			moduleDir = filepath.Join(moduleDir, mc.Source)
-			module, err = tfconfig.LoadModule(moduleDir)
-			if err != nil {
-				return nil, fmt.Errorf("loading module %q: %v", strings.Join(modulePaths[:i+1], "."), err)
-			}
+			return nil, err
 		}
 	}
 
@@ -208,6 +201,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		fullConfig:        cfg.FullConfig,
 		parallelism:       cfg.Parallelism,
 		hclOnly:           cfg.HCLOnly,
+		tfclient:          cfg.TFClient,
 
 		moduleAddr: moduleAddr,
 		moduleDir:  moduleDir,
@@ -225,80 +219,31 @@ func (meta baseMeta) Workspace() string {
 func (meta *baseMeta) Init(ctx context.Context) error {
 	meta.tc.Trace(telemetry.Info, "Init Enter")
 	defer meta.tc.Trace(telemetry.Info, "Init Leave")
-	// Create the import directories per parallelism
-	var importBaseDirs []string
-	var importModuleDirs []string
-	modulePaths := []string{}
-	for i, v := range strings.Split(meta.moduleAddr, ".") {
-		if i%2 == 1 {
-			modulePaths = append(modulePaths, v)
-		}
-	}
-	for i := 0; i < meta.parallelism; i++ {
-		dir, err := os.MkdirTemp("", "aztfexport-")
-		if err != nil {
-			return fmt.Errorf("creating import directory: %v", err)
-		}
 
-		// Creating the module hierarchy if module path is specified.
-		// The hierarchy used here is not necessarily to be the same as is defined. What we need to guarantee here is the module address in TF is as specified.
-		mdir := dir
-		for _, moduleName := range modulePaths {
-			fpath := filepath.Join(mdir, "main.tf")
-			// #nosec G306
-			if err := os.WriteFile(fpath, []byte(fmt.Sprintf(`module "%s" {
-  source = "./%s"
-}
-`, moduleName, moduleName)), 0644); err != nil {
-				return fmt.Errorf("creating %s: %v", fpath, err)
-			}
-
-			mdir = filepath.Join(mdir, moduleName)
-			// #nosec G301
-			if err := os.Mkdir(mdir, 0750); err != nil {
-				return fmt.Errorf("creating module dir %s: %v", mdir, err)
-			}
-		}
-
-		importModuleDirs = append(importModuleDirs, mdir)
-		importBaseDirs = append(importBaseDirs, dir)
-	}
-	meta.importBaseDirs = importBaseDirs
-	meta.importModuleDirs = importModuleDirs
-
-	// Init terraform
-	if err := meta.initTF(ctx); err != nil {
-		return err
+	if meta.tfclient != nil {
+		return meta.init_notf(ctx)
 	}
 
-	// Init provider
-	if err := meta.initProvider(ctx); err != nil {
-		return err
-	}
-
-	// Pull TF state
-	baseState, err := meta.tf.StatePull(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to pull state: %v", err)
-	}
-	meta.baseState = []byte(baseState)
-	meta.originBaseState = []byte(baseState)
-
-	return nil
+	return meta.init_tf(ctx)
 }
 
-func (meta baseMeta) DeInit(_ context.Context) error {
+func (meta baseMeta) DeInit(ctx context.Context) error {
 	meta.tc.Trace(telemetry.Info, "DeInit Enter")
 	defer meta.tc.Trace(telemetry.Info, "DeInit Leave")
-	// Clean up the temporary workspaces for parallel import
-	for _, dir := range meta.importBaseDirs {
-		// #nosec G104
-		os.RemoveAll(dir)
+
+	if meta.tfclient != nil {
+		return meta.deinit_notf(ctx)
 	}
-	return nil
+
+	return meta.deinit_tf(ctx)
 }
 
 func (meta *baseMeta) CleanTFState(ctx context.Context, addr string) {
+	// Noop if tfclient is set
+	if meta.tfclient != nil {
+		return
+	}
+
 	// #nosec G104
 	meta.tf.StateRm(ctx, addr)
 }
@@ -314,10 +259,13 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) e
 
 	wp := workerpool.NewWorkPool(meta.parallelism)
 
-	var thisBaseStateJSON map[string]interface{}
-
 	wp.Run(func(i interface{}) error {
 		idx := i.(int)
+
+		// Noop if tfclient is set
+		if meta.tfclient != nil {
+			return nil
+		}
 
 		stateFile := filepath.Join(meta.importBaseDirs[idx], "terraform.tfstate")
 
@@ -328,38 +276,13 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) e
 		// Ensure the state file is removed after this round import, preparing for the next round.
 		defer os.Remove(stateFile)
 
-		// Performance improvement.
-		// In case there is no TF state in the target workspace (no matter local/remote backend), we can avoid using tfmerge (which takes care of terraform internals, like keeping the lineage, etc).
-		// As long as the user ensure there is no address conflicts in the import list (which is always the case as the resource names are almost unique),
-		// We are updating the local thisBaseStateJSON here, will update it to the meta.baseState at the end of this function.
-		if len(meta.originBaseState) == 0 {
-			log.Printf("[DEBUG] Merging terraform state file %s (simple)", stateFile)
-			// #nosec G304
-			b, err := os.ReadFile(stateFile)
-			if err != nil {
-				return fmt.Errorf("failed to read state file: %v", err)
-			}
-			var stateJSON map[string]interface{}
-			if err := json.Unmarshal(b, &stateJSON); err != nil {
-				return fmt.Errorf("failed to unmarshal state file: %v", err)
-			}
-			// The first state file to be merged will be took as the base state.
-			if thisBaseStateJSON == nil {
-				thisBaseStateJSON = stateJSON
-				return nil
-			}
-			// The other merges will simply append the "resources".
-			thisBaseStateJSON["resources"] = append(thisBaseStateJSON["resources"].([]interface{}), stateJSON["resources"].([]interface{})...)
-			return nil
-		}
-
-		// Otherwise, we use tfmerge to move resources from the importing state file to the target base state file.
 		log.Printf("[DEBUG] Merging terraform state file %s (tfmerge)", stateFile)
 		newState, err := tfmerge.Merge(ctx, meta.tf, meta.baseState, stateFile)
 		if err != nil {
 			return fmt.Errorf("failed to merge state file: %v", err)
 		}
 		meta.baseState = newState
+
 		return nil
 	})
 
@@ -378,30 +301,18 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) e
 		return err
 	}
 
-	if thisBaseStateJSON != nil {
-		var baseStateJSON map[string]interface{}
-		if len(meta.baseState) == 0 {
-			baseStateJSON = thisBaseStateJSON
-		} else {
-			if err := json.Unmarshal(meta.baseState, &baseStateJSON); err != nil {
-				return fmt.Errorf("unmarshalling the base state at the end of import: %v", err)
-			}
-			baseStateJSON["resources"] = append(baseStateJSON["resources"].([]interface{}), thisBaseStateJSON["resources"].([]interface{})...)
-		}
-		var err error
-		meta.baseState, err = json.Marshal(baseStateJSON)
-		if err != nil {
-			return fmt.Errorf("marshalling the base state at the end of import: %v", err)
-		}
-		return nil
-	}
-
 	return nil
 }
 
 func (meta baseMeta) PushState(ctx context.Context) error {
 	meta.tc.Trace(telemetry.Info, "PushState Enter")
 	defer meta.tc.Trace(telemetry.Info, "PushState Leave")
+
+	// Noop if tfclient is set
+	if meta.tfclient != nil {
+		return nil
+	}
+
 	// Don't push state if there is no state to push. This might happen when all the resources failed to import with "--continue".
 	if len(meta.baseState) == 0 {
 		return nil
@@ -493,8 +404,9 @@ func (meta baseMeta) ExportSkippedResources(_ context.Context, l ImportList) err
 }
 
 func (meta baseMeta) CleanUpWorkspace(_ context.Context) error {
-	// Clean up everything under the output directory, except for the TF code.
-	if meta.hclOnly {
+	// For hcl only mode with using terraform binary, we will have to clean up everything under the output directory,
+	// except for the TF code, resource mapping file and ignore list file.
+	if meta.hclOnly && meta.tfclient == nil {
 		tmpDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			return err
@@ -600,6 +512,107 @@ func (meta *baseMeta) buildProviderConfig() string {
 		body.SetAttributeValue(k, v)
 	}
 	return string(f.Bytes())
+}
+
+func (meta *baseMeta) init_notf(ctx context.Context) error {
+	schResp, diags := meta.tfclient.GetProviderSchema()
+	if diags.HasErrors() {
+		return fmt.Errorf("getting provider schema: %v", diags)
+	}
+
+	// Ensure "features" is always defined in the provider config
+	providerConfig := map[string]cty.Value{
+		"features": cty.ListValEmpty(configschema.SchemaBlockImpliedType(schResp.Provider.Block.NestedBlocks["features"].Block)),
+	}
+	for k, v := range meta.providerConfig {
+		providerConfig[k] = v
+	}
+	b, err := json.Marshal(meta.providerConfig)
+	if err != nil {
+		return fmt.Errorf("marshal provider config: %v", err)
+	}
+	config, err := ctyjson.Unmarshal(b, configschema.SchemaBlockImpliedType(schResp.Provider.Block))
+	if err != nil {
+		return fmt.Errorf("unmarshal provider config: %v", err)
+	}
+
+	if _, diags = meta.tfclient.ConfigureProvider(ctx, typ.ConfigureProviderRequest{
+		Config: config,
+	}); diags.HasErrors() {
+		return fmt.Errorf("configure provider: %v", diags)
+	}
+
+	return nil
+}
+
+func (meta *baseMeta) init_tf(ctx context.Context) error {
+	// Create the import directories per parallelism
+	if err := meta.initImportDirs(); err != nil {
+		return err
+	}
+
+	// Init terraform
+	if err := meta.initTF(ctx); err != nil {
+		return err
+	}
+
+	// Init provider
+	if err := meta.initProvider(ctx); err != nil {
+		return err
+	}
+
+	// Pull TF state
+	baseState, err := meta.tf.StatePull(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to pull state: %v", err)
+	}
+	meta.baseState = []byte(baseState)
+	meta.originBaseState = []byte(baseState)
+
+	return nil
+}
+
+func (meta *baseMeta) initImportDirs() error {
+	var importBaseDirs []string
+	var importModuleDirs []string
+	modulePaths := []string{}
+	for i, v := range strings.Split(meta.moduleAddr, ".") {
+		if i%2 == 1 {
+			modulePaths = append(modulePaths, v)
+		}
+	}
+	for i := 0; i < meta.parallelism; i++ {
+		dir, err := os.MkdirTemp("", "aztfexport-")
+		if err != nil {
+			return fmt.Errorf("creating import directory: %v", err)
+		}
+
+		// Creating the module hierarchy if module path is specified.
+		// The hierarchy used here is not necessarily to be the same as is defined. What we need to guarantee here is the module address in TF is as specified.
+		mdir := dir
+		for _, moduleName := range modulePaths {
+			fpath := filepath.Join(mdir, "main.tf")
+			// #nosec G306
+			if err := os.WriteFile(fpath, []byte(fmt.Sprintf(`module "%s" {
+  source = "./%s"
+}
+`, moduleName, moduleName)), 0644); err != nil {
+				return fmt.Errorf("creating %s: %v", fpath, err)
+			}
+
+			mdir = filepath.Join(mdir, moduleName)
+			// #nosec G301
+			if err := os.Mkdir(mdir, 0750); err != nil {
+				return fmt.Errorf("creating module dir %s: %v", mdir, err)
+			}
+		}
+
+		importModuleDirs = append(importModuleDirs, mdir)
+		importBaseDirs = append(importBaseDirs, dir)
+	}
+	meta.importBaseDirs = importBaseDirs
+	meta.importModuleDirs = importModuleDirs
+	return nil
 }
 
 func (meta *baseMeta) initTF(ctx context.Context) error {
@@ -725,6 +738,15 @@ func (meta *baseMeta) importItem(ctx context.Context, item *ImportItem, importId
 		return
 	}
 
+	if meta.tfclient != nil {
+		meta.importItem_notf(ctx, item, importIdx)
+		return
+	}
+
+	meta.importItem_tf(ctx, item, importIdx)
+}
+
+func (meta *baseMeta) importItem_tf(ctx context.Context, item *ImportItem, importIdx int) {
 	moduleDir := meta.importModuleDirs[importIdx]
 	tf := meta.importTFs[importIdx]
 
@@ -761,22 +783,100 @@ func (meta *baseMeta) importItem(ctx context.Context, item *ImportItem, importId
 	item.Imported = err == nil
 }
 
+func (meta *baseMeta) importItem_notf(ctx context.Context, item *ImportItem, importIdx int) {
+	// Import resources
+	addr := item.TFAddr.String()
+	log.Printf("[INFO] Importing %s as %s", item.TFResourceId, addr)
+	// The actual resource type names in telemetry is redacted
+	meta.tc.Trace(telemetry.Info, fmt.Sprintf("Importing %s as %s", item.AzureResourceID.TypeString(), addr))
+
+	importResp, diags := meta.tfclient.ImportResourceState(ctx, typ.ImportResourceStateRequest{
+		TypeName: item.TFAddr.Type,
+		ID:       item.TFResourceId,
+	})
+	if diags.HasErrors() {
+		log.Printf("[ERROR] Importing %s: %v", item.TFAddr, diags)
+		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Importing %s: %v", item.AzureResourceID.TypeString(), diags))
+		item.ImportError = diags.Err()
+		item.Imported = false
+		return
+	}
+	if len(importResp.ImportedResources) != 1 {
+		err := fmt.Errorf("expect 1 resource being imported, got=%d", len(importResp.ImportedResources))
+		log.Printf("[ERROR] %s", err)
+		meta.tc.Trace(telemetry.Error, err.Error())
+		item.ImportError = err
+		item.Imported = false
+		return
+	}
+	res := importResp.ImportedResources[0]
+	readResp, diags := meta.tfclient.ReadResource(ctx, typ.ReadResourceRequest{
+		TypeName:   res.TypeName,
+		PriorState: res.State,
+		Private:    res.Private,
+	})
+	if diags.HasErrors() {
+		log.Printf("[ERROR] Reading %s: %v", item.TFAddr, diags)
+		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Reading %s: %v", item.AzureResourceID.TypeString(), diags))
+		item.ImportError = diags.Err()
+		item.Imported = false
+		return
+	}
+
+	item.State = readResp.NewState
+	item.ImportError = nil
+	item.Imported = true
+	return
+}
+
 func (meta baseMeta) stateToConfig(ctx context.Context, list ImportList) (ConfigInfos, error) {
 	var out []ConfigInfo
+	var bs [][]byte
 
-	var addrs []string
 	importedList := list.Imported()
-	for _, item := range importedList {
-		addr := item.TFAddr.String()
-		if meta.moduleAddr != "" {
-			addr = meta.moduleAddr + "." + addr
+
+	if meta.tfclient != nil {
+		for _, item := range importedList {
+			schResp, diags := meta.tfclient.GetProviderSchema()
+			if diags.HasErrors() {
+				return nil, fmt.Errorf("get provider schema: %v", diags)
+			}
+			rsch, ok := schResp.ResourceTypes[item.TFAddr.Type]
+			if !ok {
+				return nil, fmt.Errorf("no resource schema for %s found in the provider schema", item.TFAddr.Type)
+			}
+			b, err := tfadd.GenerateForOneResource(
+				&rsch,
+				tfstate.StateResource{
+					Mode:         tfjson.ManagedResourceMode,
+					Address:      item.TFAddr.String(),
+					Type:         item.TFAddr.Type,
+					ProviderName: "azurerm",
+					Value:        item.State,
+				},
+				meta.fullConfig)
+			if err != nil {
+				return nil, fmt.Errorf("generating state for resource %s: %v", item.TFAddr, err)
+			}
+			bs = append(bs, b)
 		}
-		addrs = append(addrs, addr)
+	} else {
+		var addrs []string
+		for _, item := range importedList {
+			addr := item.TFAddr.String()
+			if meta.moduleAddr != "" {
+				addr = meta.moduleAddr + "." + addr
+			}
+			addrs = append(addrs, addr)
+		}
+
+		var err error
+		bs, err = tfadd.StateForTargets(ctx, meta.tf, addrs, tfadd.Full(meta.fullConfig))
+		if err != nil {
+			return nil, fmt.Errorf("converting terraform state to config: %w", err)
+		}
 	}
-	bs, err := tfadd.StateForTargets(ctx, meta.tf, addrs, tfadd.Full(meta.fullConfig))
-	if err != nil {
-		return nil, fmt.Errorf("converting terraform state to config: %w", err)
-	}
+
 	for i, b := range bs {
 		tpl := meta.cleanupTerraformAdd(string(b))
 		f, diag := hclwrite.ParseConfig([]byte(tpl), "", hcl.InitialPos)
@@ -872,6 +972,47 @@ func (meta baseMeta) addDependency(configs ConfigInfos) (ConfigInfos, error) {
 	}
 
 	return out, nil
+}
+
+func (meta *baseMeta) deinit_notf(ctx context.Context) error {
+	meta.tfclient.Close()
+	return nil
+}
+
+func (meta *baseMeta) deinit_tf(ctx context.Context) error {
+	// Clean up the temporary workspaces for parallel import
+	for _, dir := range meta.importBaseDirs {
+		// #nosec G104
+		os.RemoveAll(dir)
+	}
+	return nil
+}
+
+func getModuleDir(modulePaths []string, moduleDir string) (string, error) {
+	// Ensure the module path is something called by the main module
+	// We are following the module source and recursively call the LoadModule below. This is valid since we only support local path modules.
+	// (remote sources are not supported since we will end up generating config to that module, it only makes sense for local path modules)
+	module, err := tfconfig.LoadModule(moduleDir)
+	if err != nil {
+		return "", fmt.Errorf("loading main module: %v", err)
+	}
+
+	for i, moduleName := range modulePaths {
+		mc := module.ModuleCalls[moduleName]
+		if mc == nil {
+			return "", fmt.Errorf("no module %q invoked by the root module", strings.Join(modulePaths[:i+1], "."))
+		}
+		// See https://developer.hashicorp.com/terraform/language/modules/sources#local-paths
+		if !strings.HasPrefix(mc.Source, "./") && !strings.HasPrefix(mc.Source, "../") {
+			return "", fmt.Errorf("the source of module %q is not a local path", strings.Join(modulePaths[:i+1], "."))
+		}
+		moduleDir = filepath.Join(moduleDir, mc.Source)
+		module, err = tfconfig.LoadModule(moduleDir)
+		if err != nil {
+			return "", fmt.Errorf("loading module %q: %v", strings.Join(modulePaths[:i+1], "."), err)
+		}
+	}
+	return moduleDir, nil
 }
 
 func appendToFile(path, content string) error {

@@ -3,6 +3,7 @@ package meta
 import (
 	"github.com/Azure/aztfexport/internal/tfaddr"
 	"github.com/magodo/armid"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type ImportItem struct {
@@ -31,6 +32,9 @@ type ImportItem struct {
 	IsRecommended bool
 
 	Recommendations []string
+
+	// State is what is being imported&read by terraform-plugin-go client. It is nil when importing via terraform binary.
+	State cty.Value
 }
 
 func (item ImportItem) Skip() bool {
