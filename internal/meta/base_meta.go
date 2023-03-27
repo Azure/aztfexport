@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	tfjson "github.com/hashicorp/terraform-json"
 	"os"
 	"path/filepath"
 	"strings"
+
+	tfjson "github.com/hashicorp/terraform-json"
 
 	"github.com/Azure/aztfexport/pkg/config"
 	"github.com/Azure/aztfexport/pkg/log"
@@ -431,7 +433,9 @@ func (meta baseMeta) CleanUpWorkspace(_ context.Context) error {
 			return err
 		}
 		if err := utils.CopyFile(filepath.Join(meta.outdir, SkippedResourcesFileName), tmpSkippedResourcesFileName); err != nil {
-			return err
+			if !errors.Is(err, os.ErrNotExist) {
+				return err
+			}
 		}
 
 		if err := utils.RemoveEverythingUnder(meta.outdir); err != nil {
@@ -448,7 +452,9 @@ func (meta baseMeta) CleanUpWorkspace(_ context.Context) error {
 			return err
 		}
 		if err := utils.CopyFile(tmpSkippedResourcesFileName, filepath.Join(meta.outdir, SkippedResourcesFileName)); err != nil {
-			return err
+			if !errors.Is(err, os.ErrNotExist) {
+				return err
+			}
 		}
 	}
 
@@ -851,7 +857,7 @@ func (meta baseMeta) stateToConfig(ctx context.Context, list ImportList) (Config
 					Mode:         tfjson.ManagedResourceMode,
 					Address:      item.TFAddr.String(),
 					Type:         item.TFAddr.Type,
-					ProviderName: "azurerm",
+					ProviderName: "registry.terraform.io/hashicorp/azurerm",
 					Value:        item.State,
 				},
 				meta.fullConfig)

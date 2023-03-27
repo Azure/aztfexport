@@ -26,7 +26,6 @@ type FlagSet struct {
 	flagNonInteractive      bool
 	flagGenerateMappingFile bool
 	flagHCLOnly             bool
-	flagTFClientPluginPath  string
 	flagModulePath          string
 
 	// common flags (hidden)
@@ -106,8 +105,8 @@ func (flag FlagSet) DescribeCLI(mode string) string {
 	if flag.flagHCLOnly {
 		args = append(args, "--hcl-only=true")
 	}
-	if flag.flagTFClientPluginPath != "" {
-		args = append(args, "--tfclient-plugin-path=%s", flag.flagTFClientPluginPath)
+	if flag.hflagTFClientPluginPath != "" {
+		args = append(args, "--tfclient-plugin-path=%s", flag.hflagTFClientPluginPath)
 	}
 	if flag.flagModulePath != "" {
 		args = append(args, "--module-path="+flag.flagModulePath)
