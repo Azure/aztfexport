@@ -26,6 +26,7 @@ import (
 )
 
 const TestToggleEnvVar = "AZTFEXPORT_E2E"
+const TestPluginPathEnvVar = "AZTFEXPORT_PLUGIN_PATH"
 
 func Keep() bool {
 	return os.Getenv("AZTFEXPORT_KEEP") != ""
