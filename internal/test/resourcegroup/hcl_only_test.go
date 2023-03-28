@@ -29,6 +29,7 @@ func runHCLOnly(t *testing.T, d test.Data, c cases.Case) {
 	}
 	tfexecPath := test.EnsureTF(t)
 
+	// #nosec G204
 	tfc, err := tfclient.New(tfclient.Option{
 		Cmd:    exec.Command(os.Getenv(test.TestPluginPathEnvVar)),
 		Logger: hclog.NewNullLogger(),

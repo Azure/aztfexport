@@ -429,6 +429,7 @@ func main() {
 					}
 
 					if flagset.hflagTFClientPluginPath != "" {
+						// #nosec G204
 						tfc, err := tfclient.New(tfclient.Option{
 							Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
 							Logger: hclog.NewNullLogger(),
@@ -492,6 +493,7 @@ func main() {
 					}
 
 					if flagset.hflagTFClientPluginPath != "" {
+						// #nosec G204
 						tfc, err := tfclient.New(tfclient.Option{
 							Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
 							Logger: hclog.NewNullLogger(),
@@ -554,6 +556,7 @@ func main() {
 					}
 
 					if flagset.hflagTFClientPluginPath != "" {
+						// #nosec G204
 						tfc, err := tfclient.New(tfclient.Option{
 							Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
 							Logger: hclog.NewNullLogger(),
@@ -615,6 +618,7 @@ func main() {
 					}
 
 					if flagset.hflagTFClientPluginPath != "" {
+						// #nosec G204
 						tfc, err := tfclient.New(tfclient.Option{
 							Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
 							Logger: hclog.NewNullLogger(),
