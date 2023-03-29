@@ -45,6 +45,11 @@ func commandBeforeFunc(fset *FlagSet) func(ctx *cli.Context) error {
 				return fmt.Errorf("`--dev-provider` conflicts with `--provider-version`")
 			}
 		}
+		if fset.hflagTFClientPluginPath != "" {
+			if !fset.flagHCLOnly {
+				return fmt.Errorf("`--tfclient-plugin-path` must be used together with `--hcl-only`")
+			}
+		}
 
 		if flagLogLevel != "" {
 			if _, err := logLevel(flagLogLevel); err != nil {
