@@ -526,24 +526,19 @@ func (meta *baseMeta) init_notf(ctx context.Context) error {
 		return fmt.Errorf("getting provider schema: %v", diags)
 	}
 
-	// Ensure "features" is always defined in the provider config
-	providerConfig := map[string]cty.Value{
-		"features": cty.ListValEmpty(configschema.SchemaBlockImpliedType(schResp.Provider.Block.NestedBlocks["features"].Block)),
+	// Ensure "features" is always defined in the provider initConfig
+	initConfig, err := ctyjson.Unmarshal([]byte(`{"features": []}`), configschema.SchemaBlockImpliedType(schResp.Provider.Block))
+	if err != nil {
+		return fmt.Errorf("ctyjson unmarshal initial provider config")
 	}
+	providerConfig := initConfig.AsValueMap()
+
 	for k, v := range meta.providerConfig {
 		providerConfig[k] = v
 	}
-	b, err := json.Marshal(meta.providerConfig)
-	if err != nil {
-		return fmt.Errorf("marshal provider config: %v", err)
-	}
-	config, err := ctyjson.Unmarshal(b, configschema.SchemaBlockImpliedType(schResp.Provider.Block))
-	if err != nil {
-		return fmt.Errorf("unmarshal provider config: %v", err)
-	}
 
 	if _, diags = meta.tfclient.ConfigureProvider(ctx, typ.ConfigureProviderRequest{
-		Config: config,
+		Config: cty.ObjectVal(providerConfig),
 	}); diags.HasErrors() {
 		return fmt.Errorf("configure provider: %v", diags)
 	}
