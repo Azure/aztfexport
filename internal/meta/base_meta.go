@@ -38,7 +38,6 @@ import (
 	"github.com/magodo/tfmerge/tfmerge"
 	"github.com/magodo/tfstate"
 	"github.com/magodo/workerpool"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 const ResourceMappingFileName = "aztfexportResourceMapping.json"
@@ -533,17 +532,9 @@ func (meta *baseMeta) init_notf(ctx context.Context) error {
 	for k, v := range meta.providerConfig {
 		providerConfig[k] = v
 	}
-	b, err := json.Marshal(meta.providerConfig)
-	if err != nil {
-		return fmt.Errorf("marshal provider config: %v", err)
-	}
-	config, err := ctyjson.Unmarshal(b, configschema.SchemaBlockImpliedType(schResp.Provider.Block))
-	if err != nil {
-		return fmt.Errorf("unmarshal provider config: %v", err)
-	}
 
 	if _, diags = meta.tfclient.ConfigureProvider(ctx, typ.ConfigureProviderRequest{
-		Config: config,
+		Config: cty.MapVal(providerConfig),
 	}); diags.HasErrors() {
 		return fmt.Errorf("configure provider: %v", diags)
 	}
