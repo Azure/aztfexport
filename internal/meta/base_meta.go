@@ -38,6 +38,7 @@ import (
 	"github.com/magodo/tfmerge/tfmerge"
 	"github.com/magodo/tfstate"
 	"github.com/magodo/workerpool"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 const ResourceMappingFileName = "aztfexportResourceMapping.json"
@@ -525,16 +526,19 @@ func (meta *baseMeta) init_notf(ctx context.Context) error {
 		return fmt.Errorf("getting provider schema: %v", diags)
 	}
 
-	// Ensure "features" is always defined in the provider config
-	providerConfig := map[string]cty.Value{
-		"features": cty.ListValEmpty(configschema.SchemaBlockImpliedType(schResp.Provider.Block.NestedBlocks["features"].Block)),
+	// Ensure "features" is always defined in the provider initConfig
+	initConfig, err := ctyjson.Unmarshal([]byte(`{"features": []}`), configschema.SchemaBlockImpliedType(schResp.Provider.Block))
+	if err != nil {
+		return fmt.Errorf("ctyjson unmarshal initial provider config")
 	}
+	providerConfig := initConfig.AsValueMap()
+
 	for k, v := range meta.providerConfig {
 		providerConfig[k] = v
 	}
 
 	if _, diags = meta.tfclient.ConfigureProvider(ctx, typ.ConfigureProviderRequest{
-		Config: cty.MapVal(providerConfig),
+		Config: cty.ObjectVal(providerConfig),
 	}); diags.HasErrors() {
 		return fmt.Errorf("configure provider: %v", diags)
 	}
