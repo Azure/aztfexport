@@ -225,6 +225,10 @@ Currently, following config items are supported:
 - `installation_id`: A UUID created on first run. If there is Azure CLI or Azure Powershell installed on the current machine, the UUID will be the same value among these tools. Otherwise, a new one will be created. This is used as an identifier in the telemetry trace.
 - `telemetry_enabled`: Whether to enable telemetry? We use telemetry to identify issues and areas for improvement, in order to optimize this tool for better performance, reliability, and user experience.
 
+### Cloud Environment
+
+By default, `aztfexport` targets to the `public` Azure cloud. If you are interacting with other clouds like `usgovernment` or `china`, you can specify that by `--env` option, or the environment variable `AZTFEXPORT_ENV`.
+
 ## How it Works
 
 `aztfexport` leverage [`aztft`](https://github.com/magodo/aztft) to identify the Terraform resource type on its Azure resource ID. Then it runs `terraform import` under the hood to import each resource. Afterwards, it runs [`tfadd`](https://github.com/magodo/tfadd) to generate the Terraform template for each imported resource.
