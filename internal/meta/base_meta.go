@@ -776,7 +776,8 @@ func (meta *baseMeta) importItem_tf(ctx context.Context, item *ImportItem, impor
 	err := tf.Import(ctx, addr, item.TFResourceId)
 	if err != nil {
 		log.Printf("[ERROR] Importing %s: %v", item.TFAddr, err)
-		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Importing %s: %v", item.AzureResourceID.TypeString(), err))
+		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Importing %s failed", item.AzureResourceID.TypeString()))
+		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Error detail: %v", err))
 	} else {
 		meta.tc.Trace(telemetry.Info, fmt.Sprintf("Importing %s as %s successfully", item.AzureResourceID.TypeString(), addr))
 	}
@@ -797,7 +798,8 @@ func (meta *baseMeta) importItem_notf(ctx context.Context, item *ImportItem, imp
 	})
 	if diags.HasErrors() {
 		log.Printf("[ERROR] Importing %s: %v", item.TFAddr, diags)
-		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Importing %s: %v", item.AzureResourceID.TypeString(), diags))
+		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Importing %s failed", item.AzureResourceID.TypeString()))
+		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Error detail: %v", diags.Err()))
 		item.ImportError = diags.Err()
 		item.Imported = false
 		return
@@ -818,7 +820,8 @@ func (meta *baseMeta) importItem_notf(ctx context.Context, item *ImportItem, imp
 	})
 	if diags.HasErrors() {
 		log.Printf("[ERROR] Reading %s: %v", item.TFAddr, diags)
-		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Reading %s: %v", item.AzureResourceID.TypeString(), diags))
+		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Reading %s failed", item.AzureResourceID.TypeString()))
+		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Error detail: %v", diags.Err()))
 		item.ImportError = diags.Err()
 		item.Imported = false
 		return
