@@ -820,7 +820,8 @@ func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, 
 			tc.Trace(telemetry.Info, "aztfexport ends")
 		} else {
 			log.Printf("[ERROR] aztfexport ends with error: %v", result)
-			tc.Trace(telemetry.Error, fmt.Sprintf("aztfexport ends with error: %v", result))
+			tc.Trace(telemetry.Error, fmt.Sprintf("aztfexport ends with error"))
+			tc.Trace(telemetry.Error, fmt.Sprintf("Error detail: %v", result))
 		}
 		tc.Close()
 	}()
