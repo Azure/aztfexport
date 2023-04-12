@@ -417,7 +417,7 @@ func main() {
 							Parallelism:          flagset.flagParallelism,
 							HCLOnly:              flagset.flagHCLOnly,
 							ModulePath:           flagset.flagModulePath,
-							TelemetryClient:      initTelemetryClient(),
+							TelemetryClient:      initTelemetryClient(flagset.flagSubscriptionId),
 						},
 						ResourceId:     resId,
 						TFResourceName: flagset.flagResName,
@@ -481,7 +481,7 @@ func main() {
 							Parallelism:          flagset.flagParallelism,
 							HCLOnly:              flagset.flagHCLOnly,
 							ModulePath:           flagset.flagModulePath,
-							TelemetryClient:      initTelemetryClient(),
+							TelemetryClient:      initTelemetryClient(flagset.flagSubscriptionId),
 						},
 						ResourceGroupName:   rg,
 						ResourceNamePattern: flagset.flagPattern,
@@ -544,7 +544,7 @@ func main() {
 							Parallelism:          flagset.flagParallelism,
 							HCLOnly:              flagset.flagHCLOnly,
 							ModulePath:           flagset.flagModulePath,
-							TelemetryClient:      initTelemetryClient(),
+							TelemetryClient:      initTelemetryClient(flagset.flagSubscriptionId),
 						},
 						ARGPredicate:        predicate,
 						ResourceNamePattern: flagset.flagPattern,
@@ -608,7 +608,7 @@ func main() {
 							Parallelism:          flagset.flagParallelism,
 							HCLOnly:              flagset.flagHCLOnly,
 							ModulePath:           flagset.flagModulePath,
-							TelemetryClient:      initTelemetryClient(),
+							TelemetryClient:      initTelemetryClient(flagset.flagSubscriptionId),
 						},
 						MappingFile: mapFile,
 					}
@@ -698,21 +698,21 @@ func initLog(path string, flagLevel string) error {
 	return nil
 }
 
-func initTelemetryClient() telemetry.Client {
+func initTelemetryClient(subscriptionId string) telemetry.Client {
 	cfg, err := cfgfile.GetConfig()
 	if err != nil {
 		return telemetry.NewNullClient()
 	}
-	enabled, id := cfg.TelemetryEnabled, cfg.InstallationId
+	enabled, installId := cfg.TelemetryEnabled, cfg.InstallationId
 	if !enabled {
 		return telemetry.NewNullClient()
 	}
-	if id == "" {
+	if installId == "" {
 		uuid, err := uuid.NewV4()
 		if err == nil {
-			id = uuid.String()
+			installId = uuid.String()
 		} else {
-			id = "undefined"
+			installId = "undefined"
 		}
 	}
 
@@ -720,7 +720,7 @@ func initTelemetryClient() telemetry.Client {
 	if uuid, err := uuid.NewV4(); err == nil {
 		sessionId = uuid.String()
 	}
-	return telemetry.NewAppInsight(id, sessionId)
+	return telemetry.NewAppInsight(subscriptionId, installId, sessionId)
 }
 
 // buildAzureSDKCredAndClientOpt builds the Azure SDK credential and client option from multiple sources (i.e. environment variables, MSI, Azure CLI).
