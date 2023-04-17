@@ -11,22 +11,25 @@ var flagset FlagSet
 
 type FlagSet struct {
 	// common flags
-	flagEnv                 string
-	flagSubscriptionId      string
-	flagOutputDir           string
-	flagOverwrite           bool
-	flagAppend              bool
-	flagDevProvider         bool
-	flagProviderVersion     string
-	flagBackendType         string
-	flagBackendConfig       cli.StringSlice
-	flagFullConfig          bool
-	flagParallelism         int
-	flagContinue            bool
-	flagNonInteractive      bool
-	flagGenerateMappingFile bool
-	flagHCLOnly             bool
-	flagModulePath          string
+	flagEnv                    string
+	flagSubscriptionId         string
+	flagUseEnvironmentCred     bool
+	flagUseManagedIdentityCred bool
+	flagUseAzureCLICred        bool
+	flagOutputDir              string
+	flagOverwrite              bool
+	flagAppend                 bool
+	flagDevProvider            bool
+	flagProviderVersion        string
+	flagBackendType            string
+	flagBackendConfig          cli.StringSlice
+	flagFullConfig             bool
+	flagParallelism            int
+	flagContinue               bool
+	flagNonInteractive         bool
+	flagGenerateMappingFile    bool
+	flagHCLOnly                bool
+	flagModulePath             string
 
 	// common flags (hidden)
 	hflagMockClient         bool
@@ -77,6 +80,15 @@ func (flag FlagSet) DescribeCLI(mode string) string {
 	}
 	if flag.flagOverwrite {
 		args = append(args, "--overwrite=true")
+	}
+	if flag.flagUseEnvironmentCred {
+		args = append(args, "--use-environment-cred=true")
+	}
+	if flag.flagUseManagedIdentityCred {
+		args = append(args, "--use-managed-identity-cred=true")
+	}
+	if flag.flagUseAzureCLICred {
+		args = append(args, "--use-azure-cli-cred=true")
 	}
 	if flag.flagAppend {
 		args = append(args, "--append=true")

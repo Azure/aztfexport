@@ -126,6 +126,24 @@ func main() {
 			Usage:       "The subscription id",
 			Destination: &flagset.flagSubscriptionId,
 		},
+		&cli.BoolFlag{
+			Name:        "use-environment-cred",
+			EnvVars:     []string{"AZTFEXPORT_USE_ENVIRONMENT_CRED"},
+			Usage:       "Explicitly use the environment variables to do authentication",
+			Destination: &flagset.flagUseEnvironmentCred,
+		},
+		&cli.BoolFlag{
+			Name:        "use-managed-identity-cred",
+			EnvVars:     []string{"AZTFEXPORT_USE_MANAGED_IDENTITY_CRED"},
+			Usage:       "Explicitly use the managed identity that is provided by the Azure host to do authentication",
+			Destination: &flagset.flagUseManagedIdentityCred,
+		},
+		&cli.BoolFlag{
+			Name:        "use-azure-cli-cred",
+			EnvVars:     []string{"AZTFEXPORT_USE_AZURE_CLI_CRED"},
+			Usage:       "Explicitly use the Azure CLI to do authentication",
+			Destination: &flagset.flagUseAzureCLICred,
+		},
 		&cli.StringFlag{
 			Name:    "output-dir",
 			EnvVars: []string{"AZTFEXPORT_OUTPUT_DIR"},
@@ -396,7 +414,7 @@ func main() {
 						return fmt.Errorf("invalid resource id: %v", err)
 					}
 
-					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset.flagEnv)
+					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset.flagEnv, NewAuthMethodFromFlagSet(flagset))
 					if err != nil {
 						return err
 					}
@@ -460,7 +478,7 @@ func main() {
 
 					rg := c.Args().First()
 
-					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset.flagEnv)
+					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset.flagEnv, NewAuthMethodFromFlagSet(flagset))
 					if err != nil {
 						return err
 					}
@@ -523,7 +541,7 @@ func main() {
 
 					predicate := c.Args().First()
 
-					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset.flagEnv)
+					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset.flagEnv, NewAuthMethodFromFlagSet(flagset))
 					if err != nil {
 						return err
 					}
@@ -587,7 +605,7 @@ func main() {
 
 					mapFile := c.Args().First()
 
-					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset.flagEnv)
+					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset.flagEnv, NewAuthMethodFromFlagSet(flagset))
 					if err != nil {
 						return err
 					}
@@ -723,8 +741,31 @@ func initTelemetryClient() telemetry.Client {
 	return telemetry.NewAppInsight(id, sessionId)
 }
 
+// At most one of below is true
+type authMethod int
+
+const (
+	authMethodDefault authMethod = iota
+	authMethodEnvironment
+	authMethodManagedIdentity
+	authMethodAzureCLI
+)
+
+func NewAuthMethodFromFlagSet(fset FlagSet) authMethod {
+	if fset.flagUseEnvironmentCred {
+		return authMethodEnvironment
+	}
+	if fset.flagUseManagedIdentityCred {
+		return authMethodManagedIdentity
+	}
+	if fset.flagUseAzureCLICred {
+		return authMethodAzureCLI
+	}
+	return authMethodDefault
+}
+
 // buildAzureSDKCredAndClientOpt builds the Azure SDK credential and client option from multiple sources (i.e. environment variables, MSI, Azure CLI).
-func buildAzureSDKCredAndClientOpt(env string) (azcore.TokenCredential, *arm.ClientOptions, error) {
+func buildAzureSDKCredAndClientOpt(env string, authMethod authMethod) (azcore.TokenCredential, *arm.ClientOptions, error) {
 	var cloudCfg cloud.Configuration
 	switch strings.ToLower(env) {
 	case "public":
@@ -768,15 +809,49 @@ func buildAzureSDKCredAndClientOpt(env string) (azcore.TokenCredential, *arm.Cli
 		},
 	}
 
-	cred, err := azidentity.NewDefaultAzureCredential(&azidentity.DefaultAzureCredentialOptions{
-		ClientOptions: clientOpt.ClientOptions,
-		TenantID:      os.Getenv("ARM_TENANT_ID"),
-	})
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to obtain a credential: %v", err)
+	tenantId := os.Getenv("ARM_TENANT_ID")
+	var (
+		cred azcore.TokenCredential
+		err  error
+	)
+	switch authMethod {
+	case authMethodEnvironment:
+		cred, err = azidentity.NewEnvironmentCredential(&azidentity.EnvironmentCredentialOptions{
+			ClientOptions: clientOpt.ClientOptions,
+		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to new Environment credential: %v", err)
+		}
+		return cred, clientOpt, nil
+	case authMethodManagedIdentity:
+		cred, err = azidentity.NewManagedIdentityCredential(&azidentity.ManagedIdentityCredentialOptions{
+			ClientOptions: clientOpt.ClientOptions,
+		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to new Managed Identity credential: %v", err)
+		}
+		return cred, clientOpt, nil
+	case authMethodAzureCLI:
+		cred, err = azidentity.NewAzureCLICredential(&azidentity.AzureCLICredentialOptions{
+			TenantID: tenantId,
+		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to new Azure CLI credential: %v", err)
+		}
+		return cred, clientOpt, nil
+	case authMethodDefault:
+		opt := &azidentity.DefaultAzureCredentialOptions{
+			ClientOptions: clientOpt.ClientOptions,
+			TenantID:      tenantId,
+		}
+		cred, err := azidentity.NewDefaultAzureCredential(opt)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to new Default credential: %v", err)
+		}
+		return cred, clientOpt, nil
+	default:
+		return nil, nil, fmt.Errorf("unknown auth method: %v", authMethod)
 	}
-
-	return cred, clientOpt, nil
 }
 
 func subscriptionIdFromCLI() (string, error) {
