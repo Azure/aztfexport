@@ -435,7 +435,7 @@ func main() {
 							Parallelism:          flagset.flagParallelism,
 							HCLOnly:              flagset.flagHCLOnly,
 							ModulePath:           flagset.flagModulePath,
-							TelemetryClient:      initTelemetryClient(),
+							TelemetryClient:      initTelemetryClient(flagset.flagSubscriptionId),
 						},
 						ResourceId:     resId,
 						TFResourceName: flagset.flagResName,
@@ -499,7 +499,7 @@ func main() {
 							Parallelism:          flagset.flagParallelism,
 							HCLOnly:              flagset.flagHCLOnly,
 							ModulePath:           flagset.flagModulePath,
-							TelemetryClient:      initTelemetryClient(),
+							TelemetryClient:      initTelemetryClient(flagset.flagSubscriptionId),
 						},
 						ResourceGroupName:   rg,
 						ResourceNamePattern: flagset.flagPattern,
@@ -562,7 +562,7 @@ func main() {
 							Parallelism:          flagset.flagParallelism,
 							HCLOnly:              flagset.flagHCLOnly,
 							ModulePath:           flagset.flagModulePath,
-							TelemetryClient:      initTelemetryClient(),
+							TelemetryClient:      initTelemetryClient(flagset.flagSubscriptionId),
 						},
 						ARGPredicate:        predicate,
 						ResourceNamePattern: flagset.flagPattern,
@@ -626,7 +626,7 @@ func main() {
 							Parallelism:          flagset.flagParallelism,
 							HCLOnly:              flagset.flagHCLOnly,
 							ModulePath:           flagset.flagModulePath,
-							TelemetryClient:      initTelemetryClient(),
+							TelemetryClient:      initTelemetryClient(flagset.flagSubscriptionId),
 						},
 						MappingFile: mapFile,
 					}
@@ -716,21 +716,21 @@ func initLog(path string, flagLevel string) error {
 	return nil
 }
 
-func initTelemetryClient() telemetry.Client {
+func initTelemetryClient(subscriptionId string) telemetry.Client {
 	cfg, err := cfgfile.GetConfig()
 	if err != nil {
 		return telemetry.NewNullClient()
 	}
-	enabled, id := cfg.TelemetryEnabled, cfg.InstallationId
+	enabled, installId := cfg.TelemetryEnabled, cfg.InstallationId
 	if !enabled {
 		return telemetry.NewNullClient()
 	}
-	if id == "" {
+	if installId == "" {
 		uuid, err := uuid.NewV4()
 		if err == nil {
-			id = uuid.String()
+			installId = uuid.String()
 		} else {
-			id = "undefined"
+			installId = "undefined"
 		}
 	}
 
@@ -738,7 +738,7 @@ func initTelemetryClient() telemetry.Client {
 	if uuid, err := uuid.NewV4(); err == nil {
 		sessionId = uuid.String()
 	}
-	return telemetry.NewAppInsight(id, sessionId)
+	return telemetry.NewAppInsight(subscriptionId, installId, sessionId)
 }
 
 // At most one of below is true
@@ -895,7 +895,8 @@ func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, 
 			tc.Trace(telemetry.Info, "aztfexport ends")
 		} else {
 			log.Printf("[ERROR] aztfexport ends with error: %v", result)
-			tc.Trace(telemetry.Error, fmt.Sprintf("aztfexport ends with error: %v", result))
+			tc.Trace(telemetry.Error, fmt.Sprintf("aztfexport ends with error"))
+			tc.Trace(telemetry.Error, fmt.Sprintf("Error detail: %v", result))
 		}
 		tc.Close()
 	}()

@@ -118,7 +118,7 @@ func (flag FlagSet) DescribeCLI(mode string) string {
 		args = append(args, "--hcl-only=true")
 	}
 	if flag.hflagTFClientPluginPath != "" {
-		args = append(args, "--tfclient-plugin-path=%s", flag.hflagTFClientPluginPath)
+		args = append(args, "--tfclient-plugin-path="+flag.hflagTFClientPluginPath)
 	}
 	if flag.flagModulePath != "" {
 		args = append(args, "--module-path="+flag.flagModulePath)
