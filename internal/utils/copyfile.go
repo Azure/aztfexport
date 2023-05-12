@@ -8,7 +8,7 @@ import (
 func CopyFile(src, dst string) error {
 	stat, err := os.Stat(src)
 	if err != nil {
-		return fmt.Errorf("stating source file %s: %v", src, err)
+		return fmt.Errorf("stating source file %s: %w", src, err)
 	}
 	// #nosec G304
 	b, err := os.ReadFile(src)

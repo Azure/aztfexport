@@ -16,7 +16,6 @@ import (
 
 	"github.com/Azure/aztfexport/internal/cfgfile"
 	internalconfig "github.com/Azure/aztfexport/internal/config"
-	"github.com/Azure/aztfexport/internal/meta"
 	"github.com/Azure/aztfexport/pkg/telemetry"
 	"github.com/gofrs/uuid"
 	"github.com/pkg/profile"
@@ -27,11 +26,11 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/magodo/armid"
 	"github.com/magodo/azlist/azlist"
+	"github.com/magodo/terraform-client-go/tfclient"
 	"github.com/magodo/tfadd/providers/azurerm"
 
 	"github.com/Azure/aztfexport/internal"
 	"github.com/Azure/aztfexport/internal/ui"
-	"github.com/Azure/aztfexport/internal/utils"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
@@ -46,226 +45,104 @@ var (
 	flagLogLevel string
 )
 
+func prepareConfigFile(ctx *cli.Context) error {
+	// Prepare the config directory at $HOME/.aztfexport
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("retrieving the user's HOME directory: %v", err)
+	}
+	configDir := filepath.Join(homeDir, cfgfile.CfgDirName)
+	if err := os.MkdirAll(configDir, 0750); err != nil {
+		return fmt.Errorf("creating the config directory at %s: %v", configDir, err)
+	}
+	configFile := filepath.Join(configDir, cfgfile.CfgFileName)
+
+	_, err = os.Stat(configFile)
+	if err == nil {
+		return nil
+	}
+	if !os.IsNotExist(err) {
+		return nil
+	}
+
+	// Generate a configuration file if not exist.
+
+	// Get the installation id from following sources in order:
+	// 1. The Azure CLI's configuration file
+	// 2. The Azure PWSH's configuration file
+	// 3. Generate one
+	id, err := func() (string, error) {
+		if id, err := cfgfile.GetInstallationIdFromCLI(); err == nil {
+			return id, nil
+		}
+		log.Printf("[DEBUG] Installation ID not found from Azure CLI: %v", err)
+
+		if id, err := cfgfile.GetInstallationIdFromPWSH(); err == nil {
+			return id, nil
+		}
+		log.Printf("[DEBUG] Installation ID not found from Azure PWSH: %v", err)
+
+		uuid, err := uuid.NewV4()
+		if err != nil {
+			return "", fmt.Errorf("generating installation id: %w", err)
+		}
+		return uuid.String(), nil
+	}()
+
+	if err != nil {
+		return err
+	}
+
+	cfg := cfgfile.Configuration{
+		InstallationId:   id,
+		TelemetryEnabled: true,
+	}
+	b, err := json.Marshal(cfg)
+	if err != nil {
+		return fmt.Errorf("marshalling the configuration file: %v", err)
+	}
+	// #nosec G306
+	if err := os.WriteFile(configFile, b, 0644); err != nil {
+		return fmt.Errorf("writing the configuration file: %v", err)
+	}
+	return nil
+}
+
 func main() {
-	var (
-		// common flags
-		flagSubscriptionId      string
-		flagOutputDir           string
-		flagOverwrite           bool
-		flagAppend              bool
-		flagDevProvider         bool
-		flagBackendType         string
-		flagBackendConfig       cli.StringSlice
-		flagFullConfig          bool
-		flagParallelism         int
-		flagContinue            bool
-		flagNonInteractive      bool
-		flagGenerateMappingFile bool
-		flagHCLOnly             bool
-		flagModulePath          string
-
-		// common flags (hidden)
-		hflagMockClient bool
-		hflagPlainUI    bool
-		hflagProfile    string
-
-		// Subcommand specific flags
-		//
-		// res:
-		// flagResName
-		// flagResType
-		//
-		// rg:
-		// flagPattern
-		//
-		// query:
-		// flagPattern
-		// flagRecursive
-		flagPattern   string
-		flagRecursive bool
-		flagResName   string
-		flagResType   string
-	)
-
-	prepareConfigFile := func(ctx *cli.Context) error {
-		// Prepare the config directory at $HOME/.aztfexport
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return fmt.Errorf("retrieving the user's HOME directory: %v", err)
-		}
-		configDir := filepath.Join(homeDir, cfgfile.CfgDirName)
-		if err := os.MkdirAll(configDir, 0750); err != nil {
-			return fmt.Errorf("creating the config directory at %s: %v", configDir, err)
-		}
-		configFile := filepath.Join(configDir, cfgfile.CfgFileName)
-
-		_, err = os.Stat(configFile)
-		if err == nil {
-			return nil
-		}
-		if !os.IsNotExist(err) {
-			return nil
-		}
-
-		// Generate a configuration file if not exist.
-
-		// Get the installation id from following sources in order:
-		// 1. The Azure CLI's configuration file
-		// 2. The Azure PWSH's configuration file
-		// 3. Generate one
-		id, err := func() (string, error) {
-			if id, err := cfgfile.GetInstallationIdFromCLI(); err == nil {
-				return id, nil
-			}
-			log.Printf("[DEBUG] Installation ID not found from Azure CLI: %v", err)
-
-			if id, err := cfgfile.GetInstallationIdFromPWSH(); err == nil {
-				return id, nil
-			}
-			log.Printf("[DEBUG] Installation ID not found from Azure PWSH: %v", err)
-
-			uuid, err := uuid.NewV4()
-			if err != nil {
-				return "", fmt.Errorf("generating installation id: %w", err)
-			}
-			return uuid.String(), nil
-		}()
-
-		if err != nil {
-			return err
-		}
-
-		cfg := cfgfile.Configuration{
-			InstallationId:   id,
-			TelemetryEnabled: true,
-		}
-		b, err := json.Marshal(cfg)
-		if err != nil {
-			return fmt.Errorf("marshalling the configuration file: %v", err)
-		}
-		// #nosec G306
-		if err := os.WriteFile(configFile, b, 0644); err != nil {
-			return fmt.Errorf("writing the configuration file: %v", err)
-		}
-		return nil
-	}
-
-	commandBeforeFunc := func(ctx *cli.Context) error {
-		// Common flags check
-		if flagAppend {
-			if flagBackendType != "local" {
-				return fmt.Errorf("`--append` only works for local backend")
-			}
-			if flagOverwrite {
-				return fmt.Errorf("`--append` conflicts with `--overwrite`")
-			}
-		}
-		if !flagNonInteractive {
-			if flagContinue {
-				return fmt.Errorf("`--continue` must be used together with `--non-interactive`")
-			}
-			if flagGenerateMappingFile {
-				return fmt.Errorf("`--generate-mapping-file` must be used together with `--non-interactive`")
-			}
-		}
-		if flagHCLOnly {
-			if flagBackendType != "local" {
-				return fmt.Errorf("`--hcl-only` only works for local backend")
-			}
-			if flagAppend {
-				return fmt.Errorf("`--append` conflicts with `--hcl-only`")
-			}
-			if flagModulePath != "" {
-				return fmt.Errorf("`--module-path` conflicts with `--hcl-only`")
-			}
-		}
-		if flagModulePath != "" {
-			if !flagAppend {
-				return fmt.Errorf("`--module-path` must be used together with `--append`")
-			}
-		}
-
-		if flagLogLevel != "" {
-			if _, err := logLevel(flagLogLevel); err != nil {
-				return err
-			}
-		}
-
-		// Initialize output directory
-		if _, err := os.Stat(flagOutputDir); os.IsNotExist(err) {
-			if err := os.MkdirAll(flagOutputDir, 0750); err != nil {
-				return fmt.Errorf("creating output directory %q: %v", flagOutputDir, err)
-			}
-		}
-		empty, err := utils.DirIsEmpty(flagOutputDir)
-		if err != nil {
-			return fmt.Errorf("failed to check emptiness of output directory %q: %v", flagOutputDir, err)
-		}
-		if !empty {
-			switch {
-			case flagOverwrite:
-				if err := utils.RemoveEverythingUnder(flagOutputDir, meta.ResourceMappingFileName); err != nil {
-					return fmt.Errorf("failed to clean up output directory %q: %v", flagOutputDir, err)
-				}
-			case flagAppend:
-				// do nothing
-			default:
-				if flagNonInteractive {
-					return fmt.Errorf("the output directory %q is not empty", flagOutputDir)
-				}
-
-				// Interactive mode
-				fmt.Printf(`
-The output directory is not empty. Please choose one of actions below:
-
-* Press "Y" to overwrite the existing directory with new files
-* Press "N" to append new files and add to the existing state instead
-* Press other keys to quit
-
-> `)
-				var ans string
-				// #nosec G104
-				fmt.Scanf("%s", &ans)
-				switch strings.ToLower(ans) {
-				case "y":
-					if err := utils.RemoveEverythingUnder(flagOutputDir, meta.ResourceMappingFileName); err != nil {
-						return err
-					}
-				case "n":
-					if flagHCLOnly {
-						return fmt.Errorf("`--hcl-only` can only run within an empty directory. Use `-o` to specify an empty directory.")
-					}
-					flagAppend = true
-				default:
-					return fmt.Errorf("the output directory %q is not empty", flagOutputDir)
-				}
-			}
-		}
-
-		// Identify the subscription id, which comes from one of following (starts from the highest priority):
-		// - Command line option
-		// - Env variable: AZTFEXPORT_SUBSCRIPTION_ID
-		// - Env variable: ARM_SUBSCRIPTION_ID
-		// - Output of azure cli, the current active subscription
-		if flagSubscriptionId == "" {
-			var err error
-			flagSubscriptionId, err = subscriptionIdFromCLI()
-			if err != nil {
-				return fmt.Errorf("retrieving subscription id from CLI: %v", err)
-			}
-		}
-
-		return nil
-	}
-
 	commonFlags := []cli.Flag{
+		&cli.StringFlag{
+			Name: "env",
+			// Honor the "ARM_ENVIRONMENT" as is used by the AzureRM provider, for easier use.
+			EnvVars:     []string{"AZTFEXPORT_ENV", "ARM_ENVIRONMENT"},
+			Usage:       `The cloud environment, can be one of "public", "usgovernment" and "china"`,
+			Destination: &flagset.flagEnv,
+			Value:       "public",
+		},
 		&cli.StringFlag{
 			Name: "subscription-id",
 			// Honor the "ARM_SUBSCRIPTION_ID" as is used by the AzureRM provider, for easier use.
 			EnvVars:     []string{"AZTFEXPORT_SUBSCRIPTION_ID", "ARM_SUBSCRIPTION_ID"},
 			Aliases:     []string{"s"},
 			Usage:       "The subscription id",
-			Destination: &flagSubscriptionId,
+			Destination: &flagset.flagSubscriptionId,
+		},
+		&cli.BoolFlag{
+			Name:        "use-environment-cred",
+			EnvVars:     []string{"AZTFEXPORT_USE_ENVIRONMENT_CRED"},
+			Usage:       "Explicitly use the environment variables to do authentication",
+			Destination: &flagset.flagUseEnvironmentCred,
+		},
+		&cli.BoolFlag{
+			Name:        "use-managed-identity-cred",
+			EnvVars:     []string{"AZTFEXPORT_USE_MANAGED_IDENTITY_CRED"},
+			Usage:       "Explicitly use the managed identity that is provided by the Azure host to do authentication",
+			Destination: &flagset.flagUseManagedIdentityCred,
+		},
+		&cli.BoolFlag{
+			Name:        "use-azure-cli-cred",
+			EnvVars:     []string{"AZTFEXPORT_USE_AZURE_CLI_CRED"},
+			Usage:       "Explicitly use the Azure CLI to do authentication",
+			Destination: &flagset.flagUseAzureCLICred,
 		},
 		&cli.StringFlag{
 			Name:    "output-dir",
@@ -276,86 +153,91 @@ The output directory is not empty. Please choose one of actions below:
 				dir, _ := os.Getwd()
 				return dir
 			}(),
-			Destination: &flagOutputDir,
+			Destination: &flagset.flagOutputDir,
 		},
 		&cli.BoolFlag{
 			Name:        "overwrite",
 			EnvVars:     []string{"AZTFEXPORT_OVERWRITE"},
 			Aliases:     []string{"f"},
 			Usage:       "Overwrites the output directory if it is not empty (use with caution)",
-			Destination: &flagOverwrite,
+			Destination: &flagset.flagOverwrite,
 		},
 		&cli.BoolFlag{
 			Name:        "append",
 			EnvVars:     []string{"AZTFEXPORT_APPEND"},
-			Usage:       "Imports to the existing state file if any and does not clean up the output directory (local backend only)",
-			Destination: &flagAppend,
+			Usage:       "Imports to the existing state file if any and does not clean up the output directory",
+			Destination: &flagset.flagAppend,
 		},
 		&cli.BoolFlag{
 			Name:        "dev-provider",
 			EnvVars:     []string{"AZTFEXPORT_DEV_PROVIDER"},
 			Usage:       fmt.Sprintf("Use the local development AzureRM provider, instead of the pinned provider in v%s", azurerm.ProviderSchemaInfo.Version),
-			Destination: &flagDevProvider,
+			Destination: &flagset.flagDevProvider,
+		},
+		&cli.StringFlag{
+			Name:        "provider-version",
+			EnvVars:     []string{"AZTFEXPORT_PROVIDER_VERSION"},
+			Usage:       fmt.Sprintf("The azurerm provider version to use for importing (default: existing version constraints or %s)", azurerm.ProviderSchemaInfo.Version),
+			Destination: &flagset.flagProviderVersion,
 		},
 		&cli.StringFlag{
 			Name:        "backend-type",
 			EnvVars:     []string{"AZTFEXPORT_BACKEND_TYPE"},
-			Usage:       "The Terraform backend used to store the state",
-			Value:       "local",
-			Destination: &flagBackendType,
+			Usage:       "The Terraform backend used to store the state (default: local)",
+			Destination: &flagset.flagBackendType,
 		},
 		&cli.StringSliceFlag{
 			Name:        "backend-config",
 			EnvVars:     []string{"AZTFEXPORT_BACKEND_CONFIG"},
 			Usage:       "The Terraform backend config",
-			Destination: &flagBackendConfig,
+			Destination: &flagset.flagBackendConfig,
 		},
 		&cli.BoolFlag{
 			Name:        "full-properties",
 			EnvVars:     []string{"AZTFEXPORT_FULL_PROPERTIES"},
 			Usage:       "Includes all non-computed properties in the Terraform configuration. This may require manual modifications to produce a valid config",
 			Value:       false,
-			Destination: &flagFullConfig,
+			Destination: &flagset.flagFullConfig,
 		},
 		&cli.IntFlag{
 			Name:        "parallelism",
 			EnvVars:     []string{"AZTFEXPORT_PARALLELISM"},
 			Usage:       "Limit the number of parallel operations, i.e., resource discovery, import",
 			Value:       10,
-			Destination: &flagParallelism,
+			Destination: &flagset.flagParallelism,
 		},
 		&cli.BoolFlag{
 			Name:        "non-interactive",
 			EnvVars:     []string{"AZTFEXPORT_NON_INTERACTIVE"},
 			Aliases:     []string{"n"},
 			Usage:       "Non-interactive mode",
-			Destination: &flagNonInteractive,
+			Destination: &flagset.flagNonInteractive,
 		},
 		&cli.BoolFlag{
 			Name:        "continue",
 			EnvVars:     []string{"AZTFEXPORT_CONTINUE"},
 			Aliases:     []string{"k"},
 			Usage:       "For non-interactive mode, continue on any import error",
-			Destination: &flagContinue,
+			Destination: &flagset.flagContinue,
 		},
 		&cli.BoolFlag{
 			Name:        "generate-mapping-file",
 			Aliases:     []string{"g"},
 			EnvVars:     []string{"AZTFEXPORT_GENERATE_MAPPING_FILE"},
 			Usage:       "Only generate the resource mapping file, but does NOT import any resource",
-			Destination: &flagGenerateMappingFile,
+			Destination: &flagset.flagGenerateMappingFile,
 		},
 		&cli.BoolFlag{
 			Name:        "hcl-only",
 			EnvVars:     []string{"AZTFEXPORT_HCL_ONLY"},
 			Usage:       "Only generates HCL code (and mapping file), but not the files for resource management (e.g. the state file)",
-			Destination: &flagHCLOnly,
+			Destination: &flagset.flagHCLOnly,
 		},
 		&cli.StringFlag{
 			Name:        "module-path",
 			EnvVars:     []string{"AZTFEXPORT_MODULE_PATH"},
 			Usage:       `The path of the module (e.g. "module1.module2") where the resources will be imported and config generated. Note that only modules whose "source" is local path is supported. Defaults to the root module.`,
-			Destination: &flagModulePath,
+			Destination: &flagset.flagModulePath,
 		},
 		&cli.StringFlag{
 			Name:        "log-path",
@@ -377,21 +259,28 @@ The output directory is not empty. Please choose one of actions below:
 			EnvVars:     []string{"AZTFEXPORT_MOCK_CLIENT"},
 			Usage:       "Whether to mock the client. This is for testing UI",
 			Hidden:      true,
-			Destination: &hflagMockClient,
+			Destination: &flagset.hflagMockClient,
 		},
 		&cli.BoolFlag{
 			Name:        "plain-ui",
 			EnvVars:     []string{"AZTFEXPORT_PLAIN_UI"},
 			Usage:       "In non-interactive mode, print the progress information line by line, rather than the spinner UI",
 			Hidden:      true,
-			Destination: &hflagPlainUI,
+			Destination: &flagset.hflagPlainUI,
 		},
 		&cli.StringFlag{
 			Name:        "profile",
 			EnvVars:     []string{"AZTFEXPORT_PROFILE"},
 			Usage:       "Profile the program, possible values are `cpu` and `memory`",
 			Hidden:      true,
-			Destination: &hflagProfile,
+			Destination: &flagset.hflagProfile,
+		},
+		&cli.StringFlag{
+			Name:        "tfclient-plugin-path",
+			EnvVars:     []string{"AZTFEXPORT_TFCLIENT_PLUGIN_PATH"},
+			Usage:       "Replace terraform binary with terraform-client-go for importing (must be used with `--hcl-only`)",
+			Hidden:      true,
+			Destination: &flagset.hflagTFClientPluginPath,
 		},
 	}
 
@@ -401,13 +290,13 @@ The output directory is not empty. Please choose one of actions below:
 			EnvVars:     []string{"AZTFEXPORT_NAME"},
 			Usage:       `The Terraform resource name.`,
 			Value:       "res-0",
-			Destination: &flagResName,
+			Destination: &flagset.flagResName,
 		},
 		&cli.StringFlag{
 			Name:        "type",
 			EnvVars:     []string{"AZTFEXPORT_TYPE"},
 			Usage:       `The Terraform resource type.`,
-			Destination: &flagResType,
+			Destination: &flagset.flagResType,
 		},
 	}, commonFlags...)
 
@@ -418,7 +307,7 @@ The output directory is not empty. Please choose one of actions below:
 			Aliases:     []string{"p"},
 			Usage:       `The pattern of the resource name. The semantic of a pattern is the same as Go's os.CreateTemp()`,
 			Value:       "res-",
-			Destination: &flagPattern,
+			Destination: &flagset.flagPattern,
 		},
 	}, commonFlags...)
 
@@ -428,7 +317,7 @@ The output directory is not empty. Please choose one of actions below:
 			EnvVars:     []string{"AZTFEXPORT_RECURSIVE"},
 			Aliases:     []string{"r"},
 			Usage:       "Recursively lists child resources of the resulting query resources",
-			Destination: &flagRecursive,
+			Destination: &flagset.flagRecursive,
 		},
 	}, resourceGroupFlags...)
 
@@ -505,12 +394,12 @@ The output directory is not empty. Please choose one of actions below:
 				},
 			},
 			{
-				Name:      "resource",
+				Name:      ModeResource,
 				Aliases:   []string{"res"},
 				Usage:     "Exporting a single resource",
 				UsageText: "aztfexport resource [option] <resource id>",
 				Flags:     resourceFlags,
-				Before:    commandBeforeFunc,
+				Before:    commandBeforeFunc(&flagset),
 				Action: func(c *cli.Context) error {
 					if c.NArg() == 0 {
 						return fmt.Errorf("No resource id specified")
@@ -525,7 +414,7 @@ The output directory is not empty. Please choose one of actions below:
 						return fmt.Errorf("invalid resource id: %v", err)
 					}
 
-					cred, clientOpt, err := buildAzureSDKCredAndClientOpt()
+					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset.flagEnv, NewAuthMethodFromFlagSet(flagset))
 					if err != nil {
 						return err
 					}
@@ -533,39 +422,52 @@ The output directory is not empty. Please choose one of actions below:
 					// Initialize the config
 					cfg := config.Config{
 						CommonConfig: config.CommonConfig{
-							SubscriptionId:       flagSubscriptionId,
+							SubscriptionId:       flagset.flagSubscriptionId,
 							AzureSDKCredential:   cred,
 							AzureSDKClientOption: *clientOpt,
-							OutputDir:            flagOutputDir,
-							DevProvider:          flagDevProvider,
-							ContinueOnError:      flagContinue,
-							BackendType:          flagBackendType,
-							BackendConfig:        flagBackendConfig.Value(),
-							FullConfig:           flagFullConfig,
-							Parallelism:          flagParallelism,
-							HCLOnly:              flagHCLOnly,
-							ModulePath:           flagModulePath,
-							TelemetryClient:      initTelemetryClient(),
+							OutputDir:            flagset.flagOutputDir,
+							ProviderVersion:      flagset.flagProviderVersion,
+							DevProvider:          flagset.flagDevProvider,
+							ContinueOnError:      flagset.flagContinue,
+							BackendType:          flagset.flagBackendType,
+							BackendConfig:        flagset.flagBackendConfig.Value(),
+							FullConfig:           flagset.flagFullConfig,
+							Parallelism:          flagset.flagParallelism,
+							HCLOnly:              flagset.flagHCLOnly,
+							ModulePath:           flagset.flagModulePath,
+							TelemetryClient:      initTelemetryClient(flagset.flagSubscriptionId),
 						},
 						ResourceId:     resId,
-						TFResourceName: flagResName,
-						TFResourceType: flagResType,
+						TFResourceName: flagset.flagResName,
+						TFResourceType: flagset.flagResType,
 					}
 
-					if flagAppend {
+					if flagset.flagAppend {
 						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
 					}
 
-					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile, hflagProfile)
+					if flagset.hflagTFClientPluginPath != "" {
+						// #nosec G204
+						tfc, err := tfclient.New(tfclient.Option{
+							Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
+							Logger: hclog.NewNullLogger(),
+						})
+						if err != nil {
+							return err
+						}
+						cfg.CommonConfig.TFClient = tfc
+					}
+
+					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.hflagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResource))
 				},
 			},
 			{
-				Name:      "resource-group",
+				Name:      ModeResourceGroup,
 				Aliases:   []string{"rg"},
 				Usage:     "Exporting a resource group and the nested resources resides within it",
 				UsageText: "aztfexport resource-group [option] <resource group name>",
 				Flags:     resourceGroupFlags,
-				Before:    commandBeforeFunc,
+				Before:    commandBeforeFunc(&flagset),
 				Action: func(c *cli.Context) error {
 					if c.NArg() == 0 {
 						return fmt.Errorf("No resource group specified")
@@ -576,7 +478,7 @@ The output directory is not empty. Please choose one of actions below:
 
 					rg := c.Args().First()
 
-					cred, clientOpt, err := buildAzureSDKCredAndClientOpt()
+					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset.flagEnv, NewAuthMethodFromFlagSet(flagset))
 					if err != nil {
 						return err
 					}
@@ -584,38 +486,51 @@ The output directory is not empty. Please choose one of actions below:
 					// Initialize the config
 					cfg := config.Config{
 						CommonConfig: config.CommonConfig{
-							SubscriptionId:       flagSubscriptionId,
+							SubscriptionId:       flagset.flagSubscriptionId,
 							AzureSDKCredential:   cred,
 							AzureSDKClientOption: *clientOpt,
-							OutputDir:            flagOutputDir,
-							DevProvider:          flagDevProvider,
-							ContinueOnError:      flagContinue,
-							BackendType:          flagBackendType,
-							BackendConfig:        flagBackendConfig.Value(),
-							FullConfig:           flagFullConfig,
-							Parallelism:          flagParallelism,
-							HCLOnly:              flagHCLOnly,
-							ModulePath:           flagModulePath,
-							TelemetryClient:      initTelemetryClient(),
+							OutputDir:            flagset.flagOutputDir,
+							ProviderVersion:      flagset.flagProviderVersion,
+							DevProvider:          flagset.flagDevProvider,
+							ContinueOnError:      flagset.flagContinue,
+							BackendType:          flagset.flagBackendType,
+							BackendConfig:        flagset.flagBackendConfig.Value(),
+							FullConfig:           flagset.flagFullConfig,
+							Parallelism:          flagset.flagParallelism,
+							HCLOnly:              flagset.flagHCLOnly,
+							ModulePath:           flagset.flagModulePath,
+							TelemetryClient:      initTelemetryClient(flagset.flagSubscriptionId),
 						},
 						ResourceGroupName:   rg,
-						ResourceNamePattern: flagPattern,
+						ResourceNamePattern: flagset.flagPattern,
 						RecursiveQuery:      true,
 					}
 
-					if flagAppend {
+					if flagset.flagAppend {
 						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
 					}
 
-					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile, hflagProfile)
+					if flagset.hflagTFClientPluginPath != "" {
+						// #nosec G204
+						tfc, err := tfclient.New(tfclient.Option{
+							Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
+							Logger: hclog.NewNullLogger(),
+						})
+						if err != nil {
+							return err
+						}
+						cfg.CommonConfig.TFClient = tfc
+					}
+
+					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.hflagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResourceGroup))
 				},
 			},
 			{
-				Name:      "query",
+				Name:      ModeQuery,
 				Usage:     "Exporting a customized scope of resources determined by an Azure Resource Graph where predicate",
 				UsageText: "aztfexport query [option] <ARG where predicate>",
 				Flags:     queryFlags,
-				Before:    commandBeforeFunc,
+				Before:    commandBeforeFunc(&flagset),
 				Action: func(c *cli.Context) error {
 					if c.NArg() == 0 {
 						return fmt.Errorf("No query specified")
@@ -626,7 +541,7 @@ The output directory is not empty. Please choose one of actions below:
 
 					predicate := c.Args().First()
 
-					cred, clientOpt, err := buildAzureSDKCredAndClientOpt()
+					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset.flagEnv, NewAuthMethodFromFlagSet(flagset))
 					if err != nil {
 						return err
 					}
@@ -634,39 +549,52 @@ The output directory is not empty. Please choose one of actions below:
 					// Initialize the config
 					cfg := config.Config{
 						CommonConfig: config.CommonConfig{
-							SubscriptionId:       flagSubscriptionId,
+							SubscriptionId:       flagset.flagSubscriptionId,
 							AzureSDKCredential:   cred,
 							AzureSDKClientOption: *clientOpt,
-							OutputDir:            flagOutputDir,
-							DevProvider:          flagDevProvider,
-							ContinueOnError:      flagContinue,
-							BackendType:          flagBackendType,
-							BackendConfig:        flagBackendConfig.Value(),
-							FullConfig:           flagFullConfig,
-							Parallelism:          flagParallelism,
-							HCLOnly:              flagHCLOnly,
-							ModulePath:           flagModulePath,
-							TelemetryClient:      initTelemetryClient(),
+							OutputDir:            flagset.flagOutputDir,
+							ProviderVersion:      flagset.flagProviderVersion,
+							DevProvider:          flagset.flagDevProvider,
+							ContinueOnError:      flagset.flagContinue,
+							BackendType:          flagset.flagBackendType,
+							BackendConfig:        flagset.flagBackendConfig.Value(),
+							FullConfig:           flagset.flagFullConfig,
+							Parallelism:          flagset.flagParallelism,
+							HCLOnly:              flagset.flagHCLOnly,
+							ModulePath:           flagset.flagModulePath,
+							TelemetryClient:      initTelemetryClient(flagset.flagSubscriptionId),
 						},
 						ARGPredicate:        predicate,
-						ResourceNamePattern: flagPattern,
-						RecursiveQuery:      flagRecursive,
+						ResourceNamePattern: flagset.flagPattern,
+						RecursiveQuery:      flagset.flagRecursive,
 					}
 
-					if flagAppend {
+					if flagset.flagAppend {
 						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
 					}
 
-					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile, hflagProfile)
+					if flagset.hflagTFClientPluginPath != "" {
+						// #nosec G204
+						tfc, err := tfclient.New(tfclient.Option{
+							Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
+							Logger: hclog.NewNullLogger(),
+						})
+						if err != nil {
+							return err
+						}
+						cfg.CommonConfig.TFClient = tfc
+					}
+
+					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.hflagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeQuery))
 				},
 			},
 			{
-				Name:      "mapping-file",
+				Name:      ModeMappingFile,
 				Aliases:   []string{"map"},
 				Usage:     "Exporting a customized scope of resources determined by the resource mapping file",
 				UsageText: "aztfexport mapping-file [option] <resource mapping file>",
 				Flags:     mappingFileFlags,
-				Before:    commandBeforeFunc,
+				Before:    commandBeforeFunc(&flagset),
 				Action: func(c *cli.Context) error {
 					if c.NArg() == 0 {
 						return fmt.Errorf("No resource mapping file specified")
@@ -677,7 +605,7 @@ The output directory is not empty. Please choose one of actions below:
 
 					mapFile := c.Args().First()
 
-					cred, clientOpt, err := buildAzureSDKCredAndClientOpt()
+					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset.flagEnv, NewAuthMethodFromFlagSet(flagset))
 					if err != nil {
 						return err
 					}
@@ -685,28 +613,41 @@ The output directory is not empty. Please choose one of actions below:
 					// Initialize the config
 					cfg := config.Config{
 						CommonConfig: config.CommonConfig{
-							SubscriptionId:       flagSubscriptionId,
+							SubscriptionId:       flagset.flagSubscriptionId,
 							AzureSDKCredential:   cred,
 							AzureSDKClientOption: *clientOpt,
-							OutputDir:            flagOutputDir,
-							DevProvider:          flagDevProvider,
-							ContinueOnError:      flagContinue,
-							BackendType:          flagBackendType,
-							BackendConfig:        flagBackendConfig.Value(),
-							FullConfig:           flagFullConfig,
-							Parallelism:          flagParallelism,
-							HCLOnly:              flagHCLOnly,
-							ModulePath:           flagModulePath,
-							TelemetryClient:      initTelemetryClient(),
+							OutputDir:            flagset.flagOutputDir,
+							ProviderVersion:      flagset.flagProviderVersion,
+							DevProvider:          flagset.flagDevProvider,
+							ContinueOnError:      flagset.flagContinue,
+							BackendType:          flagset.flagBackendType,
+							BackendConfig:        flagset.flagBackendConfig.Value(),
+							FullConfig:           flagset.flagFullConfig,
+							Parallelism:          flagset.flagParallelism,
+							HCLOnly:              flagset.flagHCLOnly,
+							ModulePath:           flagset.flagModulePath,
+							TelemetryClient:      initTelemetryClient(flagset.flagSubscriptionId),
 						},
 						MappingFile: mapFile,
 					}
 
-					if flagAppend {
+					if flagset.flagAppend {
 						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
 					}
 
-					return realMain(c.Context, cfg, flagNonInteractive, hflagMockClient, hflagPlainUI, flagGenerateMappingFile, hflagProfile)
+					if flagset.hflagTFClientPluginPath != "" {
+						// #nosec G204
+						tfc, err := tfclient.New(tfclient.Option{
+							Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
+							Logger: hclog.NewNullLogger(),
+						})
+						if err != nil {
+							return err
+						}
+						cfg.CommonConfig.TFClient = tfc
+					}
+
+					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.hflagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeMappingFile))
 				},
 			},
 		},
@@ -775,21 +716,21 @@ func initLog(path string, flagLevel string) error {
 	return nil
 }
 
-func initTelemetryClient() telemetry.Client {
+func initTelemetryClient(subscriptionId string) telemetry.Client {
 	cfg, err := cfgfile.GetConfig()
 	if err != nil {
 		return telemetry.NewNullClient()
 	}
-	enabled, id := cfg.TelemetryEnabled, cfg.InstallationId
+	enabled, installId := cfg.TelemetryEnabled, cfg.InstallationId
 	if !enabled {
 		return telemetry.NewNullClient()
 	}
-	if id == "" {
+	if installId == "" {
 		uuid, err := uuid.NewV4()
 		if err == nil {
-			id = uuid.String()
+			installId = uuid.String()
 		} else {
-			id = "undefined"
+			installId = "undefined"
 		}
 	}
 
@@ -797,16 +738,34 @@ func initTelemetryClient() telemetry.Client {
 	if uuid, err := uuid.NewV4(); err == nil {
 		sessionId = uuid.String()
 	}
-	return telemetry.NewAppInsight(id, sessionId)
+	return telemetry.NewAppInsight(subscriptionId, installId, sessionId)
+}
+
+// At most one of below is true
+type authMethod int
+
+const (
+	authMethodDefault authMethod = iota
+	authMethodEnvironment
+	authMethodManagedIdentity
+	authMethodAzureCLI
+)
+
+func NewAuthMethodFromFlagSet(fset FlagSet) authMethod {
+	if fset.flagUseEnvironmentCred {
+		return authMethodEnvironment
+	}
+	if fset.flagUseManagedIdentityCred {
+		return authMethodManagedIdentity
+	}
+	if fset.flagUseAzureCLICred {
+		return authMethodAzureCLI
+	}
+	return authMethodDefault
 }
 
 // buildAzureSDKCredAndClientOpt builds the Azure SDK credential and client option from multiple sources (i.e. environment variables, MSI, Azure CLI).
-func buildAzureSDKCredAndClientOpt() (azcore.TokenCredential, *arm.ClientOptions, error) {
-	env := "public"
-	if v := os.Getenv("ARM_ENVIRONMENT"); v != "" {
-		env = v
-	}
-
+func buildAzureSDKCredAndClientOpt(env string, authMethod authMethod) (azcore.TokenCredential, *arm.ClientOptions, error) {
 	var cloudCfg cloud.Configuration
 	switch strings.ToLower(env) {
 	case "public":
@@ -850,15 +809,49 @@ func buildAzureSDKCredAndClientOpt() (azcore.TokenCredential, *arm.ClientOptions
 		},
 	}
 
-	cred, err := azidentity.NewDefaultAzureCredential(&azidentity.DefaultAzureCredentialOptions{
-		ClientOptions: clientOpt.ClientOptions,
-		TenantID:      os.Getenv("ARM_TENANT_ID"),
-	})
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to obtain a credential: %v", err)
+	tenantId := os.Getenv("ARM_TENANT_ID")
+	var (
+		cred azcore.TokenCredential
+		err  error
+	)
+	switch authMethod {
+	case authMethodEnvironment:
+		cred, err = azidentity.NewEnvironmentCredential(&azidentity.EnvironmentCredentialOptions{
+			ClientOptions: clientOpt.ClientOptions,
+		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to new Environment credential: %v", err)
+		}
+		return cred, clientOpt, nil
+	case authMethodManagedIdentity:
+		cred, err = azidentity.NewManagedIdentityCredential(&azidentity.ManagedIdentityCredentialOptions{
+			ClientOptions: clientOpt.ClientOptions,
+		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to new Managed Identity credential: %v", err)
+		}
+		return cred, clientOpt, nil
+	case authMethodAzureCLI:
+		cred, err = azidentity.NewAzureCLICredential(&azidentity.AzureCLICredentialOptions{
+			TenantID: tenantId,
+		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to new Azure CLI credential: %v", err)
+		}
+		return cred, clientOpt, nil
+	case authMethodDefault:
+		opt := &azidentity.DefaultAzureCredentialOptions{
+			ClientOptions: clientOpt.ClientOptions,
+			TenantID:      tenantId,
+		}
+		cred, err := azidentity.NewDefaultAzureCredential(opt)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to new Default credential: %v", err)
+		}
+		return cred, clientOpt, nil
+	default:
+		return nil, nil, fmt.Errorf("unknown auth method: %v", authMethod)
 	}
-
-	return cred, clientOpt, nil
 }
 
 func subscriptionIdFromCLI() (string, error) {
@@ -880,7 +873,7 @@ func subscriptionIdFromCLI() (string, error) {
 	return strconv.Unquote(strings.TrimSpace(stdout.String()))
 }
 
-func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, genMapFile bool, profileType string) (result error) {
+func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, genMapFile bool, profileType string, effectiveCLI string) (result error) {
 	switch strings.ToLower(profileType) {
 	case "cpu":
 		defer profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook).Stop()
@@ -902,13 +895,15 @@ func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, 
 			tc.Trace(telemetry.Info, "aztfexport ends")
 		} else {
 			log.Printf("[ERROR] aztfexport ends with error: %v", result)
-			tc.Trace(telemetry.Error, fmt.Sprintf("aztfexport ends with error: %v", result))
+			tc.Trace(telemetry.Error, fmt.Sprintf("aztfexport ends with error"))
+			tc.Trace(telemetry.Error, fmt.Sprintf("Error detail: %v", result))
 		}
 		tc.Close()
 	}()
 
 	log.Printf("[INFO] aztfexport starts with config: %#v", cfg)
 	tc.Trace(telemetry.Info, "aztfexport starts")
+	tc.Trace(telemetry.Info, "Effective CLI: "+effectiveCLI)
 
 	// Run in non-interactive mode
 	if batch {

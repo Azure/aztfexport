@@ -4,6 +4,7 @@ import (
 	"github.com/Azure/aztfexport/pkg/telemetry"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
+	"github.com/magodo/terraform-client-go/tfclient"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -27,6 +28,8 @@ type CommonConfig struct {
 	OutputDir string
 	// OutputFileNames specifies the output terraform filenames
 	OutputFileNames OutputFileNames
+	// ProviderVersion specifies the azurerm provider version used for importing. If this is not set, it will use `azurerm.ProviderSchemaInfo.Version` for importing in order to be consistent with tfadd.
+	ProviderVersion string
 	// DevProvider specifies whether users have configured the `dev_overrides` for the provider, which then uses a development provider built locally rather than using a version pinned provider from official Terraform registry.
 	// Meanwhile, it will also avoid running `terraform init` during `Init()` for the import directories to avoid caculating the provider hash and populating the lock file (See: https://developer.hashicorp.com/terraform/language/files/dependency-lock). Though the init for the output directory is still needed for initializing the backend.
 	DevProvider bool
@@ -51,6 +54,9 @@ type CommonConfig struct {
 	// HCLOnly is a strange field, which is only used internally by aztfexport to indicate whether to remove other files other than TF config at the end.
 	// External Go modules shoudl just ignore it.
 	HCLOnly bool
+	// TFClient is the terraform-client-go client used to replace terraform binary for importing resources.
+	// This can only be used together with HCLOnly as tfclient can't replace terraform for state file management.
+	TFClient tfclient.Client
 	// TelemetryClient is a client to send telemetry
 	TelemetryClient telemetry.Client
 }
