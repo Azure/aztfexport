@@ -199,8 +199,6 @@ aztfexport [subcommand] --backend-type=azurerm --backend-config=resource_group_n
 ```
 > 💡 Note that if the backend state already exists, `aztfexport` will merge the new resources to the existing state automatically. You do not need to specify the `--append` option.
 
-You can also bring your own customized `provider.tf` or `terraform.tf` file with a predefined `terraform` or `provider` block; as of `v0.10` you are required to use the `--append` flag, but with the next release we plan to remove the need to use the flag to export to a backend. Be aware that your provider version should match the `aztfexport` version of AzureRM when exporting or the command will fail.
-
 ### Export Into Existing Local State
 
 When exporting to a backend, `aztfexport` will by default ensure the output directory is empty. This is to avoid any conflicts happen for existing user files, including the terraform configuration, provider configuration, the state file, etc. As a result, `aztfexport` generates a new workspace for users.
