@@ -107,105 +107,7 @@ yay -S aztfexport
 [![asciicast](https://asciinema.org/a/sKYqzSiE5bpBJCB4BM2HjvF4j.svg)](https://asciinema.org/a/sKYqzSiE5bpBJCB4BM2HjvF4j)
 ## Usage
 
-Follow this [authentication guide](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs#authenticating-to-azure) from the Terraform AzureRM provider to authenticate to Azure.
-
-Then run Azure Export for Terraform in the following format:
-```terminal
-aztfexport [command] [option] <scope>
-```
-> ❗ Because each command has unique option flags available to it, `aztfexport --help` will **only list the available commands for the tool** and no option flags. **To see option flags for a given command**, please run `aztfexport [command] --help` instead.
-
-Azure Export supports three variations of this core usage covered in these next sections:
-### Resource
-`aztfexport resource [option] <resource id>` exports a single resource by its Azure control plane ID:
-```shell
-aztfexport resource /subscriptions/0000/resourceGroups/myResourceGroup/providers/Microsoft.Compute/virtualMachines/myVM
-```
-This command will automatically identify the Terraform resource type (e.g. correctly identifies above resource as `azurerm_linux_virtual_machine`), and from its info generate a state file and Terraform configuration.
-
-> ❗ For data plane only or property-like resources, the Azure resource ID is using a pesudo format, as is defined [here](https://github.com/magodo/aztft#pesudo-resource-id).
-
-### Resource Group
-
-`aztfexport resource-group [option] <resource group name>` exports a resource group and its included resources by the specified resource group name.
-
-### Query
-
-`aztfexport query [option] <arg where predicate>` exports a set of resources (and its including resources with option flag `--recursive`) by an Azure Resource Graph [`where` predicate](https://learn.microsoft.com/en-us/azure/data-explorer/kusto/query/whereoperator). Note that you can combine multiple conditions in one `where` predicate so long as you wrap the predicate in double quotes, e.g.  `aztfexport query "resourceGroup =~ 'my-rg' and type =~ 'microsoft.network/virtualnetworks'"`.
-
-### Mapping file
-
-`aztfexport mapping-file [option] <resource mapping file>` exports a set of resources that is defined in the resource mapping file. You can generate the mapping file in all other modes (i.e. `resource`, `resource-group`, `query`) by specifying the `--generate-mapping-file` option when running non-interactively, or press <kbd>s</kbd> when running interactively in the resource list view. Also, each run of `aztfexport` will generate the resource mapping file for you, to record what resources have been imported.
-
-An example mapping file:
-
-```json
-{
-	"/subscriptions/0000/resourceGroups/aztfexport-vmdisk": {
-		"resource_id": "/subscriptions/0000/resourceGroups/aztfexport-vmdisk",
-		"resource_type": "azurerm_resource_group",
-		"resource_name": "res-1"
-	},
-	"/subscriptions/0000/resourceGroups/aztfexport-vmdisk/providers/Microsoft.Compute/disks/aztfexport-test-test": {
-		"resource_id": "/subscriptions/0000/resourceGroups/aztfexport-vmdisk/providers/Microsoft.Compute/disks/aztfexport-test-test",
-		"resource_type": "azurerm_managed_disk",
-		"resource_name": "res-2"
-	},
-	"/subscriptions/0000/resourceGroups/aztfexport-vmdisk/providers/Microsoft.Compute/virtualMachines/aztfexport-test-test": {
-		"resource_id": "/subscriptions/0000/resourceGroups/aztfexport-vmdisk/providers/Microsoft.Compute/virtualMachines/aztfexport-test-test",
-		"resource_type": "azurerm_linux_virtual_machine",
-		"resource_name": "res-3"
-	}
-}
-```
-
-### HCL Only
-
-For any of the aforementioned modes (`resource`, `resource-group`, `query`, `mapping-file`), users can add the `--hcl-only` flag:
-```terminal
-aztfexport [command] --hcl-only [other options] <scope>
-```
-Though `aztfexport` will by default export a state file, the `--hcl-only` flag will result in only the following being generated:
-- Any generated `.tf` HCL files
-- (Planned for 0.10, not true as of 0.9) The mapping file `aztfexportResourceMapping.json`
-- (Planned for 0.10, not true as of 0.9) Any skipped resources in a `aztfexportSkippedResources.txt`
-
-### Interactive vs Non-Interactive
-
-By default `aztfexport` runs in interactive mode, whilst you can also run in non-interactive mode by adding the `--non-interactive`/`-n` option.
-
-#### Interactive mode
-
-In interactive mode, `aztfexport` lists all the resources residing in the specified resource group or customized set.  
-
-For each resource, `aztfexport` will try to recognize the corresponding Terraform resource type. If it finds one, the line will be prefixed by a 💡 as an indicator. Otherwise, user is expected to input the Terraform resource address in form of `<resource type>.<resource name>` (e.g. `azurerm_linux_virtual_machine.test`). Users can press <kbd>r</kbd> to see the possible resource type(s) for the selected resource.
-
-In some cases, there are Azure resources that have no corresponding Terraform resources (e.g. due to lacks of Terraform support). Some resources might also be created as a side effect of provisioning another resource (e.g. the OS Disk resource is created automatically when provisioning a VM). In such cases, you can skip these resources without typing anything.
-
-After going through all the resources to be imported, press <kbd>w</kbd> to begin generating the Terraform configuration and (if `--hcl-only` is not selected) importing to Terraform state.
-
-#### Non-Interactive mode
-
-In non-interactive mode, `aztfexport` only imports recognized resources, and skips all others. Users can further specify the `--continue`/`-k` option to make the tool continue even on hitting any import error.
-
-### Remote Backend
-
-By default `aztfexport` uses a local backend to store the state file, but it is also possible to use a remote backend via the `--backend-type` and `--backend-config` options. Refer to the [Terraform backend documentation](https://www.terraform.io/language/settings/backends) to identify your type and config values.
-
-For example, to export to an [`azurerm` backend](https://www.terraform.io/language/settings/backends/azurerm#azurerm) (in this case, an Azure storage account):
-
-```shell
-aztfexport [subcommand] --backend-type=azurerm --backend-config=resource_group_name=<resource group name> --backend-config=storage_account_name=<account name> --backend-config=container_name=<container name> --backend-config=key=terraform.tfstate 
-```
-> 💡 Note that if the backend state already exists, `aztfexport` will merge the new resources to the existing state automatically. You do not need to specify the `--append` option.
-
-### Export Into Existing Local State
-
-When exporting to a backend, `aztfexport` will by default ensure the output directory is empty. This is to avoid any conflicts happen for existing user files, including the terraform configuration, provider configuration, the state file, etc. As a result, `aztfexport` generates a new workspace for users.
-
-If you instead wish to import resources to an existing state file via `aztfexport`, use the `--append` option. When this option is run, `aztfexport` will check if there is a preexisting `provider` and `terraform` block (and create a file for each respectively if either does not exist). Then it proceeds with exporting.
-
-This means that if the output directory has a state file, any resource exported by `aztfexport` will be imported into the state file. Furthermore, the file generated by `aztfexport` in this case will have a `.aztfexport` suffix before the extension (e.g. `main.aztfexport.tf`), to avoid potential file name conflicts. If you run `aztfexport --append` multiple times, the generated config in `main.aztfexport.tf` will append to itself in each run.
+Read the [Azure Export documentation](https://learn.microsoft.com/en-us/azure/developer/terraform/azure-export-for-terraform/export-terraform-overview) which covers scenarios and usage.
 
 ### Config
 
@@ -222,16 +124,7 @@ Currently, the following config items are supported:
 
 ## Limitations
 
-We do not guarantee that redeploying Terraform configurations generated by `aztfexport` will reproduce the exact same infrastructure. This is due to known limitations that we detail below along with subsequently recommended actions. We will do our best to update this section as we discover new limitations.
-
-### Omitted Properties
-
-When generating the Terraform configuration, not all properties of the resource are exported for different reasons.
-
-One reason is because there are flexible cross-property constraints defined in the AzureRM Terraform provider. E.g. `property_a` conflicts with `property_b`. This might due to the nature of the API, or might be due to some deprecation process of the provider (e.g. `property_a` is deprecated in favor of `property_b`, but kept for backwards compatibility). These constraints require some properties to be absent in the Terraform configuration; otherwise, the configuration is not valid and will fail during `terraform validate`. For an example refer to [this schema for the azurerm_storage_blob resource](https://github.com/hashicorp/terraform-provider-azurerm/blob/8c7510d8b6ccf5098c7f05bd8c013a0e579a2e80/internal/services/storage/storage_blob_resource.go#L107-L126). If a user wishes to attempt to mitigate this issue, they would ultimately need to refer to the AzureRM documentation to know what, if any, properties are ommitted and what the current property value would entail.
-
-Another reason is that an Azure resource can be a property of its parent resource (e.g. `azurerm_subnet` can be its own resource, or be a property of `azurerm_virtual_network`). Per Terraform's best practice, users should only use one of the forms, not both. `aztfexport` chooses to always generate all the resources, but omit the property in the parent resource that represents the child resource. While this is not necessarily going to affect the validity of the generated resource, we recommend you refactor child resources to a property of the parent resource if that is your current practice.
-
+Visit [this page](https://learn.microsoft.com/en-us/azure/developer/terraform/azure-export-for-terraform/export-terraform-concepts#limitations) on the Azure Export for Terraform documentation that discusses the currently known limitations of the tool.
 
 ## Additional Resources
 
