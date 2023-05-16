@@ -178,6 +178,9 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	if outputFileNames.MainFileName == "" {
 		outputFileNames.MainFileName = "main.tf"
 	}
+	if outputFileNames.ImportBlockFileName == "" {
+		outputFileNames.ImportBlockFileName = "import.tf"
+	}
 
 	tc := cfg.TelemetryClient
 	if tc == nil {
@@ -361,24 +364,40 @@ func (meta baseMeta) GenerateCfg(ctx context.Context, l ImportList) error {
 
 func (meta baseMeta) ExportResourceMapping(_ context.Context, l ImportList) error {
 	m := resmap.ResourceMapping{}
+	f := hclwrite.NewFile()
+	body := f.Body()
 	for _, item := range l {
 		if item.Skip() {
 			continue
 		}
+
+		// The JSON mapping record
 		m[item.AzureResourceID.String()] = resmap.ResourceMapEntity{
 			ResourceId:   item.TFResourceId,
 			ResourceType: item.TFAddr.Type,
 			ResourceName: item.TFAddr.Name,
 		}
+
+		// The import block
+		blk := hclwrite.NewBlock("import", nil)
+		blk.Body().SetAttributeValue("id", cty.StringVal(item.TFResourceId))
+		blk.Body().SetAttributeTraversal("to", hcl.Traversal{hcl.TraverseRoot{Name: item.TFAddr.Type}, hcl.TraverseAttr{Name: item.TFAddr.Name}})
+		body.AppendBlock(blk)
 	}
-	output := filepath.Join(meta.outdir, ResourceMappingFileName)
 	b, err := json.MarshalIndent(m, "", "\t")
 	if err != nil {
 		return fmt.Errorf("JSON marshalling the resource mapping: %v", err)
 	}
+	oMapFile := filepath.Join(meta.outdir, ResourceMappingFileName)
 	// #nosec G306
-	if err := os.WriteFile(output, b, 0644); err != nil {
-		return fmt.Errorf("writing the resource mapping to %s: %v", output, err)
+	if err := os.WriteFile(oMapFile, b, 0644); err != nil {
+		return fmt.Errorf("writing the resource mapping to %s: %v", oMapFile, err)
+	}
+
+	oImportFile := filepath.Join(meta.moduleDir, meta.outputFileNames.ImportBlockFileName)
+	// #nosec G306
+	if err := os.WriteFile(oImportFile, f.Bytes(), 0644); err != nil {
+		return fmt.Errorf("writing the import block to %s: %v", oImportFile, err)
 	}
 	return nil
 }
