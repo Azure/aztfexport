@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/hashicorp/go-version"
 	tfjson "github.com/hashicorp/terraform-json"
 
 	"github.com/Azure/aztfexport/pkg/config"
@@ -362,10 +363,8 @@ func (meta baseMeta) GenerateCfg(ctx context.Context, l ImportList) error {
 	return meta.generateCfg(ctx, l, meta.lifecycleAddon, meta.addDependency)
 }
 
-func (meta baseMeta) ExportResourceMapping(_ context.Context, l ImportList) error {
+func (meta baseMeta) ExportResourceMapping(ctx context.Context, l ImportList) error {
 	m := resmap.ResourceMapping{}
-	f := hclwrite.NewFile()
-	body := f.Body()
 	for _, item := range l {
 		if item.Skip() {
 			continue
@@ -377,12 +376,6 @@ func (meta baseMeta) ExportResourceMapping(_ context.Context, l ImportList) erro
 			ResourceType: item.TFAddr.Type,
 			ResourceName: item.TFAddr.Name,
 		}
-
-		// The import block
-		blk := hclwrite.NewBlock("import", nil)
-		blk.Body().SetAttributeValue("id", cty.StringVal(item.TFResourceId))
-		blk.Body().SetAttributeTraversal("to", hcl.Traversal{hcl.TraverseRoot{Name: item.TFAddr.Type}, hcl.TraverseAttr{Name: item.TFAddr.Name}})
-		body.AppendBlock(blk)
 	}
 	b, err := json.MarshalIndent(m, "", "\t")
 	if err != nil {
@@ -394,10 +387,32 @@ func (meta baseMeta) ExportResourceMapping(_ context.Context, l ImportList) erro
 		return fmt.Errorf("writing the resource mapping to %s: %v", oMapFile, err)
 	}
 
-	oImportFile := filepath.Join(meta.moduleDir, meta.outputFileNames.ImportBlockFileName)
-	// #nosec G306
-	if err := os.WriteFile(oImportFile, f.Bytes(), 0644); err != nil {
-		return fmt.Errorf("writing the import block to %s: %v", oImportFile, err)
+	// Only generate import.tf when the current using terraform supports plannable import
+	var supportPlannableImport bool
+	if meta.tf == nil {
+		supportPlannableImport = true
+	} else {
+		ver, _, err := meta.tf.Version(ctx, true)
+		if err != nil {
+			return fmt.Errorf("getting terraform version")
+		}
+		supportPlannableImport = ver.GreaterThanOrEqual(version.Must(version.NewVersion("v1.6.0")))
+	}
+	if supportPlannableImport {
+		f := hclwrite.NewFile()
+		body := f.Body()
+		for _, item := range l {
+			// The import block
+			blk := hclwrite.NewBlock("import", nil)
+			blk.Body().SetAttributeValue("id", cty.StringVal(item.TFResourceId))
+			blk.Body().SetAttributeTraversal("to", hcl.Traversal{hcl.TraverseRoot{Name: item.TFAddr.Type}, hcl.TraverseAttr{Name: item.TFAddr.Name}})
+			body.AppendBlock(blk)
+		}
+		oImportFile := filepath.Join(meta.moduleDir, meta.outputFileNames.ImportBlockFileName)
+		// #nosec G306
+		if err := os.WriteFile(oImportFile, f.Bytes(), 0644); err != nil {
+			return fmt.Errorf("writing the import block to %s: %v", oImportFile, err)
+		}
 	}
 	return nil
 }
