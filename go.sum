@@ -216,8 +216,6 @@ github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69
 github.com/lucasb-eyer/go-colorful v1.2.0/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
 github.com/magodo/armid v0.0.0-20220923023118-aec41eaf7370 h1:n8RrB7jcZ9lQE7tyF2a7AEJ3Ux/E6E6FTeZLfgadPmg=
 github.com/magodo/armid v0.0.0-20220923023118-aec41eaf7370/go.mod h1:rR8E7zfGMbmfnSQvrkFiWYdhrfTqsVSltelnZB09BwA=
-github.com/magodo/azlist v0.0.0-20230129022211-862464772b00 h1:b4qcRg5vLTkYLKN7V3C0tTiJh2bBk+Quag6s/OsNI8U=
-github.com/magodo/azlist v0.0.0-20230129022211-862464772b00/go.mod h1:pkK04XFrJfiki47pbsmEBUAW/fbF2OiFhK37gq4TzOk=
 github.com/magodo/aztft v0.3.1-0.20230512055359-8e166224b90f h1:WCXhmdhDuJvfMZ/clcnLB79Y2d0ZvDV8F3zygDCYNsU=
 github.com/magodo/aztft v0.3.1-0.20230512055359-8e166224b90f/go.mod h1:6UDHTB1GtQ/cplLkIRo3KDs2fj/e6avYcuIuQNBa+ZI=
 github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6 h1:CElHO4hPXC+Eivy8sUC/WrnH3jmQzdF2x0lEXBEYul8=
