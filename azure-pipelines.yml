@@ -587,7 +587,7 @@ stages:
               RunAsPreJob: false
           - script: |
               set -e
-              pip install --index-url "https://msazure.pkgs.visualstudio.com/_packaging/Compute-PMC@Release/pypi/simple/" "pmc-cli>0.0"
+              pip install pmc-cli
               pmc_dir=~/.config/pmc
               mkdir -p $pmc_dir
               echo $PMC_CERT > $pmc_dir/aztfexport.pem
