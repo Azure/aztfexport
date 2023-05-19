@@ -437,30 +437,32 @@ stages:
             #   REPO_ID: 5d16326637164fbc1139c4e1
             #   REPO_DISTRO: ubuntu
             #   REPO_RELEASE: bionic
+
             ubuntu-focal-amd64:
               TYPE: deb
               ARCH: amd64
               REPO_ID: repositories-deb-apt-50a94aad-3f2d-414c-8792-c8914a994b60
               REPO_DISTRO: ubuntu
               REPO_RELEASE: focal
-            ubuntu-focal-arm64:
-              TYPE: deb
-              ARCH: arm64
-              REPO_ID: repositories-deb-apt-50a94aad-3f2d-414c-8792-c8914a994b60
-              REPO_DISTRO: ubuntu
-              REPO_RELEASE: focal
-            ubuntu-jammy-amd64:
-              TYPE: deb
-              ARCH: amd64
-              REPO_ID: repositories-deb-apt-ce5e32e0-a0e2-4e8d-b83b-e353a44ba19d
-              REPO_DISTRO: ubuntu
-              REPO_RELEASE: jammy
-            ubuntu-jammy-arm64:
-              TYPE: deb
-              ARCH: arm64
-              REPO_ID: repositories-deb-apt-ce5e32e0-a0e2-4e8d-b83b-e353a44ba19d
-              REPO_DISTRO: ubuntu
-              REPO_RELEASE: jammy
+            # ubuntu-focal-arm64:
+            #   TYPE: deb
+            #   ARCH: arm64
+            #   REPO_ID: repositories-deb-apt-50a94aad-3f2d-414c-8792-c8914a994b60
+            #   REPO_DISTRO: ubuntu
+            #   REPO_RELEASE: focal
+            # ubuntu-jammy-amd64:
+            #   TYPE: deb
+            #   ARCH: amd64
+            #   REPO_ID: repositories-deb-apt-ce5e32e0-a0e2-4e8d-b83b-e353a44ba19d
+            #   REPO_DISTRO: ubuntu
+            #   REPO_RELEASE: jammy
+            # ubuntu-jammy-arm64:
+            #   TYPE: deb
+            #   ARCH: arm64
+            #   REPO_ID: repositories-deb-apt-ce5e32e0-a0e2-4e8d-b83b-e353a44ba19d
+            #   REPO_DISTRO: ubuntu
+            #   REPO_RELEASE: jammy
+
             # debian-buster-amd64:
             #   TYPE: deb
             #   ARCH: amd64
@@ -499,30 +501,32 @@ stages:
             #   REPO_ID: 5e5ed94a523a8019fe47607e
             #   REPO_DISTRO: centos
             #   REPO_RELEASE: 8
-            rhel-8-x86_64:
-              TYPE: rpm
-              ARCH: amd64
-              REPO_ID: repositories-rpm-rpm-825ad4f6-c3fb-48b0-8f61-acb58e2fff7c
-              REPO_DISTRO: rhel
-              REPO_RELEASE: 8
-            rhel-8-aarch64:
-              TYPE: rpm
-              ARCH: arm64
-              REPO_ID: repositories-rpm-rpm-825ad4f6-c3fb-48b0-8f61-acb58e2fff7c
-              REPO_DISTRO: rhel
-              REPO_RELEASE: 8
-            rhel-9-x86_64:
-              TYPE: rpm
-              ARCH: amd64
-              REPO_ID: repositories-rpm-rpm-f225b6b6-c414-4abb-a80d-5b8bdb8bc757
-              REPO_DISTRO: rhel
-              REPO_RELEASE: 9
-            rhel-9-aarch64:
-              TYPE: rpm
-              ARCH: arm64
-              REPO_ID: repositories-rpm-rpm-f225b6b6-c414-4abb-a80d-5b8bdb8bc757
-              REPO_DISTRO: rhel
-              REPO_RELEASE: 9
+
+            # rhel-8-x86_64:
+            #   TYPE: rpm
+            #   ARCH: amd64
+            #   REPO_ID: repositories-rpm-rpm-825ad4f6-c3fb-48b0-8f61-acb58e2fff7c
+            #   REPO_DISTRO: rhel
+            #   REPO_RELEASE: 8
+            # rhel-8-aarch64:
+            #   TYPE: rpm
+            #   ARCH: arm64
+            #   REPO_ID: repositories-rpm-rpm-825ad4f6-c3fb-48b0-8f61-acb58e2fff7c
+            #   REPO_DISTRO: rhel
+            #   REPO_RELEASE: 8
+            # rhel-9-x86_64:
+            #   TYPE: rpm
+            #   ARCH: amd64
+            #   REPO_ID: repositories-rpm-rpm-f225b6b6-c414-4abb-a80d-5b8bdb8bc757
+            #   REPO_DISTRO: rhel
+            #   REPO_RELEASE: 9
+            # rhel-9-aarch64:
+            #   TYPE: rpm
+            #   ARCH: arm64
+            #   REPO_ID: repositories-rpm-rpm-f225b6b6-c414-4abb-a80d-5b8bdb8bc757
+            #   REPO_DISTRO: rhel
+            #   REPO_RELEASE: 9
+
             # fedora-34-x86_64:
             #   TYPE: rpm
             #   ARCH: amd64
