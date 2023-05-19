@@ -440,25 +440,25 @@ stages:
             ubuntu-focal-amd64:
               TYPE: deb
               ARCH: amd64
-              REPO_ID: repositories-deb-apt-50a94aad-3f2d-414c-8792-c8914a994b60
+              REPO_ID: 5e852952e45fffa1beda61fe
               REPO_DISTRO: ubuntu
               REPO_RELEASE: focal
             ubuntu-focal-arm64:
               TYPE: deb
               ARCH: arm64
-              REPO_ID: repositories-deb-apt-50a94aad-3f2d-414c-8792-c8914a994b60
+              REPO_ID: 5e852952e45fffa1beda61fe
               REPO_DISTRO: ubuntu
               REPO_RELEASE: focal
             ubuntu-jammy-amd64:
               TYPE: deb
               ARCH: amd64
-              REPO_ID: repositories-deb-apt-ce5e32e0-a0e2-4e8d-b83b-e353a44ba19d
+              REPO_ID: 61faea6cea3a770ab120ac8a
               REPO_DISTRO: ubuntu
               REPO_RELEASE: jammy
             ubuntu-jammy-arm64:
               TYPE: deb
               ARCH: arm64
-              REPO_ID: repositories-deb-apt-ce5e32e0-a0e2-4e8d-b83b-e353a44ba19d
+              REPO_ID: 61faea6cea3a770ab120ac8a
               REPO_DISTRO: ubuntu
               REPO_RELEASE: jammy
             # debian-buster-amd64:
@@ -502,25 +502,25 @@ stages:
             rhel-8-x86_64:
               TYPE: rpm
               ARCH: amd64
-              REPO_ID: repositories-rpm-rpm-825ad4f6-c3fb-48b0-8f61-acb58e2fff7c
+              REPO_ID: 5d4470e1eebce7156eee5407
               REPO_DISTRO: rhel
               REPO_RELEASE: 8
             rhel-8-aarch64:
               TYPE: rpm
               ARCH: arm64
-              REPO_ID: repositories-rpm-rpm-825ad4f6-c3fb-48b0-8f61-acb58e2fff7c
+              REPO_ID: 5d4470e1eebce7156eee5407
               REPO_DISTRO: rhel
               REPO_RELEASE: 8
             rhel-9-x86_64:
               TYPE: rpm
               ARCH: amd64
-              REPO_ID: repositories-rpm-rpm-f225b6b6-c414-4abb-a80d-5b8bdb8bc757
+              REPO_ID: 627067cc3ac6d7548f4d66cd
               REPO_DISTRO: rhel
               REPO_RELEASE: 9
             rhel-9-aarch64:
               TYPE: rpm
               ARCH: arm64
-              REPO_ID: repositories-rpm-rpm-f225b6b6-c414-4abb-a80d-5b8bdb8bc757
+              REPO_ID: 627067cc3ac6d7548f4d66cd
               REPO_DISTRO: rhel
               REPO_RELEASE: 9
             # fedora-34-x86_64:
@@ -575,30 +575,30 @@ stages:
                 pipeline: $(pipelineId)
                 runVersion: "specific"
                 runId: ${{ parameters.artifactBuildId }}
-          - task: PipAuthenticate@1
+          - task: DownloadPackage@1
+            displayName: "Download repoclient"
             inputs:
-                artifactFeeds: 'release/aztfy'
-          - task: AzureKeyVault@2
-            displayName: "Get PMC prod certificate"
-            inputs:
-              azureSubscription: 'aztfy_pmc'
-              KeyVaultName: 'aztfy-pmc'
-              SecretsFilter: 'PMCProdCertificate'
-              RunAsPreJob: false
+              packageType: 'upack'
+              feed: '9b6b54d1-85ce-4ff5-8faa-608b4a183fc6/fe61ad7c-682d-4a30-ae2e-6891a3b27dde'
+              view: '2e6dbd24-c57a-430c-9148-c2cf257a62ae'
+              definition: '5dc48a28-dc78-4d14-9a8b-4981783b402d'
+              version: '2.2.1'
+              downloadPath: $(system.defaultWorkingDirectory)/dist/tool
           - script: |
               set -e
-              pip install pmc-cli
-              pmc_dir=~/.config/pmc
-              mkdir -p $pmc_dir
-              echo $PMC_CERT > $pmc_dir/aztfexport.pem
-              cat << EOF > $pmc_dir/settings.toml
-              [prod]
-              base_url = "https://pmc-ingest.trafficmanager.net/api/v4"
-              msal_client_id = "$(PMC_CLIENT_ID)"
-              msal_scope = "api://d48bb382-20ec-41b9-a0ea-07758a21ccd0/.default"
-              msal_cert_path = "$pmc_dir/aztfexport.pem"
-              msal_SNIAuth = true
-              msal_authority = "https://login.microsoftonline.com/MSAzureCloud.onmicrosoft.com"
+              sudo apt install -y ./dist/tool/azure-repoapi-client_2.2.1_amd64.deb
+              mkdir ~/.repoclient
+              cat << EOF > ~/.repoclient/config.json
+              {
+                "server": "azure-apt-cat.cloudapp.net",
+                "port": "443",
+                "AADClientId": "$(LINUX_REPO_SP_CLIENT_ID)",
+                "AADClientSecret": "$(LINUX_REPO_SP_CLIENT_SECRET)",
+                "AADResource": "https://microsoft.onmicrosoft.com/945999e9-da09-4b5b-878f-b66c414602c0",
+                "AADTenant": "72f988bf-86f1-41af-91ab-2d7cd011db47",
+                "AADAuthorityUrl": "https://login.microsoftonline.com",
+                "repositoryId": "IGNORE"
+              }
               EOF
               pkg=(./dist/pkg/*.${TYPE})
               [[ ${#pkg[@]} == 1 ]] || { echo "not exactly one target packages found: $(declare -p pkg)" > 2;  exit 1; }
@@ -606,35 +606,22 @@ stages:
 
               # Allow error's to occur prior to quit the task, as we are capturing the command output, otherwise, we will have no chance to output that in stdout/stderr. 
               set +e
+              ret=$(repoclient package add -r ${REPO_ID} $pkg)
+              [[ $? == 0 ]] || { echo "Error: repoclient package add failed: $ret" >&2; exit 1; }
+              echo -e "repoclient package add returns:\n$ret\n"
 
-              # Upload package
-              ret=$(pmc package upload $pkg)
-              [[ $? == 0 ]] || { echo "Error: pmc package upload failed: $ret" >&2; exit 1; }
-              echo -e "pmc package upload returns:\n$ret\n"
+              location=$(jq -r '.Location' <<< $ret)
+              package_id=${location##*/}
+              [[ -n $package_id ]] || { echo "Error: empty package id got" >&2; exit 1; }
+              echo "package id: $package_id"
 
-              id=$(jq -r '.[0].id' <<< $ret)
-              [[ -n $id ]] || { echo "Error: empty package id got" >&2; exit 1; }
-              echo "package id: $id"
-
-              # Link package to repo
-              args=(repo package update --add-packages $id $REPO_ID)
-              if [[ $TYPE == dep ]]; then
-                args+=($REPO_RELEASE)
-              fi
-              ret=$(pmc "${args[@]}")
-              [[ $? == 0 ]] || { echo "Error: pmc repo package update --add-packages: $ret" >&2; exit 1; }
-              echo -e "pmc repo package update --add-packages returns:\n$ret\n"
-
-              # Publish repo
-              ret=$(pmc repo publish $REPO_ID)
-              [[ $? == 0 ]] || { echo "Error: pmc repo publish: $ret" >&2; exit 1; }
-              echo -e "pmc repo publish returns:\n$ret\n"
-            displayName: "Publish via pmc"
+              ret=$(repoclient package check $package_id)
+              [[ $? == 0 ]] || { echo "Error: repoclient package check failed: $ret" >&2; exit 1; }
+              echo -e "repoclient package check returns:\n$ret\n"
+            displayName: "Publish via repoclient"
             env:
               TYPE: $(TYPE)
               REPO_ID: $(REPO_ID)
-              REPO_RELEASE: $(REPO_RELEASE)
-              PMC_CERT: $(PMCProdCertificate)
           - script: |
               set -e
 
