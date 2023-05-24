@@ -444,24 +444,24 @@ stages:
               REPO_ID: repositories-deb-apt-50a94aad-3f2d-414c-8792-c8914a994b60
               REPO_DISTRO: ubuntu
               REPO_RELEASE: focal
-            # ubuntu-focal-arm64:
-            #   TYPE: deb
-            #   ARCH: arm64
-            #   REPO_ID: repositories-deb-apt-50a94aad-3f2d-414c-8792-c8914a994b60
-            #   REPO_DISTRO: ubuntu
-            #   REPO_RELEASE: focal
-            # ubuntu-jammy-amd64:
-            #   TYPE: deb
-            #   ARCH: amd64
-            #   REPO_ID: repositories-deb-apt-ce5e32e0-a0e2-4e8d-b83b-e353a44ba19d
-            #   REPO_DISTRO: ubuntu
-            #   REPO_RELEASE: jammy
-            # ubuntu-jammy-arm64:
-            #   TYPE: deb
-            #   ARCH: arm64
-            #   REPO_ID: repositories-deb-apt-ce5e32e0-a0e2-4e8d-b83b-e353a44ba19d
-            #   REPO_DISTRO: ubuntu
-            #   REPO_RELEASE: jammy
+            ubuntu-focal-arm64:
+              TYPE: deb
+              ARCH: arm64
+              REPO_ID: repositories-deb-apt-50a94aad-3f2d-414c-8792-c8914a994b60
+              REPO_DISTRO: ubuntu
+              REPO_RELEASE: focal
+            ubuntu-jammy-amd64:
+              TYPE: deb
+              ARCH: amd64
+              REPO_ID: repositories-deb-apt-ce5e32e0-a0e2-4e8d-b83b-e353a44ba19d
+              REPO_DISTRO: ubuntu
+              REPO_RELEASE: jammy
+            ubuntu-jammy-arm64:
+              TYPE: deb
+              ARCH: arm64
+              REPO_ID: repositories-deb-apt-ce5e32e0-a0e2-4e8d-b83b-e353a44ba19d
+              REPO_DISTRO: ubuntu
+              REPO_RELEASE: jammy
 
             # debian-buster-amd64:
             #   TYPE: deb
