@@ -626,7 +626,7 @@ stages:
 
               # Link package to repo
               args=(repo package update --add-packages $id $REPO_ID)
-              if [[ $TYPE == dep ]]; then
+              if [[ $TYPE == deb ]]; then
                 args+=($REPO_RELEASE)
               fi
               ret=$(pmc "${args[@]}")
