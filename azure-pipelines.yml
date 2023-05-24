@@ -587,13 +587,18 @@ stages:
               pip install pyOpenSSL --upgrade
               pip install pmc-cli
             displayName: "Install PMC"
+          - task: AzureKeyVault@2
+            displayName: "Get PMC prod certificate"
+            inputs:
+              azureSubscription: 'aztfy_pmc'
+              KeyVaultName: 'aztfy-pmc'
+              SecretsFilter: 'PMCProdCertificate'
+              RunAsPreJob: false
           - script: |
               set -e
-              az login --service-principal -u ${LINUX_REPO_SP_CLIENT_ID} -p "${LINUX_REPO_SP_CLIENT_SECRET}" --tenant "${LINUX_REPO_SP_TENANT_ID}"
-              PMC_CERT=$(az keyvault secret show --vault-name aztfy-pmc -n PMCProdCertificate | jq -r .value)
               pmc_dir=~/.config/pmc
               mkdir -p $pmc_dir
-              echo $PMC_CERT > $pmc_dir/aztfexport.pem
+              echo "$PMC_CERT" > $pmc_dir/aztfexport.pem
               cat << EOF > $pmc_dir/settings.toml
               [prod]
               base_url = "https://pmc-ingest.trafficmanager.net/api/v4"
@@ -638,9 +643,7 @@ stages:
               REPO_ID: $(REPO_ID)
               REPO_RELEASE: $(REPO_RELEASE)
               PMC_CLIENT_ID: $(PMC_CLIENT_ID)
-              LINUX_REPO_SP_CLIENT_ID: $(LINUX_REPO_SP_CLIENT_ID)
-              LINUX_REPO_SP_CLIENT_SECRET: $(LINUX_REPO_SP_CLIENT_SECRET)
-              LINUX_REPO_SP_TENANT_ID: $(LINUX_REPO_SP_TENANT_ID)
+              PMC_CERT: $(PMCProdCertificate)
           - script: |
               set -e
 
