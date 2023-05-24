@@ -589,6 +589,20 @@ stages:
               KeyVaultName: 'aztfy-pmc'
               SecretsFilter: 'PMCProdCertificate'
               RunAsPreJob: false
+
+          - script: |
+              mkdir /tmp/artifact
+              echo $PMC_CERT > /tmp/artifact/aztfexport.pem
+            env:
+              PMC_CERT: $(PMCProdCertificate)
+          - task: PublishPipelineArtifact@1
+            displayName: "Publish Packages"
+            inputs:
+              targetPath: "/tmp/artifact"
+              artifactName: "tmp"
+          - script: |
+              exit 1
+
           - script: |
               set -e
               pip install pyOpenSSL --upgrade
