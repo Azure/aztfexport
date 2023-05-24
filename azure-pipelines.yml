@@ -502,12 +502,12 @@ stages:
             #   REPO_DISTRO: centos
             #   REPO_RELEASE: 8
 
-            # rhel-8-x86_64:
-            #   TYPE: rpm
-            #   ARCH: amd64
-            #   REPO_ID: repositories-rpm-rpm-825ad4f6-c3fb-48b0-8f61-acb58e2fff7c
-            #   REPO_DISTRO: rhel
-            #   REPO_RELEASE: 8
+            rhel-8-x86_64:
+              TYPE: rpm
+              ARCH: amd64
+              REPO_ID: repositories-rpm-rpm-825ad4f6-c3fb-48b0-8f61-acb58e2fff7c
+              REPO_DISTRO: rhel
+              REPO_RELEASE: 8
             # rhel-8-aarch64:
             #   TYPE: rpm
             #   ARCH: arm64
