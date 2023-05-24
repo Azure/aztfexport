@@ -591,7 +591,8 @@ stages:
               RunAsPreJob: false
           - script: |
               set -e
-              pip install -vvv pmc-cli
+              pip install pyOpenSSL --upgrade
+              pip install pmc-cli
               pmc_dir=~/.config/pmc
               mkdir -p $pmc_dir
               echo $PMC_CERT > $pmc_dir/aztfexport.pem
