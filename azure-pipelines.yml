@@ -508,24 +508,24 @@ stages:
               REPO_ID: repositories-rpm-rpm-825ad4f6-c3fb-48b0-8f61-acb58e2fff7c
               REPO_DISTRO: rhel
               REPO_RELEASE: 8
-            # rhel-8-aarch64:
-            #   TYPE: rpm
-            #   ARCH: arm64
-            #   REPO_ID: repositories-rpm-rpm-825ad4f6-c3fb-48b0-8f61-acb58e2fff7c
-            #   REPO_DISTRO: rhel
-            #   REPO_RELEASE: 8
-            # rhel-9-x86_64:
-            #   TYPE: rpm
-            #   ARCH: amd64
-            #   REPO_ID: repositories-rpm-rpm-f225b6b6-c414-4abb-a80d-5b8bdb8bc757
-            #   REPO_DISTRO: rhel
-            #   REPO_RELEASE: 9
-            # rhel-9-aarch64:
-            #   TYPE: rpm
-            #   ARCH: arm64
-            #   REPO_ID: repositories-rpm-rpm-f225b6b6-c414-4abb-a80d-5b8bdb8bc757
-            #   REPO_DISTRO: rhel
-            #   REPO_RELEASE: 9
+            rhel-8-aarch64:
+              TYPE: rpm
+              ARCH: arm64
+              REPO_ID: repositories-rpm-rpm-825ad4f6-c3fb-48b0-8f61-acb58e2fff7c
+              REPO_DISTRO: rhel
+              REPO_RELEASE: 8
+            rhel-9-x86_64:
+              TYPE: rpm
+              ARCH: amd64
+              REPO_ID: repositories-rpm-rpm-f225b6b6-c414-4abb-a80d-5b8bdb8bc757
+              REPO_DISTRO: rhel
+              REPO_RELEASE: 9
+            rhel-9-aarch64:
+              TYPE: rpm
+              ARCH: arm64
+              REPO_ID: repositories-rpm-rpm-f225b6b6-c414-4abb-a80d-5b8bdb8bc757
+              REPO_DISTRO: rhel
+              REPO_RELEASE: 9
 
             # fedora-34-x86_64:
             #   TYPE: rpm
