@@ -582,38 +582,22 @@ stages:
           - task: PipAuthenticate@1
             inputs:
                 artifactFeeds: 'release/aztfy'
-          - task: AzureKeyVault@2
-            displayName: "Get PMC prod certificate"
-            inputs:
-              azureSubscription: 'aztfy_pmc'
-              KeyVaultName: 'aztfy-pmc'
-              SecretsFilter: 'PMCProdCertificate'
-              RunAsPreJob: false
-
-          - script: |
-              mkdir /tmp/artifact
-              echo $PMC_CERT > /tmp/artifact/aztfexport.pem
-            env:
-              PMC_CERT: $(PMCProdCertificate)
-          - task: PublishPipelineArtifact@1
-            displayName: "Publish Packages"
-            inputs:
-              targetPath: "/tmp/artifact"
-              artifactName: "tmp"
-          - script: |
-              exit 1
-
           - script: |
               set -e
               pip install pyOpenSSL --upgrade
               pip install pmc-cli
+            displayName: "Install PMC"
+          - script: |
+              set -e
+              az login --service-principal -u ${PMC_CLIENT_ID} -p "${PMC_CLIENT_SECRET}" --tenant "${PMC_CLIENT_TENANT_ID}"
+              PMC_CERT=$(az keyvault secret show --vault-name aztfy-pmc -n PMCProdCertificate | jq -r .value)
               pmc_dir=~/.config/pmc
               mkdir -p $pmc_dir
               echo $PMC_CERT > $pmc_dir/aztfexport.pem
               cat << EOF > $pmc_dir/settings.toml
               [prod]
               base_url = "https://pmc-ingest.trafficmanager.net/api/v4"
-              msal_client_id = "$(PMC_CLIENT_ID)"
+              msal_client_id = "${PMC_CLIENT_ID}"
               msal_scope = "api://d48bb382-20ec-41b9-a0ea-07758a21ccd0/.default"
               msal_cert_path = "$pmc_dir/aztfexport.pem"
               msal_SNIAuth = true
@@ -653,7 +637,9 @@ stages:
               TYPE: $(TYPE)
               REPO_ID: $(REPO_ID)
               REPO_RELEASE: $(REPO_RELEASE)
-              PMC_CERT: $(PMCProdCertificate)
+              PMC_CLIENT_ID: $(PMC_CLIENT_ID)
+              PMC_CLIENT_SECRET: $(PMC_CLIENT_SECRET)
+              PMC_CLIENT_TENANT_ID: $(PMC_CLIENT_TENANT_ID)
           - script: |
               set -e
 
