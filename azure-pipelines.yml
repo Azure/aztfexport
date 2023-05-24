@@ -589,7 +589,7 @@ stages:
             displayName: "Install PMC"
           - script: |
               set -e
-              az login --service-principal -u ${PMC_CLIENT_ID} -p "${PMC_CLIENT_SECRET}" --tenant "${PMC_CLIENT_TENANT_ID}"
+              az login --service-principal -u ${LINUX_REPO_SP_CLIENT_ID} -p "${LINUX_REPO_SP_CLIENT_SECRET}" --tenant "${LINUX_REPO_SP_TENANT_ID}"
               PMC_CERT=$(az keyvault secret show --vault-name aztfy-pmc -n PMCProdCertificate | jq -r .value)
               pmc_dir=~/.config/pmc
               mkdir -p $pmc_dir
@@ -638,8 +638,9 @@ stages:
               REPO_ID: $(REPO_ID)
               REPO_RELEASE: $(REPO_RELEASE)
               PMC_CLIENT_ID: $(PMC_CLIENT_ID)
-              PMC_CLIENT_SECRET: $(PMC_CLIENT_SECRET)
-              PMC_CLIENT_TENANT_ID: $(PMC_CLIENT_TENANT_ID)
+              LINUX_REPO_SP_CLIENT_ID: $(LINUX_REPO_SP_CLIENT_ID)
+              LINUX_REPO_SP_CLIENT_SECRET: $(LINUX_REPO_SP_CLIENT_SECRET)
+              LINUX_REPO_SP_TENANT_ID: $(LINUX_REPO_SP_TENANT_ID)
           - script: |
               set -e
 
