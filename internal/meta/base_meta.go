@@ -396,7 +396,7 @@ func (meta baseMeta) ExportResourceMapping(ctx context.Context, l ImportList) er
 		if err != nil {
 			return fmt.Errorf("getting terraform version")
 		}
-		supportPlannableImport = ver.GreaterThanOrEqual(version.Must(version.NewVersion("v1.6.0")))
+		supportPlannableImport = ver.GreaterThanOrEqual(version.Must(version.NewVersion("v1.5.0")))
 	}
 	if supportPlannableImport {
 		f := hclwrite.NewFile()
