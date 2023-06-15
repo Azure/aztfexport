@@ -2,6 +2,7 @@
 
 A tool to bring your existing Azure resources under the management of Terraform.
 
+### Video (v0.12.0)
 [![Video](https://img.youtube.com/vi/LWk9SU7AmDA/hqdefault.jpg)](https://youtu.be/LWk9SU7AmDA)
 
 ## Goal
