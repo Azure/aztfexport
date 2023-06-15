@@ -324,9 +324,10 @@ func main() {
 	mappingFileFlags := append([]cli.Flag{}, commonFlags...)
 
 	safeOutputFileNames := config.OutputFileNames{
-		TerraformFileName: "terraform.aztfexport.tf",
-		ProviderFileName:  "provider.aztfexport.tf",
-		MainFileName:      "main.aztfexport.tf",
+		TerraformFileName:   "terraform.aztfexport.tf",
+		ProviderFileName:    "provider.aztfexport.tf",
+		MainFileName:        "main.aztfexport.tf",
+		ImportBlockFileName: "import.aztfexport.tf",
 	}
 
 	app := &cli.App{

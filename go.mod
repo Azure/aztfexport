@@ -20,7 +20,7 @@ require (
 	github.com/hashicorp/terraform-json v0.16.0
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/magodo/armid v0.0.0-20220923023118-aec41eaf7370
-	github.com/magodo/azlist v0.0.0-20230129022211-862464772b00
+	github.com/magodo/azlist v0.0.0-20230518102903-58631213ca2c
 	github.com/magodo/aztft v0.3.1-0.20230512055359-8e166224b90f
 	github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6
 	github.com/magodo/terraform-client-go v0.0.0-20230323074119-02ceb732dd25
