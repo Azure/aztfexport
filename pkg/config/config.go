@@ -15,6 +15,8 @@ type OutputFileNames struct {
 	ProviderFileName string
 	// The filename for the generated "main.tf" (default)
 	MainFileName string
+	// The filename for the generated "import.tf" (default)
+	ImportBlockFileName string
 }
 
 type CommonConfig struct {
