@@ -2,6 +2,9 @@
 
 A tool to bring your existing Azure resources under the management of Terraform.
 
+### Video (v0.12.0)
+[![Video](https://img.youtube.com/vi/LWk9SU7AmDA/hqdefault.jpg)](https://youtu.be/LWk9SU7AmDA)
+
 ## Goal
 
 Azure Export for Terraform exports resources that are supported by the [Terraform AzureRM provider](https://github.com/hashicorp/terraform-provider-azurerm) into Terraform state and generate the corresponding Terraform configuration. Both the Terraform state and configuration are expected to be consistent with the resources' remote state, i.e., `terraform plan` shows no diff. The user then is able to use Terraform to manage these resources.
@@ -102,9 +105,6 @@ yay -S aztfexport
 
 `aztfexport` leverages [`aztft`](https://github.com/magodo/aztft) to identify the Terraform resource type corresponding to an Azure resource ID. Then it runs `terraform import` under the hood to import each resource. Afterwards, it runs [`tfadd`](https://github.com/magodo/tfadd) to generate the Terraform HCL code for each imported resource.
 
-## Demo
-
-[![asciicast](https://asciinema.org/a/sKYqzSiE5bpBJCB4BM2HjvF4j.svg)](https://asciinema.org/a/sKYqzSiE5bpBJCB4BM2HjvF4j)
 ## Usage
 
 Read the [Azure Export documentation](https://learn.microsoft.com/en-us/azure/developer/terraform/azure-export-for-terraform/export-terraform-overview) which covers scenarios and usage.
