@@ -214,6 +214,12 @@ func main() {
 			Destination: &flagset.flagNonInteractive,
 		},
 		&cli.BoolFlag{
+			Name:        "plain-ui",
+			EnvVars:     []string{"AZTFEXPORT_PLAIN_UI"},
+			Usage:       "In non-interactive mode, print the progress information line by line, rather than the spinner UI. This can be used in OS that has no /dev/tty available",
+			Destination: &flagset.flagPlainUI,
+		},
+		&cli.BoolFlag{
 			Name:        "continue",
 			EnvVars:     []string{"AZTFEXPORT_CONTINUE"},
 			Aliases:     []string{"k"},
@@ -260,13 +266,6 @@ func main() {
 			Usage:       "Whether to mock the client. This is for testing UI",
 			Hidden:      true,
 			Destination: &flagset.hflagMockClient,
-		},
-		&cli.BoolFlag{
-			Name:        "plain-ui",
-			EnvVars:     []string{"AZTFEXPORT_PLAIN_UI"},
-			Usage:       "In non-interactive mode, print the progress information line by line, rather than the spinner UI",
-			Hidden:      true,
-			Destination: &flagset.hflagPlainUI,
 		},
 		&cli.StringFlag{
 			Name:        "profile",
@@ -459,7 +458,7 @@ func main() {
 						cfg.CommonConfig.TFClient = tfc
 					}
 
-					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.hflagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResource))
+					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResource))
 				},
 			},
 			{
@@ -523,7 +522,7 @@ func main() {
 						cfg.CommonConfig.TFClient = tfc
 					}
 
-					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.hflagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResourceGroup))
+					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResourceGroup))
 				},
 			},
 			{
@@ -586,7 +585,7 @@ func main() {
 						cfg.CommonConfig.TFClient = tfc
 					}
 
-					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.hflagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeQuery))
+					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeQuery))
 				},
 			},
 			{
@@ -648,7 +647,7 @@ func main() {
 						cfg.CommonConfig.TFClient = tfc
 					}
 
-					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.hflagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeMappingFile))
+					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeMappingFile))
 				},
 			},
 		},

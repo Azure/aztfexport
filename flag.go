@@ -27,13 +27,13 @@ type FlagSet struct {
 	flagParallelism            int
 	flagContinue               bool
 	flagNonInteractive         bool
+	flagPlainUI                bool
 	flagGenerateMappingFile    bool
 	flagHCLOnly                bool
 	flagModulePath             string
 
 	// common flags (hidden)
 	hflagMockClient         bool
-	hflagPlainUI            bool
 	hflagProfile            string
 	hflagTFClientPluginPath string
 
@@ -107,6 +107,9 @@ func (flag FlagSet) DescribeCLI(mode string) string {
 	}
 	if flag.flagNonInteractive {
 		args = append(args, "--non-interactive=true")
+	}
+	if flag.flagPlainUI {
+		args = append(args, "--plain-ui=true")
 	}
 	if flag.flagContinue {
 		args = append(args, "--continue=true")
