@@ -402,6 +402,10 @@ func (meta baseMeta) ExportResourceMapping(ctx context.Context, l ImportList) er
 		f := hclwrite.NewFile()
 		body := f.Body()
 		for _, item := range l {
+			if item.Skip() {
+				continue
+			}
+
 			// The import block
 			blk := hclwrite.NewBlock("import", nil)
 			blk.Body().SetAttributeValue("id", cty.StringVal(item.TFResourceId))
