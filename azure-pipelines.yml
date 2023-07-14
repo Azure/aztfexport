@@ -594,29 +594,33 @@ stages:
 
               echo "$PMC_CERT" > $pmc_dir/aztfexport.pem
 
+              pmc_container_dir=/root/.config/pmc
+
               cat << EOF > $pmc_dir/settings.toml
               [prod]
               base_url = "https://pmc-ingest.trafficmanager.net/api/v4"
               msal_client_id = "${PMC_CLIENT_ID}"
               msal_scope = "api://d48bb382-20ec-41b9-a0ea-07758a21ccd0/.default"
-              msal_cert_path = "/root/.config/pmc/aztfexport.pem"
+              msal_cert_path = "$pmc_container_dir/aztfexport.pem"
               msal_SNIAuth = true
               msal_authority = "https://login.microsoftonline.com/MSAzureCloud.onmicrosoft.com"
               EOF
 
               # Pull PMC docker image and setup the pmc alias
               docker pull mcr.microsoft.com/pmc/pmc-cli
-              pmc_cmd=(docker run -t --volume "$pmc_dir:/root/.config/pmc" --rm --network=host mcr.microsoft.com/pmc/pmc-cli)
+              pmc_cmd=(docker run -t --volume "$pmc_dir:$pmc_container_dir" --rm --network=host mcr.microsoft.com/pmc/pmc-cli)
 
               pkg=(./dist/pkg/*.${TYPE})
               [[ ${#pkg[@]} == 1 ]] || { echo "not exactly one target packages found: $(declare -p pkg)" > 2;  exit 1; }
               pkg=${pkg[0]}
+              pkg_name=$(basename $pkg)
+              cp $pkg $pmc_dir/$pkg_name
 
               # Allow error's to occur prior to quit the task, as we are capturing the command output, otherwise, we will have no chance to output that in stdout/stderr. 
               set +e
 
               # Upload package
-              ret=$("${pmc_cmd[@]}" package upload $pkg)
+              ret=$("${pmc_cmd[@]}" package upload $pmc_container_dir/$pkg_name)
               [[ $? == 0 ]] || { echo "Error: pmc package upload failed: $ret" >&2; exit 1; }
               echo -e "pmc package upload returns:\n$ret\n"
 
