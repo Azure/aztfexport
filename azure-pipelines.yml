@@ -606,7 +606,7 @@ stages:
 
               # Pull PMC docker image and setup the pmc alias
               docker pull mcr.microsoft.com/pmc/pmc-cli
-              alias pmc="docker run -it --volume \"$pmc_dir:/root/.config/pmc\" --rm --network=host mcr.microsoft.com/pmc/pmc-cli"
+              pmc_cmd=(docker run -it --volume "$pmc_dir:/root/.config/pmc" --rm --network=host mcr.microsoft.com/pmc/pmc-cli)
 
               pkg=(./dist/pkg/*.${TYPE})
               [[ ${#pkg[@]} == 1 ]] || { echo "not exactly one target packages found: $(declare -p pkg)" > 2;  exit 1; }
@@ -616,7 +616,7 @@ stages:
               set +e
 
               # Upload package
-              ret=$(pmc package upload $pkg)
+              ret=$("${pmc_cmd[@]}" package upload $pkg)
               [[ $? == 0 ]] || { echo "Error: pmc package upload failed: $ret" >&2; exit 1; }
               echo -e "pmc package upload returns:\n$ret\n"
 
@@ -629,12 +629,12 @@ stages:
               if [[ $TYPE == deb ]]; then
                 args+=($REPO_RELEASE)
               fi
-              ret=$(pmc "${args[@]}")
+              ret=$("${pmc_cmd[@]}" "${args[@]}")
               [[ $? == 0 ]] || { echo "Error: pmc repo package update --add-packages: $ret" >&2; exit 1; }
               echo -e "pmc repo package update --add-packages returns:\n$ret\n"
 
               # Publish repo
-              ret=$(pmc repo publish $REPO_ID)
+              ret=$("${pmc_cmd[@]}" repo publish $REPO_ID)
               [[ $? == 0 ]] || { echo "Error: pmc repo publish: $ret" >&2; exit 1; }
               echo -e "pmc repo publish returns:\n$ret\n"
             displayName: "Publish via pmc"
