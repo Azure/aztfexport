@@ -579,14 +579,6 @@ stages:
                 pipeline: $(pipelineId)
                 runVersion: "specific"
                 runId: ${{ parameters.artifactBuildId }}
-          - task: PipAuthenticate@1
-            inputs:
-                artifactFeeds: 'release/aztfy'
-          - script: |
-              set -e
-              pip install pyOpenSSL --upgrade
-              pip install pmc-cli
-            displayName: "Install PMC"
           - task: AzureKeyVault@2
             displayName: "Get PMC prod certificate"
             inputs:
@@ -596,18 +588,26 @@ stages:
               RunAsPreJob: false
           - script: |
               set -e
+              # Setup the pmc folder at host
               pmc_dir=~/.config/pmc
               mkdir -p $pmc_dir
+
               echo "$PMC_CERT" > $pmc_dir/aztfexport.pem
+
               cat << EOF > $pmc_dir/settings.toml
               [prod]
               base_url = "https://pmc-ingest.trafficmanager.net/api/v4"
               msal_client_id = "${PMC_CLIENT_ID}"
               msal_scope = "api://d48bb382-20ec-41b9-a0ea-07758a21ccd0/.default"
-              msal_cert_path = "$pmc_dir/aztfexport.pem"
+              msal_cert_path = "/root/.config/pmc/aztfexport.pem"
               msal_SNIAuth = true
               msal_authority = "https://login.microsoftonline.com/MSAzureCloud.onmicrosoft.com"
               EOF
+
+              # Pull PMC docker image and setup the pmc alias
+              docker pull mcr.microsoft.com/pmc/pmc-cli
+              alias pmc="docker run -it --volume \"$pmc_dir:/root/.config/pmc\" --rm --network=host mcr.microsoft.com/pmc/pmc-cli"
+
               pkg=(./dist/pkg/*.${TYPE})
               [[ ${#pkg[@]} == 1 ]] || { echo "not exactly one target packages found: $(declare -p pkg)" > 2;  exit 1; }
               pkg=${pkg[0]}
