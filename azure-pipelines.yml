@@ -606,7 +606,7 @@ stages:
 
               # Pull PMC docker image and setup the pmc alias
               docker pull mcr.microsoft.com/pmc/pmc-cli
-              pmc_cmd=(docker run -it --volume "$pmc_dir:/root/.config/pmc" --rm --network=host mcr.microsoft.com/pmc/pmc-cli)
+              pmc_cmd=(docker run -t --volume "$pmc_dir:/root/.config/pmc" --rm --network=host mcr.microsoft.com/pmc/pmc-cli)
 
               pkg=(./dist/pkg/*.${TYPE})
               [[ ${#pkg[@]} == 1 ]] || { echo "not exactly one target packages found: $(declare -p pkg)" > 2;  exit 1; }
