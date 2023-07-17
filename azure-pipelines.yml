@@ -579,14 +579,6 @@ stages:
                 pipeline: $(pipelineId)
                 runVersion: "specific"
                 runId: ${{ parameters.artifactBuildId }}
-          - task: PipAuthenticate@1
-            inputs:
-                artifactFeeds: 'release/aztfy'
-          - script: |
-              set -e
-              pip install pyOpenSSL --upgrade
-              pip install pmc-cli
-            displayName: "Install PMC"
           - task: AzureKeyVault@2
             displayName: "Get PMC prod certificate"
             inputs:
@@ -596,27 +588,39 @@ stages:
               RunAsPreJob: false
           - script: |
               set -e
+              # Setup the pmc folder at host
               pmc_dir=~/.config/pmc
               mkdir -p $pmc_dir
+
               echo "$PMC_CERT" > $pmc_dir/aztfexport.pem
+
+              pmc_container_dir=/root/.config/pmc
+
               cat << EOF > $pmc_dir/settings.toml
               [prod]
               base_url = "https://pmc-ingest.trafficmanager.net/api/v4"
               msal_client_id = "${PMC_CLIENT_ID}"
               msal_scope = "api://d48bb382-20ec-41b9-a0ea-07758a21ccd0/.default"
-              msal_cert_path = "$pmc_dir/aztfexport.pem"
+              msal_cert_path = "$pmc_container_dir/aztfexport.pem"
               msal_SNIAuth = true
               msal_authority = "https://login.microsoftonline.com/MSAzureCloud.onmicrosoft.com"
               EOF
+
+              # Pull PMC docker image and setup the pmc alias
+              docker pull mcr.microsoft.com/pmc/pmc-cli
+              pmc_cmd=(docker run --volume "$pmc_dir:$pmc_container_dir" --rm --network=host mcr.microsoft.com/pmc/pmc-cli)
+
               pkg=(./dist/pkg/*.${TYPE})
               [[ ${#pkg[@]} == 1 ]] || { echo "not exactly one target packages found: $(declare -p pkg)" > 2;  exit 1; }
               pkg=${pkg[0]}
+              pkg_name=$(basename $pkg)
+              cp $pkg $pmc_dir/$pkg_name
 
               # Allow error's to occur prior to quit the task, as we are capturing the command output, otherwise, we will have no chance to output that in stdout/stderr. 
               set +e
 
               # Upload package
-              ret=$(pmc package upload $pkg)
+              ret=$("${pmc_cmd[@]}" package upload $pmc_container_dir/$pkg_name)
               [[ $? == 0 ]] || { echo "Error: pmc package upload failed: $ret" >&2; exit 1; }
               echo -e "pmc package upload returns:\n$ret\n"
 
@@ -629,12 +633,12 @@ stages:
               if [[ $TYPE == deb ]]; then
                 args+=($REPO_RELEASE)
               fi
-              ret=$(pmc "${args[@]}")
+              ret=$("${pmc_cmd[@]}" "${args[@]}")
               [[ $? == 0 ]] || { echo "Error: pmc repo package update --add-packages: $ret" >&2; exit 1; }
               echo -e "pmc repo package update --add-packages returns:\n$ret\n"
 
               # Publish repo
-              ret=$(pmc repo publish $REPO_ID)
+              ret=$("${pmc_cmd[@]}" repo publish $REPO_ID)
               [[ $? == 0 ]] || { echo "Error: pmc repo publish: $ret" >&2; exit 1; }
               echo -e "pmc repo publish returns:\n$ret\n"
             displayName: "Publish via pmc"
