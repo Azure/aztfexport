@@ -60,13 +60,14 @@ func commandBeforeFunc(fset *FlagSet) func(ctx *cli.Context) error {
 			fset.flagUseEnvironmentCred,
 			fset.flagUseManagedIdentityCred,
 			fset.flagUseAzureCLICred,
+			fset.flagUseOIDCCred,
 		} {
 			if ok {
 				occur += 1
 			}
 		}
 		if occur > 1 {
-			return fmt.Errorf("only one of `--use-environment-cred`, `--use-managed-identity-cred` and `--use-azure-cli-cred` can be specified")
+			return fmt.Errorf("only one of `--use-environment-cred`, `--use-managed-identity-cred`, `--use-azure-cli-cred` and `--use-oidc-cred` can be specified")
 		}
 
 		// Initialize output directory

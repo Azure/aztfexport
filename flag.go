@@ -11,26 +11,33 @@ var flagset FlagSet
 
 type FlagSet struct {
 	// common flags
-	flagEnv                    string
-	flagSubscriptionId         string
+	flagEnv                 string
+	flagSubscriptionId      string
+	flagOutputDir           string
+	flagOverwrite           bool
+	flagAppend              bool
+	flagDevProvider         bool
+	flagProviderVersion     string
+	flagBackendType         string
+	flagBackendConfig       cli.StringSlice
+	flagFullConfig          bool
+	flagParallelism         int
+	flagContinue            bool
+	flagNonInteractive      bool
+	flagPlainUI             bool
+	flagGenerateMappingFile bool
+	flagHCLOnly             bool
+	flagModulePath          string
+
+	// common flags (auth)
 	flagUseEnvironmentCred     bool
 	flagUseManagedIdentityCred bool
 	flagUseAzureCLICred        bool
-	flagOutputDir              string
-	flagOverwrite              bool
-	flagAppend                 bool
-	flagDevProvider            bool
-	flagProviderVersion        string
-	flagBackendType            string
-	flagBackendConfig          cli.StringSlice
-	flagFullConfig             bool
-	flagParallelism            int
-	flagContinue               bool
-	flagNonInteractive         bool
-	flagPlainUI                bool
-	flagGenerateMappingFile    bool
-	flagHCLOnly                bool
-	flagModulePath             string
+	flagUseOIDCCred            bool
+	flagOIDCRequestToken       string
+	flagOIDCRequestURL         string
+	flagOIDCTokenFilePath      string
+	flagOIDCToken              string
 
 	// common flags (hidden)
 	hflagMockClient         bool
@@ -81,15 +88,6 @@ func (flag FlagSet) DescribeCLI(mode string) string {
 	if flag.flagOverwrite {
 		args = append(args, "--overwrite=true")
 	}
-	if flag.flagUseEnvironmentCred {
-		args = append(args, "--use-environment-cred=true")
-	}
-	if flag.flagUseManagedIdentityCred {
-		args = append(args, "--use-managed-identity-cred=true")
-	}
-	if flag.flagUseAzureCLICred {
-		args = append(args, "--use-azure-cli-cred=true")
-	}
 	if flag.flagAppend {
 		args = append(args, "--append=true")
 	}
@@ -120,11 +118,37 @@ func (flag FlagSet) DescribeCLI(mode string) string {
 	if flag.flagHCLOnly {
 		args = append(args, "--hcl-only=true")
 	}
-	if flag.hflagTFClientPluginPath != "" {
-		args = append(args, "--tfclient-plugin-path="+flag.hflagTFClientPluginPath)
-	}
 	if flag.flagModulePath != "" {
 		args = append(args, "--module-path="+flag.flagModulePath)
+	}
+
+	if flag.flagUseEnvironmentCred {
+		args = append(args, "--use-environment-cred=true")
+	}
+	if flag.flagUseManagedIdentityCred {
+		args = append(args, "--use-managed-identity-cred=true")
+	}
+	if flag.flagUseAzureCLICred {
+		args = append(args, "--use-azure-cli-cred=true")
+	}
+	if flag.flagUseOIDCCred {
+		args = append(args, "--use-oidc-cred=true")
+	}
+	if flag.flagOIDCRequestToken != "" {
+		args = append(args, "--oidc-request-token=*")
+	}
+	if flag.flagOIDCRequestURL != "" {
+		args = append(args, "--oidc-request-url="+flag.flagOIDCRequestURL)
+	}
+	if flag.flagOIDCTokenFilePath != "" {
+		args = append(args, "--oidc-token-file-path="+flag.flagOIDCTokenFilePath)
+	}
+	if flag.flagOIDCToken != "" {
+		args = append(args, "--oidc-token=*")
+	}
+
+	if flag.hflagTFClientPluginPath != "" {
+		args = append(args, "--tfclient-plugin-path="+flag.hflagTFClientPluginPath)
 	}
 	switch mode {
 	case ModeResource:
