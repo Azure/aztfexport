@@ -224,7 +224,7 @@ func TestCommondBeforeFunc(t *testing.T) {
 				flagUseEnvironmentCred: true,
 				flagUseAzureCLICred:    true,
 			},
-			err: "only one of `--use-environment-cred`, `--use-managed-identity-cred` and `--use-azure-cli-cred` can be specified",
+			err: "only one of `--use-environment-cred`, `--use-managed-identity-cred`, `--use-azure-cli-cred` and `--use-oidc-cred` can be specified",
 		},
 	}
 
