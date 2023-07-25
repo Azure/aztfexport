@@ -224,8 +224,8 @@ github.com/magodo/armid v0.0.0-20220923023118-aec41eaf7370 h1:n8RrB7jcZ9lQE7tyF2
 github.com/magodo/armid v0.0.0-20220923023118-aec41eaf7370/go.mod h1:rR8E7zfGMbmfnSQvrkFiWYdhrfTqsVSltelnZB09BwA=
 github.com/magodo/azlist v0.0.0-20230518102903-58631213ca2c h1:EcZcI48XRVOFF32JYn/si26mlSeNSVJJ51+GlUQhvNg=
 github.com/magodo/azlist v0.0.0-20230518102903-58631213ca2c/go.mod h1:pkK04XFrJfiki47pbsmEBUAW/fbF2OiFhK37gq4TzOk=
-github.com/magodo/aztft v0.3.1-0.20230718024242-59215c807c21 h1:rloh8I3ty6bkboJ7PQgUj0DxDJ5d2k9Ob/nkAMV1vog=
-github.com/magodo/aztft v0.3.1-0.20230718024242-59215c807c21/go.mod h1:Iy8TZv9TJJdDK9lYBW14uPp3Eokn4Ro7a7bXrY3LBoo=
+github.com/magodo/aztft v0.3.1-0.20230725033026-125138b38e33 h1:DSrPr3VLDWR9D+q0Byw6Gh8HyuoBgzHkn+ebTv1h8BU=
+github.com/magodo/aztft v0.3.1-0.20230725033026-125138b38e33/go.mod h1:Iy8TZv9TJJdDK9lYBW14uPp3Eokn4Ro7a7bXrY3LBoo=
 github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6 h1:CElHO4hPXC+Eivy8sUC/WrnH3jmQzdF2x0lEXBEYul8=
 github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6/go.mod h1:Cn4fFwFH/Ddw9sjWPeSS72bNaxbM+FRXf7pkGEDReq8=
 github.com/magodo/terraform-client-go v0.0.0-20230323074119-02ceb732dd25 h1:V4R1wcjD/fYQh3Qx/xUyB8xTZgJ7P+WGtHqYpjs+mTU=
