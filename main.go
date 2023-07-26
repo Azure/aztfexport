@@ -126,24 +126,6 @@ func main() {
 			Usage:       "The subscription id",
 			Destination: &flagset.flagSubscriptionId,
 		},
-		&cli.BoolFlag{
-			Name:        "use-environment-cred",
-			EnvVars:     []string{"AZTFEXPORT_USE_ENVIRONMENT_CRED"},
-			Usage:       "Explicitly use the environment variables to do authentication",
-			Destination: &flagset.flagUseEnvironmentCred,
-		},
-		&cli.BoolFlag{
-			Name:        "use-managed-identity-cred",
-			EnvVars:     []string{"AZTFEXPORT_USE_MANAGED_IDENTITY_CRED"},
-			Usage:       "Explicitly use the managed identity that is provided by the Azure host to do authentication",
-			Destination: &flagset.flagUseManagedIdentityCred,
-		},
-		&cli.BoolFlag{
-			Name:        "use-azure-cli-cred",
-			EnvVars:     []string{"AZTFEXPORT_USE_AZURE_CLI_CRED"},
-			Usage:       "Explicitly use the Azure CLI to do authentication",
-			Destination: &flagset.flagUseAzureCLICred,
-		},
 		&cli.StringFlag{
 			Name:    "output-dir",
 			EnvVars: []string{"AZTFEXPORT_OUTPUT_DIR"},
@@ -257,6 +239,56 @@ func main() {
 			Usage:       `Log level, can be one of "ERROR", "WARN", "INFO", "DEBUG" and "TRACE"`,
 			Destination: &flagLogLevel,
 			Value:       "INFO",
+		},
+
+		// Common flags (auth)
+		&cli.BoolFlag{
+			Name:        "use-environment-cred",
+			EnvVars:     []string{"AZTFEXPORT_USE_ENVIRONMENT_CRED"},
+			Usage:       "Explicitly use the environment variables to do authentication",
+			Destination: &flagset.flagUseEnvironmentCred,
+		},
+		&cli.BoolFlag{
+			Name:        "use-managed-identity-cred",
+			EnvVars:     []string{"AZTFEXPORT_USE_MANAGED_IDENTITY_CRED"},
+			Usage:       "Explicitly use the managed identity that is provided by the Azure host to do authentication",
+			Destination: &flagset.flagUseManagedIdentityCred,
+		},
+		&cli.BoolFlag{
+			Name:        "use-azure-cli-cred",
+			EnvVars:     []string{"AZTFEXPORT_USE_AZURE_CLI_CRED"},
+			Usage:       "Explicitly use the Azure CLI to do authentication",
+			Destination: &flagset.flagUseAzureCLICred,
+		},
+		&cli.BoolFlag{
+			Name:        "use-oidc-cred",
+			EnvVars:     []string{"AZTFEXPORT_USE_OIDC_CRED"},
+			Usage:       "Explicitly use the OIDC to do authentication",
+			Destination: &flagset.flagUseOIDCCred,
+		},
+		&cli.StringFlag{
+			Name:        "oidc-request-token",
+			EnvVars:     []string{"AZTFEXPORT_OIDC_REQUEST_TOKEN", "ARM_OIDC_REQUEST_TOKEN", "ACTIONS_ID_TOKEN_REQUEST_TOKEN"},
+			Usage:       "The bearer token for the request to the OIDC provider",
+			Destination: &flagset.flagOIDCRequestToken,
+		},
+		&cli.StringFlag{
+			Name:        "oidc-request-url",
+			EnvVars:     []string{"AZTFEXPORT_OIDC_REQUEST_URL", "ARM_OIDC_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_URL"},
+			Usage:       "The URL for the OIDC provider from which to request an ID token",
+			Destination: &flagset.flagOIDCRequestURL,
+		},
+		&cli.StringFlag{
+			Name:        "oidc-token-file-path",
+			EnvVars:     []string{"AZTFEXPORT_OIDC_TOKEN_FILE_PATH", "ARM_OIDC_TOKEN_FILE_PATH"},
+			Usage:       "The path to a file containing an ID token when authenticating using OIDC",
+			Destination: &flagset.flagOIDCTokenFilePath,
+		},
+		&cli.StringFlag{
+			Name:        "oidc-token",
+			EnvVars:     []string{"AZTFEXPORT_OIDC_TOKEN", "ARM_OIDC_TOKEN"},
+			Usage:       "The ID token when authenticating using OIDC",
+			Destination: &flagset.flagOIDCToken,
 		},
 
 		// Hidden flags
@@ -414,7 +446,7 @@ func main() {
 						return fmt.Errorf("invalid resource id: %v", err)
 					}
 
-					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset.flagEnv, NewAuthMethodFromFlagSet(flagset))
+					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset)
 					if err != nil {
 						return err
 					}
@@ -478,7 +510,7 @@ func main() {
 
 					rg := c.Args().First()
 
-					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset.flagEnv, NewAuthMethodFromFlagSet(flagset))
+					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset)
 					if err != nil {
 						return err
 					}
@@ -541,7 +573,7 @@ func main() {
 
 					predicate := c.Args().First()
 
-					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset.flagEnv, NewAuthMethodFromFlagSet(flagset))
+					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset)
 					if err != nil {
 						return err
 					}
@@ -605,7 +637,7 @@ func main() {
 
 					mapFile := c.Args().First()
 
-					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset.flagEnv, NewAuthMethodFromFlagSet(flagset))
+					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset)
 					if err != nil {
 						return err
 					}
@@ -741,33 +773,10 @@ func initTelemetryClient(subscriptionId string) telemetry.Client {
 	return telemetry.NewAppInsight(subscriptionId, installId, sessionId)
 }
 
-// At most one of below is true
-type authMethod int
-
-const (
-	authMethodDefault authMethod = iota
-	authMethodEnvironment
-	authMethodManagedIdentity
-	authMethodAzureCLI
-)
-
-func NewAuthMethodFromFlagSet(fset FlagSet) authMethod {
-	if fset.flagUseEnvironmentCred {
-		return authMethodEnvironment
-	}
-	if fset.flagUseManagedIdentityCred {
-		return authMethodManagedIdentity
-	}
-	if fset.flagUseAzureCLICred {
-		return authMethodAzureCLI
-	}
-	return authMethodDefault
-}
-
 // buildAzureSDKCredAndClientOpt builds the Azure SDK credential and client option from multiple sources (i.e. environment variables, MSI, Azure CLI).
-func buildAzureSDKCredAndClientOpt(env string, authMethod authMethod) (azcore.TokenCredential, *arm.ClientOptions, error) {
+func buildAzureSDKCredAndClientOpt(fset FlagSet) (azcore.TokenCredential, *arm.ClientOptions, error) {
 	var cloudCfg cloud.Configuration
-	switch strings.ToLower(env) {
+	switch env := fset.flagEnv; strings.ToLower(env) {
 	case "public":
 		cloudCfg = cloud.AzurePublic
 	case "usgovernment":
@@ -814,8 +823,8 @@ func buildAzureSDKCredAndClientOpt(env string, authMethod authMethod) (azcore.To
 		cred azcore.TokenCredential
 		err  error
 	)
-	switch authMethod {
-	case authMethodEnvironment:
+	switch {
+	case fset.flagUseEnvironmentCred:
 		cred, err = azidentity.NewEnvironmentCredential(&azidentity.EnvironmentCredentialOptions{
 			ClientOptions: clientOpt.ClientOptions,
 		})
@@ -823,7 +832,7 @@ func buildAzureSDKCredAndClientOpt(env string, authMethod authMethod) (azcore.To
 			return nil, nil, fmt.Errorf("failed to new Environment credential: %v", err)
 		}
 		return cred, clientOpt, nil
-	case authMethodManagedIdentity:
+	case fset.flagUseManagedIdentityCred:
 		cred, err = azidentity.NewManagedIdentityCredential(&azidentity.ManagedIdentityCredentialOptions{
 			ClientOptions: clientOpt.ClientOptions,
 		})
@@ -831,7 +840,7 @@ func buildAzureSDKCredAndClientOpt(env string, authMethod authMethod) (azcore.To
 			return nil, nil, fmt.Errorf("failed to new Managed Identity credential: %v", err)
 		}
 		return cred, clientOpt, nil
-	case authMethodAzureCLI:
+	case fset.flagUseAzureCLICred:
 		cred, err = azidentity.NewAzureCLICredential(&azidentity.AzureCLICredentialOptions{
 			TenantID: tenantId,
 		})
@@ -839,7 +848,21 @@ func buildAzureSDKCredAndClientOpt(env string, authMethod authMethod) (azcore.To
 			return nil, nil, fmt.Errorf("failed to new Azure CLI credential: %v", err)
 		}
 		return cred, clientOpt, nil
-	case authMethodDefault:
+	case fset.flagUseOIDCCred:
+		cred, err = NewOidcCredential(&OidcCredentialOptions{
+			ClientOptions: clientOpt.ClientOptions,
+			TenantID:      tenantId,
+			ClientID:      os.Getenv("ARM_CLIENT_ID"),
+			RequestToken:  fset.flagOIDCRequestToken,
+			RequestUrl:    fset.flagOIDCRequestURL,
+			Token:         fset.flagOIDCToken,
+			TokenFilePath: fset.flagOIDCTokenFilePath,
+		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to new OIDC credential: %v", err)
+		}
+		return cred, clientOpt, nil
+	default:
 		opt := &azidentity.DefaultAzureCredentialOptions{
 			ClientOptions: clientOpt.ClientOptions,
 			TenantID:      tenantId,
@@ -849,8 +872,6 @@ func buildAzureSDKCredAndClientOpt(env string, authMethod authMethod) (azcore.To
 			return nil, nil, fmt.Errorf("failed to new Default credential: %v", err)
 		}
 		return cred, clientOpt, nil
-	default:
-		return nil, nil, fmt.Errorf("unknown auth method: %v", authMethod)
 	}
 }
 
