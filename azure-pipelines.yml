@@ -238,10 +238,7 @@ stages:
               mkdir $WORKDIR/dist/output
               
               # Install fpm
-              mkdir ~/.ruby
-              export GEM_HOME="~/.ruby"
-              export PATH="$PATH:~/.ruby/bin"
-              gem i fpm
+              sudo gem i fpm
 
               # Build deb package
               fpm \
