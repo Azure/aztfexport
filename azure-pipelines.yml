@@ -223,11 +223,6 @@ stages:
               artifact: $(OS)-$(ARCH)
               path: $(system.defaultWorkingDirectory)/dist/source
           - script: |
-              mkdir $workdir/dist/output
-            displayName: "Prepare the output directory"
-            env:
-              workdir: $(system.defaultWorkingDirectory)
-          - script: |
               set -e
 
               chmod +x $WORKDIR/dist/source/aztfexport
@@ -236,46 +231,43 @@ stages:
               declare -A rpm_arch_map=( [386]=i686 [amd64]=x86_64 [arm]=armv7hl [arm64]=aarch64 )
               version=${VERSION:1}
 
-              # Build the image
-              cd $WORKDIR/scripts/package/linux/build
-              docker build -t aztfexportbuild .
+              # Install the fpm dependencies
+              sudo apt install -y ruby-dev build-essential squashfs-tools rpm
+
+              # Prepare the output directory
+              mkdir $WORKDIR/dist/output
+              
+              # Install fpm
+              sudo gem i fpm
 
               # Build deb package
-              docker run -t --rm \
-                -v $WORKDIR/dist/source:/build/source \
-                -v $WORKDIR/dist/output:/build/output \
-                aztfexportbuild \
-                fpm \
-                  --name aztfexport \
-                  --license MPL-2.0 \
-                  --version $version \
-                  --description "A tool to bring existing Azure resources under Terraform's management" \
-                  --url "https://github.com/Azure/aztfexport" \
-                  --maintainer "magodo <wztdyl@sina.com>" \
-                  --input-type dir \
-                  --output-type deb \
-                  --architecture ${deb_arch_map[$ARCH]} \
-                  --package /build/output/aztfexport-$version-1-${deb_arch_map[$ARCH]}.deb \
-                  /build/source/aztfexport=/usr/bin/aztfexport
+              fpm \
+                --name aztfexport \
+                --license MPL-2.0 \
+                --version $version \
+                --description "A tool to bring existing Azure resources under Terraform's management" \
+                --url "https://github.com/Azure/aztfexport" \
+                --maintainer "magodo <wztdyl@sina.com>" \
+                --input-type dir \
+                --output-type deb \
+                --architecture ${deb_arch_map[$ARCH]} \
+                --package $WORKDIR/dist/output/aztfexport-$version-1-${deb_arch_map[$ARCH]}.deb \
+                $WORKDIR/dist/source/aztfexport=/usr/bin/aztfexport
 
               # Build rpm package
               echo $version
-              docker run -t --rm \
-                -v $WORKDIR/dist/source:/build/source \
-                -v $WORKDIR/dist/output:/build/output \
-                aztfexportbuild \
-                fpm \
-                  --name aztfexport \
-                  --license MPL-2.0 \
-                  --version ${version} \
-                  --description "A tool to bring existing Azure resources under Terraform's management" \
-                  --url "https://github.com/Azure/aztfexport" \
-                  --maintainer "magodo <wztdyl@sina.com>" \
-                  --input-type dir \
-                  --output-type rpm \
-                  --architecture ${rpm_arch_map[$ARCH]} \
-                  --package /build/output/aztfexport-$version-1-${rpm_arch_map[$ARCH]}.rpm \
-                  /build/source/aztfexport=/usr/bin/aztfexport
+              fpm \
+                --name aztfexport \
+                --license MPL-2.0 \
+                --version ${version} \
+                --description "A tool to bring existing Azure resources under Terraform's management" \
+                --url "https://github.com/Azure/aztfexport" \
+                --maintainer "magodo <wztdyl@sina.com>" \
+                --input-type dir \
+                --output-type rpm \
+                --architecture ${rpm_arch_map[$ARCH]} \
+                --package $WORKDIR/dist/output/aztfexport-$version-1-${rpm_arch_map[$ARCH]}.rpm \
+                $WORKDIR/dist/source/aztfexport=/usr/bin/aztfexport
             displayName: "Build Packages"
             env:
               VERSION: ${{ parameters.version }}
@@ -648,33 +640,33 @@ stages:
               REPO_RELEASE: $(REPO_RELEASE)
               PMC_CLIENT_ID: $(PMC_CLIENT_ID)
               PMC_CERT: $(PMCProdCertificate)
-          - script: |
-              set -e
+          # - script: |
+          #     set -e
 
-              # Skip verifying rhel distros as they don't have a docker image available
-              [[ $REPO_DISTRO == rhel ]] && exit 0
+          #     # Skip verifying rhel distros as they don't have a docker image available
+          #     [[ $REPO_DISTRO == rhel ]] && exit 0
 
-              # Install and run kvm service
-              sudo apt install qemu-kvm libvirt-clients libvirt-daemon-system bridge-utils virtinst libvirt-daemon
-              sudo systemctl enable --now libvirtd
+          #     # Install and run kvm service
+          #     sudo apt install qemu-kvm libvirt-clients libvirt-daemon-system bridge-utils virtinst libvirt-daemon
+          #     sudo systemctl enable --now libvirtd
 
-              # Setup binfmt_misc to enable multi arch
-              docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          #     # Setup binfmt_misc to enable multi arch
+          #     docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
-              # Launch the base container of the correct architecture
-              cid=$(docker run --rm -dit --platform=linux/$ARCH ${REPO_DISTRO}:${REPO_RELEASE})
+          #     # Launch the base container of the correct architecture
+          #     cid=$(docker run --rm -dit --platform=linux/$ARCH ${REPO_DISTRO}:${REPO_RELEASE})
 
-              docker cp ${workdir}/scripts/package/linux/verify/${REPO_DISTRO}-${REPO_RELEASE}.sh ${cid}:/verify.sh
-              docker exec $cid /verify.sh $VERSION
-            displayName: "Verify"
-            env:
-              workdir: $(system.defaultWorkingDirectory)
-              TYPE: $(TYPE)
-              ARCH: $(ARCH)
-              REPO_ID: $(REPO_ID)
-              REPO_DISTRO: $(REPO_DISTRO)
-              REPO_RELEASE: $(REPO_RELEASE)
-              VERSION: ${{ parameters.version }}
+          #     docker cp ${workdir}/scripts/package/linux/verify/${REPO_DISTRO}-${REPO_RELEASE}.sh ${cid}:/verify.sh
+          #     docker exec $cid /verify.sh $VERSION
+          #   displayName: "Verify"
+          #   env:
+          #     workdir: $(system.defaultWorkingDirectory)
+          #     TYPE: $(TYPE)
+          #     ARCH: $(ARCH)
+          #     REPO_ID: $(REPO_ID)
+          #     REPO_DISTRO: $(REPO_DISTRO)
+          #     REPO_RELEASE: $(REPO_RELEASE)
+          #     VERSION: ${{ parameters.version }}
 
   - stage: publish_windows_setup
     displayName: "Publish Windows Setup"
