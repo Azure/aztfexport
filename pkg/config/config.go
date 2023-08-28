@@ -54,7 +54,7 @@ type CommonConfig struct {
 	// Note that only modules whose "source" is local path is supported. By default, it is the root module.
 	ModulePath string
 	// HCLOnly is a strange field, which is only used internally by aztfexport to indicate whether to remove other files other than TF config at the end.
-	// External Go modules shoudl just ignore it.
+	// External Go modules should just ignore it.
 	HCLOnly bool
 	// TFClient is the terraform-client-go client used to replace terraform binary for importing resources.
 	// This can only be used together with HCLOnly as tfclient can't replace terraform for state file management.
