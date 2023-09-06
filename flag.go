@@ -2,8 +2,12 @@ package main
 
 import (
 	"fmt"
+	"os/exec"
 	"strings"
 
+	"github.com/Azure/aztfexport/pkg/config"
+	"github.com/hashicorp/go-hclog"
+	"github.com/magodo/terraform-client-go/tfclient"
 	"github.com/urfave/cli/v2"
 )
 
@@ -18,6 +22,7 @@ type FlagSet struct {
 	flagAppend              bool
 	flagDevProvider         bool
 	flagProviderVersion     string
+	flagProviderName        string
 	flagBackendType         string
 	flagBackendConfig       cli.StringSlice
 	flagFullConfig          bool
@@ -171,4 +176,52 @@ func (flag FlagSet) DescribeCLI(mode string) string {
 		}
 	}
 	return "aztfexport " + strings.Join(args, " ")
+}
+
+func (f FlagSet) BuildCommonConfig() (config.CommonConfig, error) {
+	cred, clientOpt, err := buildAzureSDKCredAndClientOpt(f)
+	if err != nil {
+		return config.CommonConfig{}, err
+	}
+
+	cfg := config.CommonConfig{
+		SubscriptionId:       f.flagSubscriptionId,
+		AzureSDKCredential:   cred,
+		AzureSDKClientOption: *clientOpt,
+		OutputDir:            f.flagOutputDir,
+		ProviderVersion:      f.flagProviderVersion,
+		ProviderName:         f.flagProviderName,
+		DevProvider:          f.flagDevProvider,
+		ContinueOnError:      f.flagContinue,
+		BackendType:          f.flagBackendType,
+		BackendConfig:        f.flagBackendConfig.Value(),
+		FullConfig:           f.flagFullConfig,
+		Parallelism:          f.flagParallelism,
+		HCLOnly:              f.flagHCLOnly,
+		ModulePath:           f.flagModulePath,
+		TelemetryClient:      initTelemetryClient(f.flagSubscriptionId),
+	}
+
+	if f.flagAppend {
+		cfg.OutputFileNames = config.OutputFileNames{
+			TerraformFileName:   "terraform.aztfexport.tf",
+			ProviderFileName:    "provider.aztfexport.tf",
+			MainFileName:        "main.aztfexport.tf",
+			ImportBlockFileName: "import.aztfexport.tf",
+		}
+	}
+
+	if f.hflagTFClientPluginPath != "" {
+		// #nosec G204
+		tfc, err := tfclient.New(tfclient.Option{
+			Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
+			Logger: hclog.NewNullLogger(),
+		})
+		if err != nil {
+			return cfg, err
+		}
+		cfg.TFClient = tfc
+	}
+
+	return cfg, nil
 }

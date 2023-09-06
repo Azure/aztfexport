@@ -26,7 +26,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/magodo/armid"
 	"github.com/magodo/azlist/azlist"
-	"github.com/magodo/terraform-client-go/tfclient"
 	"github.com/magodo/tfadd/providers/azurerm"
 
 	"github.com/Azure/aztfexport/internal"
@@ -161,6 +160,12 @@ func main() {
 			EnvVars:     []string{"AZTFEXPORT_PROVIDER_VERSION"},
 			Usage:       fmt.Sprintf("The azurerm provider version to use for importing (default: existing version constraints or %s)", azurerm.ProviderSchemaInfo.Version),
 			Destination: &flagset.flagProviderVersion,
+		},
+		&cli.StringFlag{
+			Name:        "provider-name",
+			EnvVars:     []string{"AZTFEXPORT_PROVIDER_NAME"},
+			Usage:       fmt.Sprintf("The provider name to use for importing (default: azurerm, possible values are auzrerm and azapi)"),
+			Destination: &flagset.flagProviderName,
 		},
 		&cli.StringFlag{
 			Name:        "backend-type",
@@ -354,13 +359,6 @@ func main() {
 
 	mappingFileFlags := append([]cli.Flag{}, commonFlags...)
 
-	safeOutputFileNames := config.OutputFileNames{
-		TerraformFileName:   "terraform.aztfexport.tf",
-		ProviderFileName:    "provider.aztfexport.tf",
-		MainFileName:        "main.aztfexport.tf",
-		ImportBlockFileName: "import.aztfexport.tf",
-	}
-
 	app := &cli.App{
 		Name:      "aztfexport",
 		Version:   getVersion(),
@@ -446,48 +444,17 @@ func main() {
 						return fmt.Errorf("invalid resource id: %v", err)
 					}
 
-					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset)
+					commonConfig, err := flagset.BuildCommonConfig()
 					if err != nil {
 						return err
 					}
 
 					// Initialize the config
 					cfg := config.Config{
-						CommonConfig: config.CommonConfig{
-							SubscriptionId:       flagset.flagSubscriptionId,
-							AzureSDKCredential:   cred,
-							AzureSDKClientOption: *clientOpt,
-							OutputDir:            flagset.flagOutputDir,
-							ProviderVersion:      flagset.flagProviderVersion,
-							DevProvider:          flagset.flagDevProvider,
-							ContinueOnError:      flagset.flagContinue,
-							BackendType:          flagset.flagBackendType,
-							BackendConfig:        flagset.flagBackendConfig.Value(),
-							FullConfig:           flagset.flagFullConfig,
-							Parallelism:          flagset.flagParallelism,
-							HCLOnly:              flagset.flagHCLOnly,
-							ModulePath:           flagset.flagModulePath,
-							TelemetryClient:      initTelemetryClient(flagset.flagSubscriptionId),
-						},
+						CommonConfig:   commonConfig,
 						ResourceId:     resId,
 						TFResourceName: flagset.flagResName,
 						TFResourceType: flagset.flagResType,
-					}
-
-					if flagset.flagAppend {
-						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
-					}
-
-					if flagset.hflagTFClientPluginPath != "" {
-						// #nosec G204
-						tfc, err := tfclient.New(tfclient.Option{
-							Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
-							Logger: hclog.NewNullLogger(),
-						})
-						if err != nil {
-							return err
-						}
-						cfg.CommonConfig.TFClient = tfc
 					}
 
 					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResource))
@@ -510,48 +477,18 @@ func main() {
 
 					rg := c.Args().First()
 
-					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset)
+					// cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset)
+					commonConfig, err := flagset.BuildCommonConfig()
 					if err != nil {
 						return err
 					}
 
 					// Initialize the config
 					cfg := config.Config{
-						CommonConfig: config.CommonConfig{
-							SubscriptionId:       flagset.flagSubscriptionId,
-							AzureSDKCredential:   cred,
-							AzureSDKClientOption: *clientOpt,
-							OutputDir:            flagset.flagOutputDir,
-							ProviderVersion:      flagset.flagProviderVersion,
-							DevProvider:          flagset.flagDevProvider,
-							ContinueOnError:      flagset.flagContinue,
-							BackendType:          flagset.flagBackendType,
-							BackendConfig:        flagset.flagBackendConfig.Value(),
-							FullConfig:           flagset.flagFullConfig,
-							Parallelism:          flagset.flagParallelism,
-							HCLOnly:              flagset.flagHCLOnly,
-							ModulePath:           flagset.flagModulePath,
-							TelemetryClient:      initTelemetryClient(flagset.flagSubscriptionId),
-						},
+						CommonConfig:        commonConfig,
 						ResourceGroupName:   rg,
 						ResourceNamePattern: flagset.flagPattern,
 						RecursiveQuery:      true,
-					}
-
-					if flagset.flagAppend {
-						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
-					}
-
-					if flagset.hflagTFClientPluginPath != "" {
-						// #nosec G204
-						tfc, err := tfclient.New(tfclient.Option{
-							Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
-							Logger: hclog.NewNullLogger(),
-						})
-						if err != nil {
-							return err
-						}
-						cfg.CommonConfig.TFClient = tfc
 					}
 
 					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResourceGroup))
@@ -573,48 +510,18 @@ func main() {
 
 					predicate := c.Args().First()
 
-					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset)
+					// cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset)
+					commonConfig, err := flagset.BuildCommonConfig()
 					if err != nil {
 						return err
 					}
 
 					// Initialize the config
 					cfg := config.Config{
-						CommonConfig: config.CommonConfig{
-							SubscriptionId:       flagset.flagSubscriptionId,
-							AzureSDKCredential:   cred,
-							AzureSDKClientOption: *clientOpt,
-							OutputDir:            flagset.flagOutputDir,
-							ProviderVersion:      flagset.flagProviderVersion,
-							DevProvider:          flagset.flagDevProvider,
-							ContinueOnError:      flagset.flagContinue,
-							BackendType:          flagset.flagBackendType,
-							BackendConfig:        flagset.flagBackendConfig.Value(),
-							FullConfig:           flagset.flagFullConfig,
-							Parallelism:          flagset.flagParallelism,
-							HCLOnly:              flagset.flagHCLOnly,
-							ModulePath:           flagset.flagModulePath,
-							TelemetryClient:      initTelemetryClient(flagset.flagSubscriptionId),
-						},
+						CommonConfig:        commonConfig,
 						ARGPredicate:        predicate,
 						ResourceNamePattern: flagset.flagPattern,
 						RecursiveQuery:      flagset.flagRecursive,
-					}
-
-					if flagset.flagAppend {
-						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
-					}
-
-					if flagset.hflagTFClientPluginPath != "" {
-						// #nosec G204
-						tfc, err := tfclient.New(tfclient.Option{
-							Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
-							Logger: hclog.NewNullLogger(),
-						})
-						if err != nil {
-							return err
-						}
-						cfg.CommonConfig.TFClient = tfc
 					}
 
 					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeQuery))
@@ -637,46 +544,16 @@ func main() {
 
 					mapFile := c.Args().First()
 
-					cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset)
+					// cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset)
+					commonConfig, err := flagset.BuildCommonConfig()
 					if err != nil {
 						return err
 					}
 
 					// Initialize the config
 					cfg := config.Config{
-						CommonConfig: config.CommonConfig{
-							SubscriptionId:       flagset.flagSubscriptionId,
-							AzureSDKCredential:   cred,
-							AzureSDKClientOption: *clientOpt,
-							OutputDir:            flagset.flagOutputDir,
-							ProviderVersion:      flagset.flagProviderVersion,
-							DevProvider:          flagset.flagDevProvider,
-							ContinueOnError:      flagset.flagContinue,
-							BackendType:          flagset.flagBackendType,
-							BackendConfig:        flagset.flagBackendConfig.Value(),
-							FullConfig:           flagset.flagFullConfig,
-							Parallelism:          flagset.flagParallelism,
-							HCLOnly:              flagset.flagHCLOnly,
-							ModulePath:           flagset.flagModulePath,
-							TelemetryClient:      initTelemetryClient(flagset.flagSubscriptionId),
-						},
-						MappingFile: mapFile,
-					}
-
-					if flagset.flagAppend {
-						cfg.CommonConfig.OutputFileNames = safeOutputFileNames
-					}
-
-					if flagset.hflagTFClientPluginPath != "" {
-						// #nosec G204
-						tfc, err := tfclient.New(tfclient.Option{
-							Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
-							Logger: hclog.NewNullLogger(),
-						})
-						if err != nil {
-							return err
-						}
-						cfg.CommonConfig.TFClient = tfc
+						CommonConfig: commonConfig,
+						MappingFile:  mapFile,
 					}
 
 					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeMappingFile))

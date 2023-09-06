@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Azure/aztfexport/internal/resourceset"
 	"github.com/hashicorp/go-version"
 	tfjson "github.com/hashicorp/terraform-json"
 
@@ -84,6 +85,7 @@ type baseMeta struct {
 	resourceClient    *armresources.Client
 	providerVersion   string
 	devProvider       bool
+	providerName      string
 	backendType       string
 	backendConfig     []string
 	providerConfig    map[string]cty.Value
@@ -204,6 +206,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		backendType:       cfg.BackendType,
 		backendConfig:     cfg.BackendConfig,
 		providerConfig:    cfg.ProviderConfig,
+		providerName:      cfg.ProviderName,
 		fullConfig:        cfg.FullConfig,
 		parallelism:       cfg.Parallelism,
 		hclOnly:           cfg.HCLOnly,
@@ -257,6 +260,8 @@ func (meta *baseMeta) CleanTFState(ctx context.Context, addr string) {
 func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) error {
 	meta.tc.Trace(telemetry.Info, "ParallelImport Enter")
 	defer meta.tc.Trace(telemetry.Info, "ParallelImport Leave")
+	// return nil
+
 	itemsCh := make(chan *ImportItem, len(items))
 	for _, item := range items {
 		itemsCh <- item
@@ -512,9 +517,28 @@ func (meta baseMeta) generateCfg(ctx context.Context, l ImportList, cfgTrans ...
 	return meta.generateConfig(cfginfos)
 }
 
+func (meta *baseMeta) useAzAPI() bool {
+	return meta.providerName == "azapi"
+}
+
 func (meta *baseMeta) buildTerraformConfigForImportDir() string {
 	if meta.devProvider {
 		return "terraform {}"
+	}
+
+	if meta.useAzAPI() {
+		return fmt.Sprintf(`terraform {
+  required_providers {
+    azurerm = {
+      source = "hashicorp/azurerm"
+      version = "%s"
+    }
+	azapi = {
+      source = "azure/azapi"
+	}
+  }
+}
+`, meta.providerVersion)
 	}
 
 	return fmt.Sprintf(`terraform {
@@ -536,6 +560,22 @@ func (meta *baseMeta) buildTerraformConfig(backendType string) string {
 `, backendType)
 	}
 
+	if meta.useAzAPI() {
+		return fmt.Sprintf(`terraform {
+  backend %q {}
+  required_providers {
+    azurerm = {
+      source = "hashicorp/azurerm"
+      version = "%s"
+    }
+	azapi = {
+      source = "azure/azapi"
+	}
+  }
+}
+`, backendType, meta.providerVersion)
+	}
+
 	return fmt.Sprintf(`terraform {
   backend %q {}
   required_providers {
@@ -554,6 +594,10 @@ func (meta *baseMeta) buildProviderConfig() string {
 	body.AppendNewBlock("features", nil)
 	for k, v := range meta.providerConfig {
 		body.SetAttributeValue(k, v)
+	}
+
+	if meta.useAzAPI() {
+		_ = f.Body().AppendNewBlock("provider", []string{"azapi"}).Body()
 	}
 	return string(f.Bytes())
 }
@@ -1028,6 +1072,13 @@ func (meta *baseMeta) deinit_tf(ctx context.Context) error {
 		os.RemoveAll(dir)
 	}
 	return nil
+}
+
+func (meta *baseMeta) GenTFResources(set *resourceset.AzureResourceSet) []resourceset.TFResource {
+	if meta.useAzAPI() {
+		return set.ToAzAPIResources()
+	}
+	return set.ToTFResources(meta.parallelism, meta.azureSDKCred, meta.azureSDKClientOpt)
 }
 
 func getModuleDir(modulePaths []string, moduleDir string) (string, error) {

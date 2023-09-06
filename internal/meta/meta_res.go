@@ -44,7 +44,7 @@ func (meta MetaResource) ScopeName() string {
 }
 
 func (meta *MetaResource) ListResource(_ context.Context) (ImportList, error) {
-	resourceSet := resourceset.AzureResourceSet{
+	resourceSet := &resourceset.AzureResourceSet{
 		Resources: []resourceset.AzureResource{
 			{
 				Id: meta.AzureId,
@@ -52,7 +52,7 @@ func (meta *MetaResource) ListResource(_ context.Context) (ImportList, error) {
 		},
 	}
 	log.Printf("[DEBUG] Azure Resource set map to TF resource set")
-	rl := resourceSet.ToTFResources(meta.parallelism, meta.azureSDKCred, meta.azureSDKClientOpt)
+	rl := meta.GenTFResources(resourceSet)
 
 	// This is to record known resource types. In case there is a known resource type and there comes another same typed resource,
 	// then we need to modify the resource name. Otherwise, there will be a resource address conflict.
@@ -67,7 +67,7 @@ func (meta *MetaResource) ListResource(_ context.Context) (ImportList, error) {
 			name += fmt.Sprintf("-%d", rtCnt[res.TFType]-1)
 		}
 		tfAddr := tfaddr.TFAddr{
-			Type: res.TFType, //this might be empty if have multiple matches in aztft
+			Type: res.TFType, // this might be empty if have multiple matches in aztft
 			Name: name,
 		}
 		item := ImportItem{

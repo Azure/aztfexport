@@ -55,7 +55,7 @@ func (meta *MetaResourceGroup) ListResource(ctx context.Context) (ImportList, er
 	}
 
 	log.Printf("[DEBUG] Azure Resource set map to TF resource set")
-	rl := rset.ToTFResources(meta.parallelism, meta.azureSDKCred, meta.azureSDKClientOpt)
+	rl := meta.GenTFResources(rset)
 
 	var l ImportList
 	for i, res := range rl {

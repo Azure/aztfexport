@@ -100,3 +100,14 @@ func (rset AzureResourceSet) ToTFResources(parallelism int, cred azcore.TokenCre
 
 	return tfresources
 }
+
+func (rset AzureResourceSet) ToAzAPIResources() (result []TFResource) {
+	for _, res := range rset.Resources {
+		result = append(result, TFResource{
+			AzureId: res.Id,
+			TFId:    res.Id.String(),
+			TFType:  "azapi_resource",
+		})
+	}
+	return
+}
