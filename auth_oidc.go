@@ -96,6 +96,7 @@ func (w *OidcCredential) getAssertion(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("getAssertion: cannot request token: %v", err)
 	}
 
+	// #nosec G307
 	defer resp.Body.Close()
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
