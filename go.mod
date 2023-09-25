@@ -19,13 +19,13 @@ require (
 	github.com/hashicorp/terraform-exec v0.17.2
 	github.com/hashicorp/terraform-json v0.16.0
 	github.com/hexops/gotextdiff v1.0.3
-	github.com/magodo/armid v0.0.0-20220923023118-aec41eaf7370
+	github.com/magodo/armid v0.0.0-20230511151020-27880e5961c3
 	github.com/magodo/azlist v0.0.0-20230518102903-58631213ca2c
-	github.com/magodo/aztft v0.3.1-0.20230725033026-125138b38e33
+	github.com/magodo/aztft v0.3.1-0.20230925032604-f7127fb9b496
 	github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6
 	github.com/magodo/terraform-client-go v0.0.0-20230323074119-02ceb732dd25
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
-	github.com/magodo/tfadd v0.10.1-0.20230714031726-fd50ee69a579
+	github.com/magodo/tfadd v0.10.1-0.20230925034155-36894882b021
 	github.com/magodo/tfmerge v0.0.0-20221214062955-f52e46d03402
 	github.com/magodo/tfstate v0.0.0-20220409052014-9b9568dda918
 	github.com/magodo/workerpool v0.0.0-20230119025400-40192d2716ea
@@ -62,12 +62,14 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/domainservices/armdomainservices v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/frontdoor/armfrontdoor v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/hdinsight/armhdinsight v1.0.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/iothub/armiothub v1.1.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/kusto/armkusto v1.3.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/logic/armlogic v1.1.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/machinelearning/armmachinelearning/v3 v3.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/monitor/armmonitor v0.7.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork v1.1.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/operationalinsights/armoperationalinsights v1.0.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/paloaltonetworksngfw/armpanngfw v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/recoveryservices/armrecoveryservicesbackup v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/recoveryservices/armrecoveryservicessiterecovery v1.1.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resourcegraph/armresourcegraph v0.6.0 // indirect
