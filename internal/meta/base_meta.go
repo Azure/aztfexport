@@ -527,18 +527,14 @@ func (meta *baseMeta) buildTerraformConfigForImportDir() string {
 	}
 
 	if meta.useAzAPI() {
-		return fmt.Sprintf(`terraform {
+		return `terraform {
   required_providers {
-    azurerm = {
-      source = "hashicorp/azurerm"
-      version = "%s"
-    }
 	azapi = {
       source = "azure/azapi"
 	}
   }
 }
-`, meta.providerVersion)
+`
 	}
 
 	return fmt.Sprintf(`terraform {
@@ -564,16 +560,12 @@ func (meta *baseMeta) buildTerraformConfig(backendType string) string {
 		return fmt.Sprintf(`terraform {
   backend %q {}
   required_providers {
-    azurerm = {
-      source = "hashicorp/azurerm"
-      version = "%s"
-    }
 	azapi = {
       source = "azure/azapi"
 	}
   }
 }
-`, backendType, meta.providerVersion)
+`, backendType)
 	}
 
 	return fmt.Sprintf(`terraform {
