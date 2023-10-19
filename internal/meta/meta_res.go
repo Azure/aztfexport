@@ -52,7 +52,13 @@ func (meta *MetaResource) ListResource(_ context.Context) (ImportList, error) {
 		},
 	}
 	log.Printf("[DEBUG] Azure Resource set map to TF resource set")
-	rl := meta.GenTFResources(resourceSet)
+
+	var rl []resourceset.TFResource
+	if meta.useAzAPI() {
+		rl = resourceSet.ToTFAzAPIResources()
+	} else {
+		rl = resourceSet.ToTFAzureRMResources(meta.parallelism, meta.azureSDKCred, meta.azureSDKClientOpt)
+	}
 
 	// This is to record known resource types. In case there is a known resource type and there comes another same typed resource,
 	// then we need to modify the resource name. Otherwise, there will be a resource address conflict.
@@ -79,7 +85,7 @@ func (meta *MetaResource) ListResource(_ context.Context) (ImportList, error) {
 
 		// Some special Azure resource is missing the essential property that is used by aztft to detect their TF resource type.
 		// In this case, users can use the `--type` option to manually specify the TF resource type.
-		if meta.ResourceType != "" {
+		if meta.ResourceType != "" && !meta.useAzAPI() {
 			if meta.AzureId.Equal(res.AzureId) {
 				tfid, err := aztft.QueryId(meta.AzureId.String(), meta.ResourceType,
 					&aztft.APIOption{

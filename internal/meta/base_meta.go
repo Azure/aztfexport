@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Azure/aztfexport/internal/resourceset"
 	"github.com/hashicorp/go-version"
 	tfjson "github.com/hashicorp/terraform-json"
 
@@ -260,7 +259,6 @@ func (meta *baseMeta) CleanTFState(ctx context.Context, addr string) {
 func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) error {
 	meta.tc.Trace(telemetry.Info, "ParallelImport Enter")
 	defer meta.tc.Trace(telemetry.Info, "ParallelImport Leave")
-	// return nil
 
 	itemsCh := make(chan *ImportItem, len(items))
 	for _, item := range items {
@@ -589,7 +587,7 @@ func (meta *baseMeta) buildProviderConfig() string {
 	}
 
 	if meta.useAzAPI() {
-		_ = f.Body().AppendNewBlock("provider", []string{"azapi"}).Body()
+		f.Body().AppendNewBlock("provider", []string{"azapi"}).Body()
 	}
 	return string(f.Bytes())
 }
@@ -1064,13 +1062,6 @@ func (meta *baseMeta) deinit_tf(ctx context.Context) error {
 		os.RemoveAll(dir)
 	}
 	return nil
-}
-
-func (meta *baseMeta) GenTFResources(set *resourceset.AzureResourceSet) []resourceset.TFResource {
-	if meta.useAzAPI() {
-		return set.ToAzAPIResources()
-	}
-	return set.ToTFResources(meta.parallelism, meta.azureSDKCred, meta.azureSDKClientOpt)
 }
 
 func getModuleDir(modulePaths []string, moduleDir string) (string, error) {

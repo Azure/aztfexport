@@ -30,12 +30,7 @@ import (
 
 	"github.com/Azure/aztfexport/internal"
 	"github.com/Azure/aztfexport/internal/ui"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
 	azlog "github.com/Azure/azure-sdk-for-go/sdk/azcore/log"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
-	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/urfave/cli/v2"
 )
 
@@ -477,7 +472,6 @@ func main() {
 
 					rg := c.Args().First()
 
-					// cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset)
 					commonConfig, err := flagset.BuildCommonConfig()
 					if err != nil {
 						return err
@@ -510,7 +504,6 @@ func main() {
 
 					predicate := c.Args().First()
 
-					// cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset)
 					commonConfig, err := flagset.BuildCommonConfig()
 					if err != nil {
 						return err
@@ -544,7 +537,6 @@ func main() {
 
 					mapFile := c.Args().First()
 
-					// cred, clientOpt, err := buildAzureSDKCredAndClientOpt(flagset)
 					commonConfig, err := flagset.BuildCommonConfig()
 					if err != nil {
 						return err
@@ -623,133 +615,6 @@ func initLog(path string, flagLevel string) error {
 		})
 	}
 	return nil
-}
-
-func initTelemetryClient(subscriptionId string) telemetry.Client {
-	cfg, err := cfgfile.GetConfig()
-	if err != nil {
-		return telemetry.NewNullClient()
-	}
-	enabled, installId := cfg.TelemetryEnabled, cfg.InstallationId
-	if !enabled {
-		return telemetry.NewNullClient()
-	}
-	if installId == "" {
-		uuid, err := uuid.NewV4()
-		if err == nil {
-			installId = uuid.String()
-		} else {
-			installId = "undefined"
-		}
-	}
-
-	sessionId := "undefined"
-	if uuid, err := uuid.NewV4(); err == nil {
-		sessionId = uuid.String()
-	}
-	return telemetry.NewAppInsight(subscriptionId, installId, sessionId)
-}
-
-// buildAzureSDKCredAndClientOpt builds the Azure SDK credential and client option from multiple sources (i.e. environment variables, MSI, Azure CLI).
-func buildAzureSDKCredAndClientOpt(fset FlagSet) (azcore.TokenCredential, *arm.ClientOptions, error) {
-	var cloudCfg cloud.Configuration
-	switch env := fset.flagEnv; strings.ToLower(env) {
-	case "public":
-		cloudCfg = cloud.AzurePublic
-	case "usgovernment":
-		cloudCfg = cloud.AzureGovernment
-	case "china":
-		cloudCfg = cloud.AzureChina
-	default:
-		return nil, nil, fmt.Errorf("unknown environment specified: %q", env)
-	}
-
-	// Maps the auth related environment variables used in the provider to what azidentity honors
-	if v, ok := os.LookupEnv("ARM_TENANT_ID"); ok {
-		// #nosec G104
-		os.Setenv("AZURE_TENANT_ID", v)
-	}
-	if v, ok := os.LookupEnv("ARM_CLIENT_ID"); ok {
-		// #nosec G104
-		os.Setenv("AZURE_CLIENT_ID", v)
-	}
-	if v, ok := os.LookupEnv("ARM_CLIENT_SECRET"); ok {
-		// #nosec G104
-		os.Setenv("AZURE_CLIENT_SECRET", v)
-	}
-	if v, ok := os.LookupEnv("ARM_CLIENT_CERTIFICATE_PATH"); ok {
-		// #nosec G104
-		os.Setenv("AZURE_CLIENT_CERTIFICATE_PATH", v)
-	}
-
-	clientOpt := &arm.ClientOptions{
-		ClientOptions: policy.ClientOptions{
-			Cloud: cloudCfg,
-			Telemetry: policy.TelemetryOptions{
-				ApplicationID: "aztfexport",
-				Disabled:      false,
-			},
-			Logging: policy.LogOptions{
-				IncludeBody: true,
-			},
-		},
-	}
-
-	tenantId := os.Getenv("ARM_TENANT_ID")
-	var (
-		cred azcore.TokenCredential
-		err  error
-	)
-	switch {
-	case fset.flagUseEnvironmentCred:
-		cred, err = azidentity.NewEnvironmentCredential(&azidentity.EnvironmentCredentialOptions{
-			ClientOptions: clientOpt.ClientOptions,
-		})
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to new Environment credential: %v", err)
-		}
-		return cred, clientOpt, nil
-	case fset.flagUseManagedIdentityCred:
-		cred, err = azidentity.NewManagedIdentityCredential(&azidentity.ManagedIdentityCredentialOptions{
-			ClientOptions: clientOpt.ClientOptions,
-		})
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to new Managed Identity credential: %v", err)
-		}
-		return cred, clientOpt, nil
-	case fset.flagUseAzureCLICred:
-		cred, err = azidentity.NewAzureCLICredential(&azidentity.AzureCLICredentialOptions{
-			TenantID: tenantId,
-		})
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to new Azure CLI credential: %v", err)
-		}
-		return cred, clientOpt, nil
-	case fset.flagUseOIDCCred:
-		cred, err = NewOidcCredential(&OidcCredentialOptions{
-			ClientOptions: clientOpt.ClientOptions,
-			TenantID:      tenantId,
-			ClientID:      os.Getenv("ARM_CLIENT_ID"),
-			RequestToken:  fset.flagOIDCRequestToken,
-			RequestUrl:    fset.flagOIDCRequestURL,
-			Token:         fset.flagOIDCToken,
-			TokenFilePath: fset.flagOIDCTokenFilePath,
-		})
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to new OIDC credential: %v", err)
-		}
-		return cred, clientOpt, nil
-	default:
-		opt := &azidentity.DefaultAzureCredentialOptions{
-			ClientOptions: clientOpt.ClientOptions,
-			TenantID:      tenantId,
-		}
-		cred, err := azidentity.NewDefaultAzureCredential(opt)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to new Default credential: %v", err)
-		}
-		return cred, clientOpt, nil
-	}
 }
 
 func subscriptionIdFromCLI() (string, error) {
