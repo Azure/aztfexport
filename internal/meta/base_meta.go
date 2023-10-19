@@ -581,15 +581,14 @@ func (meta *baseMeta) buildTerraformConfig(backendType string) string {
 func (meta *baseMeta) buildProviderConfig() string {
 	f := hclwrite.NewEmptyFile()
 
-	var body *hclwrite.Body
 	if meta.useAzAPI() {
-		body = f.Body().AppendNewBlock("provider", []string{"azapi"}).Body()
+		f.Body().AppendNewBlock("provider", []string{"azapi"}).Body()
 	} else {
-		body = f.Body().AppendNewBlock("provider", []string{"azurerm"}).Body()
-	}
-	body.AppendNewBlock("features", nil)
-	for k, v := range meta.providerConfig {
-		body.SetAttributeValue(k, v)
+		body := f.Body().AppendNewBlock("provider", []string{"azurerm"}).Body()
+		body.AppendNewBlock("features", nil)
+		for k, v := range meta.providerConfig {
+			body.SetAttributeValue(k, v)
+		}
 	}
 	return string(f.Bytes())
 }
