@@ -84,6 +84,7 @@ type baseMeta struct {
 	resourceClient    *armresources.Client
 	providerVersion   string
 	devProvider       bool
+	providerName      string
 	backendType       string
 	backendConfig     []string
 	providerConfig    map[string]cty.Value
@@ -204,6 +205,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		backendType:       cfg.BackendType,
 		backendConfig:     cfg.BackendConfig,
 		providerConfig:    cfg.ProviderConfig,
+		providerName:      cfg.ProviderName,
 		fullConfig:        cfg.FullConfig,
 		parallelism:       cfg.Parallelism,
 		hclOnly:           cfg.HCLOnly,
@@ -257,6 +259,7 @@ func (meta *baseMeta) CleanTFState(ctx context.Context, addr string) {
 func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) error {
 	meta.tc.Trace(telemetry.Info, "ParallelImport Enter")
 	defer meta.tc.Trace(telemetry.Info, "ParallelImport Leave")
+
 	itemsCh := make(chan *ImportItem, len(items))
 	for _, item := range items {
 		itemsCh <- item
@@ -512,9 +515,24 @@ func (meta baseMeta) generateCfg(ctx context.Context, l ImportList, cfgTrans ...
 	return meta.generateConfig(cfginfos)
 }
 
+func (meta *baseMeta) useAzAPI() bool {
+	return meta.providerName == "azapi"
+}
+
 func (meta *baseMeta) buildTerraformConfigForImportDir() string {
 	if meta.devProvider {
 		return "terraform {}"
+	}
+
+	if meta.useAzAPI() {
+		return `terraform {
+  required_providers {
+	azapi = {
+      source = "azure/azapi"
+	}
+  }
+}
+`
 	}
 
 	return fmt.Sprintf(`terraform {
@@ -536,6 +554,18 @@ func (meta *baseMeta) buildTerraformConfig(backendType string) string {
 `, backendType)
 	}
 
+	if meta.useAzAPI() {
+		return fmt.Sprintf(`terraform {
+  backend %q {}
+  required_providers {
+	azapi = {
+      source = "azure/azapi"
+	}
+  }
+}
+`, backendType)
+	}
+
 	return fmt.Sprintf(`terraform {
   backend %q {}
   required_providers {
@@ -550,10 +580,15 @@ func (meta *baseMeta) buildTerraformConfig(backendType string) string {
 
 func (meta *baseMeta) buildProviderConfig() string {
 	f := hclwrite.NewEmptyFile()
-	body := f.Body().AppendNewBlock("provider", []string{"azurerm"}).Body()
-	body.AppendNewBlock("features", nil)
-	for k, v := range meta.providerConfig {
-		body.SetAttributeValue(k, v)
+
+	if meta.useAzAPI() {
+		f.Body().AppendNewBlock("provider", []string{"azapi"}).Body()
+	} else {
+		body := f.Body().AppendNewBlock("provider", []string{"azurerm"}).Body()
+		body.AppendNewBlock("features", nil)
+		for k, v := range meta.providerConfig {
+			body.SetAttributeValue(k, v)
+		}
 	}
 	return string(f.Bytes())
 }

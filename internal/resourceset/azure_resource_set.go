@@ -26,7 +26,7 @@ type PesudoResourceInfo struct {
 	TFId   string
 }
 
-func (rset AzureResourceSet) ToTFResources(parallelism int, cred azcore.TokenCredential, clientOpt arm.ClientOptions) []TFResource {
+func (rset AzureResourceSet) ToTFAzureRMResources(parallelism int, cred azcore.TokenCredential, clientOpt arm.ClientOptions) []TFResource {
 	tfresources := []TFResource{}
 
 	wp := workerpool.NewWorkPool(parallelism)
@@ -99,4 +99,15 @@ func (rset AzureResourceSet) ToTFResources(parallelism int, cred azcore.TokenCre
 	})
 
 	return tfresources
+}
+
+func (rset AzureResourceSet) ToTFAzAPIResources() (result []TFResource) {
+	for _, res := range rset.Resources {
+		result = append(result, TFResource{
+			AzureId: res.Id,
+			TFId:    res.Id.String(),
+			TFType:  "azapi_resource",
+		})
+	}
+	return
 }

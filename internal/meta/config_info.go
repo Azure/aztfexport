@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
+	"github.com/magodo/armid"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -141,9 +142,9 @@ func (cfgs ConfigInfos) addReferenceDependency() error {
 	// TF resource id to Azure resource ids.
 	// Typically, one TF resource id maps to one Azure resource id. However, there are cases that one one TF resource id maps to multiple Azure resource ids.
 	// E.g. A parent and child resources have the same TF id. Or the association resource's TF id is the same as the master resource's.
-	m := map[string][]string{}
+	m := map[string][]armid.ResourceId{}
 	for _, cfg := range cfgs {
-		m[cfg.TFResourceId] = append(m[cfg.TFResourceId], cfg.AzureResourceID.String())
+		m[cfg.TFResourceId] = append(m[cfg.TFResourceId], cfg.AzureResourceID)
 	}
 
 	for i, cfg := range cfgs {
@@ -170,10 +171,14 @@ func (cfgs ConfigInfos) addReferenceDependency() error {
 
 			var dependingResourceIdsWithoutSelf []string
 			for _, id := range dependingResourceIds[:] {
-				if id == cfg.AzureResourceID.String() {
+				if id.String() == cfg.AzureResourceID.String() {
 					continue
 				}
-				dependingResourceIdsWithoutSelf = append(dependingResourceIdsWithoutSelf, id)
+				// if cfg is parent of `id` resource, we should skip, or it will cause circular dependency, so skip parent depends on sub resources
+				if cfg.AzureResourceID.Equal(id.Parent()) {
+					continue
+				}
+				dependingResourceIdsWithoutSelf = append(dependingResourceIdsWithoutSelf, id.String())
 			}
 			if len(dependingResourceIdsWithoutSelf) != 0 {
 				cfg.DependsOn = append(cfg.DependsOn, Dependency{Candidates: dependingResourceIdsWithoutSelf})

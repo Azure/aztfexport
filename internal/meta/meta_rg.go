@@ -45,17 +45,24 @@ func (meta *MetaResourceGroup) ListResource(ctx context.Context) (ImportList, er
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("[DEBUG] Populate resource set")
-	if err := rset.PopulateResource(); err != nil {
-		return nil, fmt.Errorf("tweaking single resources in the azure resource set: %v", err)
-	}
-	log.Printf("[DEBUG] Reduce resource set")
-	if err := rset.ReduceResource(); err != nil {
-		return nil, fmt.Errorf("tweaking across resources in the azure resource set: %v", err)
-	}
 
-	log.Printf("[DEBUG] Azure Resource set map to TF resource set")
-	rl := rset.ToTFResources(meta.parallelism, meta.azureSDKCred, meta.azureSDKClientOpt)
+	var rl []resourceset.TFResource
+	if meta.useAzAPI() {
+		rl = rset.ToTFAzAPIResources()
+	} else {
+
+		log.Printf("[DEBUG] Populate resource set")
+		if err := rset.PopulateResource(); err != nil {
+			return nil, fmt.Errorf("tweaking single resources in the azure resource set: %v", err)
+		}
+		log.Printf("[DEBUG] Reduce resource set")
+		if err := rset.ReduceResource(); err != nil {
+			return nil, fmt.Errorf("tweaking across resources in the azure resource set: %v", err)
+		}
+
+		log.Printf("[DEBUG] Azure Resource set map to TF resource set")
+		rl = rset.ToTFAzureRMResources(meta.parallelism, meta.azureSDKCred, meta.azureSDKClientOpt)
+	}
 
 	var l ImportList
 	for i, res := range rl {
