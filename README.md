@@ -7,7 +7,9 @@ A tool to bring your existing Azure resources under the management of Terraform.
 
 ## Goal
 
-Azure Export for Terraform exports resources that are supported by the [Terraform AzureRM provider](https://github.com/hashicorp/terraform-provider-azurerm) into Terraform state and generate the corresponding Terraform configuration. Both the Terraform state and configuration are expected to be consistent with the resources' remote state, i.e., `terraform plan` shows no diff. The user then is able to use Terraform to manage these resources.
+Azure Export for Terraform exports supported resources into Terraform state and generate the corresponding Terraform configuration. Both the Terraform state and configuration are expected to be consistent with the resources' remote state, i.e., `terraform plan` shows no diff. The user then is able to use Terraform to manage these resources.
+
+It supports both the [Terraform AzureRM provider](https://github.com/hashicorp/terraform-provider-azurerm) and the [Terraform AzAPI provider](https://github.com/Azure/terraform-provider-azapi).
 
 ## Non Goal
 

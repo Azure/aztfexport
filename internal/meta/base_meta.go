@@ -189,7 +189,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		tc = telemetry.NewNullClient()
 	}
 
-	if !cfg.DevProvider && cfg.ProviderVersion == "" {
+	if !cfg.DevProvider && cfg.ProviderVersion == "" && cfg.ProviderName == "azurerm" {
 		cfg.ProviderVersion = azurerm.ProviderSchemaInfo.Version
 	}
 
@@ -519,63 +519,32 @@ func (meta *baseMeta) useAzAPI() bool {
 	return meta.providerName == "azapi"
 }
 
-func (meta *baseMeta) buildTerraformConfigForImportDir() string {
-	if meta.devProvider {
-		return "terraform {}"
-	}
-
-	if meta.useAzAPI() {
-		return `terraform {
-  required_providers {
-	azapi = {
-      source = "azure/azapi"
-	}
-  }
-}
-`
-	}
-
-	return fmt.Sprintf(`terraform {
-  required_providers {
-    azurerm = {
-      source = "hashicorp/azurerm"
-      version = "%s"
-    }
-  }
-}
-`, meta.providerVersion)
-}
-
 func (meta *baseMeta) buildTerraformConfig(backendType string) string {
-	if meta.devProvider {
-		return fmt.Sprintf(`terraform {
-  backend %q {}
-}
-`, backendType)
+	backendLine := ""
+	if backendType != "" {
+		backendLine = "\n  backend \"" + backendType + "\" {}\n"
 	}
 
+	providerName := meta.providerName
+
+	providerSource := "hashicorp/azurerm"
 	if meta.useAzAPI() {
-		return fmt.Sprintf(`terraform {
-  backend %q {}
-  required_providers {
-	azapi = {
-      source = "azure/azapi"
-	}
-  }
-}
-`, backendType)
+		providerSource = "Azure/azapi"
 	}
 
-	return fmt.Sprintf(`terraform {
-  backend %q {}
+	providerVersionLine := ""
+	if meta.providerVersion != "" {
+		providerVersionLine = "\n      version = \"" + meta.providerVersion + "\"\n"
+	}
+
+	return fmt.Sprintf(`terraform {%s
   required_providers {
-    azurerm = {
-      source = "hashicorp/azurerm"
-      version = "%s"
+    %s = {
+      source = %q%s
     }
   }
 }
-`, backendType, meta.providerVersion)
+`, backendLine, providerName, providerSource, providerVersionLine)
 }
 
 func (meta *baseMeta) buildProviderConfig() string {
@@ -785,7 +754,7 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 			}
 			terraformFile := filepath.Join(meta.importBaseDirs[i], "terraform.tf")
 			// #nosec G306
-			if err := os.WriteFile(terraformFile, []byte(meta.buildTerraformConfigForImportDir()), 0644); err != nil {
+			if err := os.WriteFile(terraformFile, []byte(meta.buildTerraformConfig("")), 0644); err != nil {
 				return nil, fmt.Errorf("error creating terraform config: %w", err)
 			}
 			if meta.devProvider {
