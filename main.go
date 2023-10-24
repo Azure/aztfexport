@@ -106,7 +106,7 @@ func main() {
 	commonFlags := []cli.Flag{
 		&cli.StringFlag{
 			Name: "env",
-			// Honor the "ARM_ENVIRONMENT" as is used by the AzureRM provider, for easier use.
+			// Honor the "ARM_ENVIRONMENT" as is used by the provider, for easier use.
 			EnvVars:     []string{"AZTFEXPORT_ENV", "ARM_ENVIRONMENT"},
 			Usage:       `The cloud environment, can be one of "public", "usgovernment" and "china"`,
 			Destination: &flagset.flagEnv,
@@ -114,7 +114,7 @@ func main() {
 		},
 		&cli.StringFlag{
 			Name: "subscription-id",
-			// Honor the "ARM_SUBSCRIPTION_ID" as is used by the AzureRM provider, for easier use.
+			// Honor the "ARM_SUBSCRIPTION_ID" as is used by the provider, for easier use.
 			EnvVars:     []string{"AZTFEXPORT_SUBSCRIPTION_ID", "ARM_SUBSCRIPTION_ID"},
 			Aliases:     []string{"s"},
 			Usage:       "The subscription id",
@@ -147,19 +147,20 @@ func main() {
 		&cli.BoolFlag{
 			Name:        "dev-provider",
 			EnvVars:     []string{"AZTFEXPORT_DEV_PROVIDER"},
-			Usage:       fmt.Sprintf("Use the local development AzureRM provider, instead of the pinned provider in v%s", azurerm.ProviderSchemaInfo.Version),
+			Usage:       fmt.Sprintf("Use the local development provider, instead of the version pinned provider"),
 			Destination: &flagset.flagDevProvider,
 		},
 		&cli.StringFlag{
 			Name:        "provider-version",
 			EnvVars:     []string{"AZTFEXPORT_PROVIDER_VERSION"},
-			Usage:       fmt.Sprintf("The azurerm provider version to use for importing (default: existing version constraints or %s)", azurerm.ProviderSchemaInfo.Version),
+			Usage:       fmt.Sprintf("The provider version to use for importing. Defaults to %q for azurerm, defaults to the latest version for azapi", azurerm.ProviderSchemaInfo.Version),
 			Destination: &flagset.flagProviderVersion,
 		},
 		&cli.StringFlag{
 			Name:        "provider-name",
 			EnvVars:     []string{"AZTFEXPORT_PROVIDER_NAME"},
-			Usage:       fmt.Sprintf("The provider name to use for importing (default: azurerm, possible values are auzrerm and azapi)"),
+			Usage:       fmt.Sprintf(`The provider name to use for importing. Possible values are "azurerm" and "azapi". Defaults to "azurerm"`),
+			Value:       "azurerm",
 			Destination: &flagset.flagProviderName,
 		},
 		&cli.StringFlag{
