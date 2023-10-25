@@ -8,13 +8,14 @@ import (
 
 	"github.com/Azure/aztfexport/internal/ui/aztfexportclient"
 	"github.com/Azure/aztfexport/internal/ui/common"
+	"github.com/magodo/tfadd/providers/azapi"
 	"github.com/magodo/tfadd/providers/azurerm"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-func NewImportItemDelegate() list.ItemDelegate {
+func NewImportItemDelegate(providerName string) list.ItemDelegate {
 	d := list.NewDefaultDelegate()
 	d.UpdateFunc = func(msg tea.Msg, m *list.Model) (ret tea.Cmd) {
 		sel := m.SelectedItem()
@@ -73,7 +74,7 @@ func NewImportItemDelegate() list.ItemDelegate {
 				selItem.textinput.Blur()
 
 				// Validate the input and update the selItem.v
-				addr, err := parseInput(selItem.textinput.Value())
+				addr, err := parseInput(selItem.textinput.Value(), providerName)
 				if err != nil {
 					cmd := m.NewStatusMessage(common.ErrorMsgStyle.Render(err.Error()))
 					cmds = append(cmds, cmd)
@@ -147,7 +148,7 @@ func setListKeyMapEnabled(m *list.Model, enabled bool) {
 	}
 }
 
-func parseInput(input string) (*tfaddr.TFAddr, error) {
+func parseInput(input string, providerName string) (*tfaddr.TFAddr, error) {
 	v := strings.TrimSpace(input)
 	if v == "" {
 		return &tfaddr.TFAddr{}, nil
@@ -158,7 +159,14 @@ func parseInput(input string) (*tfaddr.TFAddr, error) {
 		return nil, err
 	}
 
-	if _, ok := azurerm.ProviderSchemaInfo.ResourceSchemas[addr.Type]; !ok {
+	var ok bool
+	switch providerName {
+	case "azurerm":
+		_, ok = azurerm.ProviderSchemaInfo.ResourceSchemas[addr.Type]
+	case "azapi":
+		_, ok = azapi.ProviderSchemaInfo.ResourceSchemas[addr.Type]
+	}
+	if !ok {
 		return nil, fmt.Errorf("Invalid resource type %q", addr.Type)
 	}
 

@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/magodo/armid"
 	"github.com/magodo/azlist/azlist"
+	"github.com/magodo/tfadd/providers/azapi"
 	"github.com/magodo/tfadd/providers/azurerm"
 
 	"github.com/Azure/aztfexport/internal"
@@ -153,7 +154,7 @@ func main() {
 		&cli.StringFlag{
 			Name:        "provider-version",
 			EnvVars:     []string{"AZTFEXPORT_PROVIDER_VERSION"},
-			Usage:       fmt.Sprintf("The provider version to use for importing. Defaults to %q for azurerm, defaults to the latest version for azapi", azurerm.ProviderSchemaInfo.Version),
+			Usage:       fmt.Sprintf("The provider version to use for importing. Defaults to %q for azurerm, %s for azapi", azurerm.ProviderSchemaInfo.Version, azapi.ProviderSchemaInfo.Version),
 			Destination: &flagset.flagProviderVersion,
 		},
 		&cli.StringFlag{

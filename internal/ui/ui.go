@@ -89,7 +89,7 @@ func newModel(ctx context.Context, cfg config.InteractiveModeConfig) (*model, er
 	s := spinner.NewModel()
 	s.Spinner = common.Spinner
 
-	var c meta.Meta = internalmeta.NewGroupMetaDummy(cfg.ResourceGroupName)
+	var c meta.Meta = internalmeta.NewGroupMetaDummy(cfg.ResourceGroupName, cfg.ProviderName)
 	if !cfg.MockMeta {
 		var err error
 		c, err = meta.NewMeta(cfg.Config)

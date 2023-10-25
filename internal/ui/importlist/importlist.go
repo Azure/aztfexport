@@ -3,11 +3,12 @@ package importlist
 import (
 	"context"
 	"fmt"
-	"github.com/Azure/aztfexport/pkg/meta"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/Azure/aztfexport/pkg/meta"
 
 	"github.com/Azure/aztfexport/internal/tfaddr"
 	"github.com/Azure/aztfexport/internal/ui/aztfexportclient"
@@ -17,7 +18,9 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/magodo/textinput"
+	"github.com/magodo/tfadd/providers/azapi"
 	"github.com/magodo/tfadd/providers/azurerm"
+	"github.com/magodo/tfadd/schema"
 )
 
 type Model struct {
@@ -30,8 +33,15 @@ type Model struct {
 
 func NewModel(ctx context.Context, c meta.Meta, l meta.ImportList, idx int) Model {
 	// Build candidate words for the textinput
-	candidates := make([]string, 0, len(azurerm.ProviderSchemaInfo.ResourceSchemas))
-	for rt := range azurerm.ProviderSchemaInfo.ResourceSchemas {
+	var resourceSchemas map[string]*schema.Schema
+	switch c.ProviderName() {
+	case "azapi":
+		resourceSchemas = azapi.ProviderSchemaInfo.ResourceSchemas
+	case "azurerm":
+		resourceSchemas = azurerm.ProviderSchemaInfo.ResourceSchemas
+	}
+	candidates := make([]string, 0, len(resourceSchemas))
+	for rt := range resourceSchemas {
 		candidates = append(candidates, rt)
 	}
 	sort.Strings(candidates)
@@ -52,7 +62,7 @@ func NewModel(ctx context.Context, c meta.Meta, l meta.ImportList, idx int) Mode
 		})
 	}
 
-	lst := list.NewModel(items, NewImportItemDelegate(), 0, 0)
+	lst := list.NewModel(items, NewImportItemDelegate(c.ProviderName()), 0, 0)
 	lst.Title = " " + c.ScopeName() + " "
 	lst.Styles.Title = common.SubtitleStyle
 	lst.StatusMessageLifetime = 3 * time.Second
