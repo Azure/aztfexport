@@ -34,6 +34,7 @@ import (
 	tfclient "github.com/magodo/terraform-client-go/tfclient"
 	"github.com/magodo/terraform-client-go/tfclient/configschema"
 	"github.com/magodo/terraform-client-go/tfclient/typ"
+	"github.com/magodo/tfadd/providers/azapi"
 	"github.com/magodo/tfadd/providers/azurerm"
 	"github.com/magodo/tfadd/tfadd"
 	"github.com/magodo/tfmerge/tfmerge"
@@ -48,6 +49,8 @@ const SkippedResourcesFileName = "aztfexportSkippedResources.txt"
 type TFConfigTransformer func(configs ConfigInfos) (ConfigInfos, error)
 
 type BaseMeta interface {
+	// ProviderName returns the target provider name, which is either azurerm or azapi.
+	ProviderName() string
 	// Init initializes the base meta, including initialize terraform, provider and soem runtime temporary resources.
 	Init(ctx context.Context) error
 	// DeInit deinitializes the base meta, including cleaning up runtime temporary resources.
@@ -189,8 +192,13 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		tc = telemetry.NewNullClient()
 	}
 
-	if !cfg.DevProvider && cfg.ProviderVersion == "" && cfg.ProviderName == "azurerm" {
-		cfg.ProviderVersion = azurerm.ProviderSchemaInfo.Version
+	if !cfg.DevProvider && cfg.ProviderVersion == "" {
+		switch cfg.ProviderName {
+		case "azurerm":
+			cfg.ProviderVersion = azurerm.ProviderSchemaInfo.Version
+		case "azapi":
+			cfg.ProviderVersion = azapi.ProviderSchemaInfo.Version
+		}
 	}
 
 	meta := &baseMeta{
@@ -218,6 +226,10 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	}
 
 	return meta, nil
+}
+
+func (meta baseMeta) ProviderName() string {
+	return meta.providerName
 }
 
 func (meta baseMeta) Workspace() string {
@@ -529,7 +541,7 @@ func (meta *baseMeta) buildTerraformConfig(backendType string) string {
 
 	providerSource := "hashicorp/azurerm"
 	if meta.useAzAPI() {
-		providerSource = "Azure/azapi"
+		providerSource = "azure/azapi"
 	}
 
 	providerVersionLine := ""
@@ -881,6 +893,11 @@ func (meta baseMeta) stateToConfig(ctx context.Context, list ImportList) (Config
 
 	importedList := list.Imported()
 
+	providerName := "registry.terraform.io/hashicorp/azurerm"
+	if meta.useAzAPI() {
+		providerName = "registry.terraform.io/azure/azapi"
+	}
+
 	if meta.tfclient != nil {
 		for _, item := range importedList {
 			schResp, diags := meta.tfclient.GetProviderSchema()
@@ -897,7 +914,7 @@ func (meta baseMeta) stateToConfig(ctx context.Context, list ImportList) (Config
 					Mode:         tfjson.ManagedResourceMode,
 					Address:      item.TFAddr.String(),
 					Type:         item.TFAddr.Type,
-					ProviderName: "registry.terraform.io/hashicorp/azurerm",
+					ProviderName: providerName,
 					Value:        item.State,
 				},
 				meta.fullConfig)

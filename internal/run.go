@@ -17,7 +17,7 @@ import (
 )
 
 func BatchImport(ctx context.Context, cfg config.NonInteractiveModeConfig) error {
-	var c meta.Meta = internalmeta.NewGroupMetaDummy(cfg.ResourceGroupName)
+	var c meta.Meta = internalmeta.NewGroupMetaDummy(cfg.ResourceGroupName, cfg.ProviderName)
 	if !cfg.MockMeta {
 		var err error
 		c, err = meta.NewMeta(cfg.Config)

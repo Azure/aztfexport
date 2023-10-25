@@ -6,11 +6,16 @@ import (
 )
 
 type MetaGroupDummy struct {
-	rg string
+	rg           string
+	providerName string
 }
 
-func NewGroupMetaDummy(rg string) MetaGroupDummy {
-	return MetaGroupDummy{rg: rg}
+func NewGroupMetaDummy(rg string, providerName string) MetaGroupDummy {
+	return MetaGroupDummy{rg: rg, providerName: providerName}
+}
+
+func (m MetaGroupDummy) ProviderName() string {
+	return m.providerName
 }
 
 func (m MetaGroupDummy) Init(_ context.Context) error {

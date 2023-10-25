@@ -172,7 +172,7 @@ The output directory is not empty. Please choose one of actions below:
 			if err != nil {
 				return fmt.Errorf("loading terraform config: %v", err)
 			}
-			if azurecfg, ok := module.RequiredProviders["azurerm"]; ok {
+			if azurecfg, ok := module.RequiredProviders[fset.flagProviderName]; ok {
 				fset.flagProviderVersion = strings.Join(azurecfg.VersionConstraints, " ")
 			}
 		}
