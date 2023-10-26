@@ -724,7 +724,7 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 		return err
 	}
 
-	if module.ProviderConfigs["azurerm"] == nil {
+	if module.ProviderConfigs[meta.providerName] == nil {
 		log.Printf("[INFO] Output directory doesn't contain provider setting, create one then")
 		cfgFile := filepath.Join(meta.outdir, meta.outputFileNames.ProviderFileName)
 		// #nosec G306
