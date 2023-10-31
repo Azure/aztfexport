@@ -251,7 +251,7 @@ func buildAzureSDKCredAndClientOpt(fset FlagSet) (azcore.TokenCredential, *arm.C
 		ClientOptions: policy.ClientOptions{
 			Cloud: cloudCfg,
 			Telemetry: policy.TelemetryOptions{
-				ApplicationID: "aztfexport",
+				ApplicationID: fmt.Sprintf("aztfexport(%s)", fset.flagProviderName),
 				Disabled:      false,
 			},
 			Logging: policy.LogOptions{
