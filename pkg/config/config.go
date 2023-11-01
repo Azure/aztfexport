@@ -89,4 +89,10 @@ type Config struct {
 	TFResourceName string
 	// TFResourceName specifies the TF resource type (if empty, will try to deduce the type), this only applies to resource mode.
 	TFResourceType string
+
+	// IncludeRoleAssignment specifies whether to include the role assginments assigned to the exported resources, this only applies to rg and query mode
+	IncludeRoleAssignment bool
+
+	// IncludeResourceGroup specifies whether to include the resource groups that the exported resources belong to, this only applies to query mode
+	IncludeResourceGroup bool
 }

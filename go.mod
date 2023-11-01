@@ -6,7 +6,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.6.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.3.0
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/keyvault/armkeyvault v1.0.0
-	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources v1.0.0
+	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources v1.1.1
 	github.com/charmbracelet/bubbles v0.14.0
 	github.com/charmbracelet/bubbletea v0.22.1
 	github.com/charmbracelet/lipgloss v0.5.0
@@ -20,7 +20,7 @@ require (
 	github.com/hashicorp/terraform-json v0.16.0
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/magodo/armid v0.0.0-20230511151020-27880e5961c3
-	github.com/magodo/azlist v0.0.0-20230518102903-58631213ca2c
+	github.com/magodo/azlist v0.0.0-20231101012443-e30f2da262c1
 	github.com/magodo/aztft v0.3.1-0.20231024014716-76ffc159f6c8
 	github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6
 	github.com/magodo/terraform-client-go v0.0.0-20230323074119-02ceb732dd25

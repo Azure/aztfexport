@@ -8,15 +8,15 @@ import (
 	"github.com/Azure/aztfexport/internal/tfaddr"
 	"github.com/Azure/aztfexport/pkg/config"
 	"github.com/Azure/aztfexport/pkg/log"
-	"github.com/magodo/armid"
 	"github.com/magodo/azlist/azlist"
 )
 
 type MetaResourceGroup struct {
 	baseMeta
-	resourceGroup      string
-	resourceNamePrefix string
-	resourceNameSuffix string
+	resourceGroup         string
+	resourceNamePrefix    string
+	resourceNameSuffix    string
+	includeRoleAssignment bool
 }
 
 func NewMetaResourceGroup(cfg config.Config) (*MetaResourceGroup, error) {
@@ -27,8 +27,9 @@ func NewMetaResourceGroup(cfg config.Config) (*MetaResourceGroup, error) {
 	}
 
 	meta := &MetaResourceGroup{
-		baseMeta:      *baseMeta,
-		resourceGroup: cfg.ResourceGroupName,
+		baseMeta:              *baseMeta,
+		resourceGroup:         cfg.ResourceGroupName,
+		includeRoleAssignment: cfg.IncludeRoleAssignment,
 	}
 	meta.resourceNamePrefix, meta.resourceNameSuffix = resourceNamePattern(cfg.ResourceNamePattern)
 
@@ -91,11 +92,13 @@ func (meta *MetaResourceGroup) ListResource(ctx context.Context) (ImportList, er
 func (meta MetaResourceGroup) queryResourceSet(ctx context.Context, rg string) (*resourceset.AzureResourceSet, error) {
 	result, err := azlist.List(ctx, fmt.Sprintf("resourceGroup =~ %q", rg),
 		azlist.Option{
-			SubscriptionId: meta.subscriptionId,
-			Cred:           meta.azureSDKCred,
-			ClientOpt:      meta.azureSDKClientOpt,
-			Parallelism:    meta.parallelism,
-			Recursive:      true,
+			SubscriptionId:         meta.subscriptionId,
+			Cred:                   meta.azureSDKCred,
+			ClientOpt:              meta.azureSDKClientOpt,
+			Parallelism:            meta.parallelism,
+			Recursive:              true,
+			IncludeResourceGroup:   true,
+			ExtensionResourceTypes: extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
 		})
 	if err != nil {
 		return nil, fmt.Errorf("listing resource set: %v", err)
@@ -109,12 +112,6 @@ func (meta MetaResourceGroup) queryResourceSet(ctx context.Context, rg string) (
 		}
 		rl = append(rl, res)
 	}
-
-	// Especially, adding the resoruce group itself to the resource set
-	rl = append(rl, resourceset.AzureResource{Id: &armid.ResourceGroup{
-		SubscriptionId: meta.subscriptionId,
-		Name:           meta.resourceGroup,
-	}})
 
 	return &resourceset.AzureResourceSet{Resources: rl}, nil
 }

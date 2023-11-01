@@ -13,10 +13,12 @@ import (
 
 type MetaQuery struct {
 	baseMeta
-	argPredicate       string
-	recursiveQuery     bool
-	resourceNamePrefix string
-	resourceNameSuffix string
+	argPredicate          string
+	recursiveQuery        bool
+	resourceNamePrefix    string
+	resourceNameSuffix    string
+	includeRoleAssignment bool
+	includeResourceGroup  bool
 }
 
 func NewMetaQuery(cfg config.Config) (*MetaQuery, error) {
@@ -27,9 +29,11 @@ func NewMetaQuery(cfg config.Config) (*MetaQuery, error) {
 	}
 
 	meta := &MetaQuery{
-		baseMeta:       *baseMeta,
-		argPredicate:   cfg.ARGPredicate,
-		recursiveQuery: cfg.RecursiveQuery,
+		baseMeta:              *baseMeta,
+		argPredicate:          cfg.ARGPredicate,
+		recursiveQuery:        cfg.RecursiveQuery,
+		includeRoleAssignment: cfg.IncludeRoleAssignment,
+		includeResourceGroup:  cfg.IncludeResourceGroup,
 	}
 	meta.resourceNamePrefix, meta.resourceNameSuffix = resourceNamePattern(cfg.ResourceNamePattern)
 
@@ -97,11 +101,13 @@ func (meta *MetaQuery) ListResource(ctx context.Context) (ImportList, error) {
 func (meta MetaQuery) queryResourceSet(ctx context.Context, predicate string, recursive bool) (*resourceset.AzureResourceSet, error) {
 	result, err := azlist.List(ctx, predicate,
 		azlist.Option{
-			SubscriptionId: meta.subscriptionId,
-			Cred:           meta.azureSDKCred,
-			ClientOpt:      meta.azureSDKClientOpt,
-			Parallelism:    meta.parallelism,
-			Recursive:      recursive,
+			SubscriptionId:         meta.subscriptionId,
+			Cred:                   meta.azureSDKCred,
+			ClientOpt:              meta.azureSDKClientOpt,
+			Parallelism:            meta.parallelism,
+			Recursive:              recursive,
+			ExtensionResourceTypes: extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
+			IncludeResourceGroup:   meta.includeResourceGroup,
 		})
 	if err != nil {
 		return nil, fmt.Errorf("listing resource set: %v", err)
