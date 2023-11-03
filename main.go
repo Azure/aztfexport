@@ -342,6 +342,12 @@ func main() {
 			Value:       "res-",
 			Destination: &flagset.flagPattern,
 		},
+		&cli.BoolFlag{
+			Name:        "include-role-assignment",
+			EnvVars:     []string{"AZTFEXPORT_INCLUDE_ROLE_ASSIGNMENT"},
+			Usage:       `Whether to include role assignemnts assigned to the resources exported`,
+			Destination: &flagset.flagIncludeRoleAssignment,
+		},
 	}, commonFlags...)
 
 	queryFlags := append([]cli.Flag{
@@ -351,6 +357,12 @@ func main() {
 			Aliases:     []string{"r"},
 			Usage:       "Recursively lists child resources of the resulting query resources",
 			Destination: &flagset.flagRecursive,
+		},
+		&cli.BoolFlag{
+			Name:        "include-resource-group",
+			EnvVars:     []string{"AZTFEXPORT_INCLUDE_RESOURCE_GROUP"},
+			Usage:       "Include the resource groups that the exported resources belong to",
+			Destination: &flagset.flagIncludeResourceGroup,
 		},
 	}, resourceGroupFlags...)
 
@@ -481,10 +493,11 @@ func main() {
 
 					// Initialize the config
 					cfg := config.Config{
-						CommonConfig:        commonConfig,
-						ResourceGroupName:   rg,
-						ResourceNamePattern: flagset.flagPattern,
-						RecursiveQuery:      true,
+						CommonConfig:          commonConfig,
+						ResourceGroupName:     rg,
+						ResourceNamePattern:   flagset.flagPattern,
+						RecursiveQuery:        true,
+						IncludeRoleAssignment: flagset.flagIncludeRoleAssignment,
 					}
 
 					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResourceGroup))
@@ -513,10 +526,12 @@ func main() {
 
 					// Initialize the config
 					cfg := config.Config{
-						CommonConfig:        commonConfig,
-						ARGPredicate:        predicate,
-						ResourceNamePattern: flagset.flagPattern,
-						RecursiveQuery:      flagset.flagRecursive,
+						CommonConfig:          commonConfig,
+						ARGPredicate:          predicate,
+						ResourceNamePattern:   flagset.flagPattern,
+						RecursiveQuery:        flagset.flagRecursive,
+						IncludeRoleAssignment: flagset.flagIncludeRoleAssignment,
+						IncludeResourceGroup:  flagset.flagIncludeResourceGroup,
 					}
 
 					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeQuery))

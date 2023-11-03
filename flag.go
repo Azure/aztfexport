@@ -66,14 +66,19 @@ type FlagSet struct {
 	//
 	// rg:
 	// flagPattern
+	// flagIncludeRoleAssignment
 	//
 	// query:
 	// flagPattern
 	// flagRecursive
-	flagPattern   string
-	flagRecursive bool
-	flagResName   string
-	flagResType   string
+	// flagIncludeRoleAssignment
+	// flagIncludeResourceGroup
+	flagPattern               string
+	flagRecursive             bool
+	flagResName               string
+	flagResType               string
+	flagIncludeRoleAssignment bool
+	flagIncludeResourceGroup  bool
 }
 
 const (
@@ -179,12 +184,21 @@ func (flag FlagSet) DescribeCLI(mode string) string {
 		if flag.flagPattern != "" {
 			args = append(args, "--name-pattern="+flag.flagPattern)
 		}
+		if flag.flagIncludeRoleAssignment {
+			args = append(args, "--include-role-assignment=true")
+		}
 	case ModeQuery:
 		if flag.flagPattern != "" {
 			args = append(args, "--name-pattern="+flag.flagPattern)
 		}
 		if flag.flagRecursive {
 			args = append(args, "--recursive=true")
+		}
+		if flag.flagIncludeRoleAssignment {
+			args = append(args, "--include-role-assignment=true")
+		}
+		if flag.flagIncludeResourceGroup {
+			args = append(args, "--include-resource-group=true")
 		}
 	}
 	return "aztfexport " + strings.Join(args, " ")
