@@ -111,10 +111,10 @@ func (flag FlagSet) DescribeCLI(mode string) string {
 		args = append(args, "--append=true")
 	}
 	if flag.flagProviderVersion != "" {
-		args = append(args, `-provider-version="%s"`, flag.flagProviderVersion)
+		args = append(args, fmt.Sprintf(`-provider-version="%s"`, flag.flagProviderVersion))
 	}
 	if flag.flagProviderName != "" {
-		args = append(args, `-provider-name="%s"`, flag.flagProviderName)
+		args = append(args, fmt.Sprintf(`-provider-name="%s"`, flag.flagProviderName))
 	}
 	if flag.flagBackendType != "" {
 		args = append(args, "--backend-type="+flag.flagBackendType)
