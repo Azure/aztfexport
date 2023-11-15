@@ -580,11 +580,20 @@ func (meta *baseMeta) init_notf(ctx context.Context) error {
 		return fmt.Errorf("getting provider schema: %v", diags)
 	}
 
-	// Ensure "features" is always defined in the provider initConfig
-	initConfig, err := ctyjson.Unmarshal([]byte(`{"features": []}`), configschema.SchemaBlockImpliedType(schResp.Provider.Block))
-	if err != nil {
-		return fmt.Errorf("ctyjson unmarshal initial provider config")
+	var (
+		initConfig cty.Value
+		err        error
+	)
+	if meta.useAzAPI() {
+		initConfig, err = ctyjson.Unmarshal([]byte(`{}`), configschema.SchemaBlockImpliedType(schResp.Provider.Block))
+	} else {
+		// Ensure "features" is always defined in the provider initConfig
+		initConfig, err = ctyjson.Unmarshal([]byte(`{"features": []}`), configschema.SchemaBlockImpliedType(schResp.Provider.Block))
 	}
+	if err != nil {
+		return fmt.Errorf("ctyjson unmarshal initial provider config: %v", err)
+	}
+
 	providerConfig := initConfig.AsValueMap()
 
 	for k, v := range meta.providerConfig {
