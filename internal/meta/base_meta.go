@@ -580,16 +580,12 @@ func (meta *baseMeta) init_notf(ctx context.Context) error {
 		return fmt.Errorf("getting provider schema: %v", diags)
 	}
 
-	var (
-		initConfig cty.Value
-		err        error
-	)
-	if meta.useAzAPI() {
-		initConfig, err = ctyjson.Unmarshal([]byte(`{}`), configschema.SchemaBlockImpliedType(schResp.Provider.Block))
-	} else {
-		// Ensure "features" is always defined in the provider initConfig
-		initConfig, err = ctyjson.Unmarshal([]byte(`{"features": []}`), configschema.SchemaBlockImpliedType(schResp.Provider.Block))
+	providerCfg := "{}"
+	if !meta.useAzAPI() {
+		// Ensure "features" is always defined in the azurerm provider initConfig
+		providerCfg = `{"features": []}`
 	}
+	initConfig, err := ctyjson.Unmarshal([]byte(providerCfg), configschema.SchemaBlockImpliedType(schResp.Provider.Block))
 	if err != nil {
 		return fmt.Errorf("ctyjson unmarshal initial provider config: %v", err)
 	}
