@@ -104,6 +104,11 @@ stages:
               SessionTimeout: "60"
               MaxConcurrency: "50"
               MaxRetryAttempts: "5"
+          - task: ManifestGeneratorTask@0
+            displayName: 'SBOM Generation Task'
+            inputs:
+              BuildDropPath: '$(System.ArtifactsDirectory)/build'
+              artifactName: "$(OS)-$(ARCH)-SBOM"
           - task: PublishPipelineArtifact@1
             displayName: "Publish Binary"
             inputs:
