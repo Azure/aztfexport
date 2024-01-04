@@ -107,7 +107,7 @@ stages:
           - task: ManifestGeneratorTask@0
             displayName: 'SBOM Generation Task'
             inputs:
-              BuildDropPath: '$(System.ArtifactsDirectory)/build'
+              BuildDropPath: "$(system.defaultWorkingDirectory)/build"
               PackageName: 'aztfexport'
               PackageVersion: ${{ parameters.version }}
           - task: PublishPipelineArtifact@1
