@@ -108,7 +108,8 @@ stages:
             displayName: 'SBOM Generation Task'
             inputs:
               BuildDropPath: '$(System.ArtifactsDirectory)/build'
-              artifactName: "$(OS)-$(ARCH)-SBOM"
+              PackageName: 'aztfexport'
+              PackageVersion: ${{ parameters.version }}
           - task: PublishPipelineArtifact@1
             displayName: "Publish Binary"
             inputs:
