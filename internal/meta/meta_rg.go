@@ -8,6 +8,7 @@ import (
 	"github.com/Azure/aztfexport/internal/tfaddr"
 	"github.com/Azure/aztfexport/pkg/config"
 	"github.com/Azure/aztfexport/pkg/log"
+	"github.com/magodo/armid"
 	"github.com/magodo/azlist/azlist"
 )
 
@@ -97,7 +98,7 @@ func (meta MetaResourceGroup) queryResourceSet(ctx context.Context, rg string) (
 			ClientOpt:              meta.azureSDKClientOpt,
 			Parallelism:            meta.parallelism,
 			Recursive:              true,
-			IncludeResourceGroup:   true,
+			IncludeResourceGroup:   false,
 			ExtensionResourceTypes: extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
 		})
 	if err != nil {
@@ -112,6 +113,14 @@ func (meta MetaResourceGroup) queryResourceSet(ctx context.Context, rg string) (
 		}
 		rl = append(rl, res)
 	}
+
+	// Especially, adding the resoruce group itself to the resource set
+	rl = append(rl,
+		resourceset.AzureResource{Id: &armid.ResourceGroup{
+			SubscriptionId: meta.subscriptionId,
+			Name:           meta.resourceGroup,
+		}},
+	)
 
 	return &resourceset.AzureResourceSet{Resources: rl}, nil
 }
