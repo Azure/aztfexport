@@ -104,6 +104,12 @@ stages:
               SessionTimeout: "60"
               MaxConcurrency: "50"
               MaxRetryAttempts: "5"
+          - task: ManifestGeneratorTask@0
+            displayName: 'SBOM Generation Task'
+            inputs:
+              BuildDropPath: "$(system.defaultWorkingDirectory)/build"
+              PackageName: 'aztfexport'
+              PackageVersion: ${{ parameters.version }}
           - task: PublishPipelineArtifact@1
             displayName: "Publish Binary"
             inputs:
