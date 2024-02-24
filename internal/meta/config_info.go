@@ -113,6 +113,7 @@ func (cfgs ConfigInfos) AddDependency() error {
 func (cfgs ConfigInfos) addParentChildDependency() {
 	for i, cfg := range cfgs {
 		parentId := cfg.AzureResourceID.Parent()
+
 		// This resource is either a root scope or a root scoped resource
 		if parentId == nil {
 			// Root scope: ignore as it has no parent
@@ -120,6 +121,9 @@ func (cfgs ConfigInfos) addParentChildDependency() {
 				continue
 			}
 			// Root scoped resource: use its parent scope as its parent
+			parentId = cfg.AzureResourceID.ParentScope()
+		} else if parentId.Parent() == nil {
+			// The cfg reosurce is the RP 1st level resource, we regard its parent scope as its parent
 			parentId = cfg.AzureResourceID.ParentScope()
 		}
 
