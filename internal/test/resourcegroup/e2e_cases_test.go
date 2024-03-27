@@ -70,6 +70,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 				BackendType:          "local",
 				DevProvider:          true,
 				Parallelism:          10,
+				ProviderName:         "azurerm",
 			},
 			ResourceGroupName:   d.RandomRgName(),
 			ResourceNamePattern: "res-",
