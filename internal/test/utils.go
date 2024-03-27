@@ -79,7 +79,7 @@ func BuildCredAndClientOpt(t *testing.T) (azcore.TokenCredential, *arm.ClientOpt
 		ClientOptions: policy.ClientOptions{
 			Cloud: cloudCfg,
 			Telemetry: policy.TelemetryOptions{
-				ApplicationID: "aztfexport",
+				ApplicationID: "aztfexport(azurerm)",
 				Disabled:      false,
 			},
 			Logging: policy.LogOptions{
