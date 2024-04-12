@@ -63,6 +63,8 @@ type CommonConfig struct {
 	TFClient tfclient.Client
 	// TelemetryClient is a client to send telemetry
 	TelemetryClient telemetry.Client
+	// GenerateImportBlock controls whether the export process ends up with a import.tf file that contains the "import" blocks
+	GenerateImportBlock bool
 }
 
 type Config struct {

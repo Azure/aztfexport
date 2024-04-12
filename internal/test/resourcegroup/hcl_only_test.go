@@ -97,6 +97,7 @@ func runHCLOnly(t *testing.T, d test.Data, c cases.Case) {
 				DevProvider:          true,
 				Parallelism:          10,
 				HCLOnly:              true,
+				ProviderName:         "azurerm",
 			},
 			ResourceGroupName:   d.RandomRgName(),
 			ResourceNamePattern: "res-",

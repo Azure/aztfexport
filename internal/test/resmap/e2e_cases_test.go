@@ -80,6 +80,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 				BackendType:          "local",
 				DevProvider:          true,
 				Parallelism:          1,
+				ProviderName:         "azurerm",
 			},
 			MappingFile: mapFile,
 		},

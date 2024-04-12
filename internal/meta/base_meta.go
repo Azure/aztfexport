@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/hashicorp/go-version"
 	tfjson "github.com/hashicorp/terraform-json"
 
 	"github.com/Azure/aztfexport/pkg/config"
@@ -78,21 +77,22 @@ type BaseMeta interface {
 var _ BaseMeta = &baseMeta{}
 
 type baseMeta struct {
-	subscriptionId    string
-	azureSDKCred      azcore.TokenCredential
-	azureSDKClientOpt arm.ClientOptions
-	outdir            string
-	outputFileNames   config.OutputFileNames
-	tf                *tfexec.Terraform
-	resourceClient    *armresources.Client
-	providerVersion   string
-	devProvider       bool
-	providerName      string
-	backendType       string
-	backendConfig     []string
-	providerConfig    map[string]cty.Value
-	fullConfig        bool
-	parallelism       int
+	subscriptionId     string
+	azureSDKCred       azcore.TokenCredential
+	azureSDKClientOpt  arm.ClientOptions
+	outdir             string
+	outputFileNames    config.OutputFileNames
+	tf                 *tfexec.Terraform
+	resourceClient     *armresources.Client
+	providerVersion    string
+	devProvider        bool
+	providerName       string
+	backendType        string
+	backendConfig      []string
+	providerConfig     map[string]cty.Value
+	fullConfig         bool
+	parallelism        int
+	generateImportFile bool
 
 	hclOnly  bool
 	tfclient tfclient.Client
@@ -202,22 +202,23 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	}
 
 	meta := &baseMeta{
-		subscriptionId:    cfg.SubscriptionId,
-		azureSDKCred:      cfg.AzureSDKCredential,
-		azureSDKClientOpt: cfg.AzureSDKClientOption,
-		outdir:            cfg.OutputDir,
-		outputFileNames:   outputFileNames,
-		resourceClient:    resClient,
-		providerVersion:   cfg.ProviderVersion,
-		devProvider:       cfg.DevProvider,
-		backendType:       cfg.BackendType,
-		backendConfig:     cfg.BackendConfig,
-		providerConfig:    cfg.ProviderConfig,
-		providerName:      cfg.ProviderName,
-		fullConfig:        cfg.FullConfig,
-		parallelism:       cfg.Parallelism,
-		hclOnly:           cfg.HCLOnly,
-		tfclient:          cfg.TFClient,
+		subscriptionId:     cfg.SubscriptionId,
+		azureSDKCred:       cfg.AzureSDKCredential,
+		azureSDKClientOpt:  cfg.AzureSDKClientOption,
+		outdir:             cfg.OutputDir,
+		outputFileNames:    outputFileNames,
+		resourceClient:     resClient,
+		providerVersion:    cfg.ProviderVersion,
+		devProvider:        cfg.DevProvider,
+		backendType:        cfg.BackendType,
+		backendConfig:      cfg.BackendConfig,
+		providerConfig:     cfg.ProviderConfig,
+		providerName:       cfg.ProviderName,
+		fullConfig:         cfg.FullConfig,
+		parallelism:        cfg.Parallelism,
+		generateImportFile: cfg.GenerateImportBlock,
+		hclOnly:            cfg.HCLOnly,
+		tfclient:           cfg.TFClient,
 
 		moduleAddr: moduleAddr,
 		moduleDir:  moduleDir,
@@ -402,18 +403,7 @@ func (meta baseMeta) ExportResourceMapping(ctx context.Context, l ImportList) er
 		return fmt.Errorf("writing the resource mapping to %s: %v", oMapFile, err)
 	}
 
-	// Only generate import.tf when the current using terraform supports plannable import
-	var supportPlannableImport bool
-	if meta.tf == nil {
-		supportPlannableImport = true
-	} else {
-		ver, _, err := meta.tf.Version(ctx, true)
-		if err != nil {
-			return fmt.Errorf("getting terraform version")
-		}
-		supportPlannableImport = ver.GreaterThanOrEqual(version.Must(version.NewVersion("v1.5.0")))
-	}
-	if supportPlannableImport {
+	if meta.generateImportFile {
 		f := hclwrite.NewFile()
 		body := f.Body()
 		for _, item := range l {
@@ -433,6 +423,7 @@ func (meta baseMeta) ExportResourceMapping(ctx context.Context, l ImportList) er
 			return fmt.Errorf("writing the import block to %s: %v", oImportFile, err)
 		}
 	}
+
 	return nil
 }
 

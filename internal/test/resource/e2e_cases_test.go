@@ -78,6 +78,7 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 					BackendType:          "local",
 					DevProvider:          true,
 					Parallelism:          1,
+					ProviderName:         "azurerm",
 				},
 				ResourceId:     rctx.AzureId,
 				TFResourceName: fmt.Sprintf("res-%d", idx),

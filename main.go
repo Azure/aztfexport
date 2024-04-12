@@ -229,6 +229,12 @@ func main() {
 			Usage:       `The path of the module (e.g. "module1.module2") where the resources will be imported and config generated. Note that only modules whose "source" is local path is supported. Defaults to the root module.`,
 			Destination: &flagset.flagModulePath,
 		},
+		&cli.BoolFlag{
+			Name:        "generate-import-block",
+			EnvVars:     []string{"AZTFEXPORT_GENERATE_IMPORT_BLOCK"},
+			Usage:       `Whether to generate the import.tf that contains the "import" blocks for the Terraform official plannable importing`,
+			Destination: &flagset.flagGenerateImportBlock,
+		},
 		&cli.StringFlag{
 			Name:        "log-path",
 			EnvVars:     []string{"AZTFEXPORT_LOG_PATH"},

@@ -42,6 +42,7 @@ type FlagSet struct {
 	flagGenerateMappingFile bool
 	flagHCLOnly             bool
 	flagModulePath          string
+	flagGenerateImportBlock bool
 
 	// common flags (auth)
 	flagUseEnvironmentCred     bool
@@ -142,6 +143,9 @@ func (flag FlagSet) DescribeCLI(mode string) string {
 	}
 	if flag.flagModulePath != "" {
 		args = append(args, "--module-path="+flag.flagModulePath)
+	}
+	if !flag.flagGenerateImportBlock {
+		args = append(args, "--generate-import-block=true")
 	}
 
 	if flag.flagUseEnvironmentCred {
@@ -352,6 +356,7 @@ func (f FlagSet) BuildCommonConfig() (config.CommonConfig, error) {
 		Parallelism:          f.flagParallelism,
 		HCLOnly:              f.flagHCLOnly,
 		ModulePath:           f.flagModulePath,
+		GenerateImportBlock:  f.flagGenerateImportBlock,
 		TelemetryClient:      initTelemetryClient(f.flagSubscriptionId),
 	}
 
