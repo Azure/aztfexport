@@ -118,6 +118,8 @@ module "sub-module" {
 				BackendType:          "local",
 				Parallelism:          1,
 				ModulePath:           "", // Import to the root module
+				ProviderName:         "azurerm",
+				GenerateImportBlock:  false,
 			},
 		},
 		PlainUI: true,
