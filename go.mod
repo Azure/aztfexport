@@ -21,7 +21,7 @@ require (
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/magodo/armid v0.0.0-20230511151020-27880e5961c3
 	github.com/magodo/azlist v0.0.0-20231101012443-e30f2da262c1
-	github.com/magodo/aztft v0.3.1-0.20240412021943-820741047fc0
+	github.com/magodo/aztft v0.3.1-0.20240429022627-002cdc06267a
 	github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6
 	github.com/magodo/terraform-client-go v0.0.0-20230323074119-02ceb732dd25
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
