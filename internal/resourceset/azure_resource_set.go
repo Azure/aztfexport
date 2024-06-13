@@ -42,7 +42,7 @@ func (rset AzureResourceSet) ToTFAzureRMResources(parallelism int, cred azcore.T
 	wp.Run(func(v interface{}) error {
 		res := v.(result)
 		if res.err != nil {
-			log.Printf("[WARN] Failed to query resource type for %s: %v\n", res.resid, res.err)
+			log.Warn("Failed to query resource type", "id", res.resid, "error", res.err)
 			// Still put this unresolved resource in the resource set, so that users can later specify the expected TF resource type.
 			tfresources = append(tfresources, TFResource{
 				AzureId: res.resid,
@@ -52,7 +52,7 @@ func (rset AzureResourceSet) ToTFAzureRMResources(parallelism int, cred azcore.T
 		} else {
 			if !res.exact {
 				// It is not possible to return multiple result when API is used.
-				log.Printf("[WARN] No query result for resource type and TF id for %s\n", res.resid)
+				log.Warn("No query result for resource type and TF id", "id", res.resid)
 				// Still put this unresolved resource in the resource set, so that users can later specify the expected TF resource type.
 				tfresources = append(tfresources, TFResource{
 					AzureId: res.resid,

@@ -21,7 +21,7 @@ type MetaMap struct {
 }
 
 func NewMetaMap(cfg config.Config) (*MetaMap, error) {
-	log.Printf("[INFO] New map meta")
+	log.Info("New map meta")
 	baseMeta, err := NewBaseMeta(cfg.CommonConfig)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func (meta MetaMap) ScopeName() string {
 func (meta *MetaMap) ListResource(_ context.Context) (ImportList, error) {
 	var m resmap.ResourceMapping
 
-	log.Printf("[DEBUG] Read resource set from mapping file")
+	log.Debug("Read resource set from mapping file")
 	b, err := os.ReadFile(meta.mappingFile)
 	if err != nil {
 		return nil, fmt.Errorf("reading mapping file %s: %v", meta.mappingFile, err)

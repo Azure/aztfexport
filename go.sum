@@ -206,8 +206,8 @@ github.com/lucasb-eyer/go-colorful v1.2.0 h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69
 github.com/lucasb-eyer/go-colorful v1.2.0/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
 github.com/magodo/armid v0.0.0-20230511151020-27880e5961c3 h1:ob6vk6PlChZvutcxcLnmPH/VNmJEuwz+TmCYCVtJqeA=
 github.com/magodo/armid v0.0.0-20230511151020-27880e5961c3/go.mod h1:rR8E7zfGMbmfnSQvrkFiWYdhrfTqsVSltelnZB09BwA=
-github.com/magodo/azlist v0.0.0-20231101012443-e30f2da262c1 h1:9SXoK38cfRZac8LwA3BmEhVjuU/JGPb6I3MKvpHA4To=
-github.com/magodo/azlist v0.0.0-20231101012443-e30f2da262c1/go.mod h1:xefFDOxzRssOEjGoxvrO8jeTWlzHXbY6sCJYOt+Jh5k=
+github.com/magodo/azlist v0.0.0-20240613024003-b4529218cc6a h1:CFX3fvA3ajq81F7fkSBF+RgrZEgyuNP8x2QWt4Zhw5k=
+github.com/magodo/azlist v0.0.0-20240613024003-b4529218cc6a/go.mod h1:xefFDOxzRssOEjGoxvrO8jeTWlzHXbY6sCJYOt+Jh5k=
 github.com/magodo/aztft v0.3.1-0.20240429022627-002cdc06267a h1:HYp5h1HOwwrFI6CVSeJTVfnXyO7Es6Kx8cyw3UlomDo=
 github.com/magodo/aztft v0.3.1-0.20240429022627-002cdc06267a/go.mod h1:hqk4M4qig7+LTNKeHCNgi+hZfJBndnx4oSNAvP5KT0Y=
 github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6 h1:CElHO4hPXC+Eivy8sUC/WrnH3jmQzdF2x0lEXBEYul8=

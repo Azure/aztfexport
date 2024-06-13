@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	golog "log"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -23,7 +24,6 @@ import (
 	"github.com/Azure/aztfexport/pkg/config"
 	"github.com/Azure/aztfexport/pkg/log"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/magodo/armid"
 	"github.com/magodo/azlist/azlist"
 	"github.com/magodo/tfadd/providers/azapi"
@@ -70,12 +70,12 @@ func prepareConfigFile(ctx *cli.Context) error {
 		if id, err := cfgfile.GetInstallationIdFromCLI(); err == nil {
 			return id, nil
 		}
-		log.Printf("[DEBUG] Installation ID not found from Azure CLI: %v", err)
+		log.Debug("Installation ID not found from Azure CLI", "error", err)
 
 		if id, err := cfgfile.GetInstallationIdFromPWSH(); err == nil {
 			return id, nil
 		}
-		log.Printf("[DEBUG] Installation ID not found from Azure PWSH: %v", err)
+		log.Debug("Installation ID not found from Azure PWSH", "error", err)
 
 		uuid, err := uuid.NewV4()
 		if err != nil {
@@ -585,20 +585,20 @@ func main() {
 	}
 }
 
-func logLevel(level string) (hclog.Level, error) {
-	switch level {
+func logLevel(level string) (slog.Level, error) {
+	switch strings.ToUpper(level) {
 	case "ERROR":
-		return hclog.Error, nil
+		return slog.LevelError, nil
 	case "WARN":
-		return hclog.Warn, nil
+		return slog.LevelWarn, nil
 	case "INFO":
-		return hclog.Info, nil
+		return slog.LevelInfo, nil
 	case "DEBUG":
-		return hclog.Debug, nil
+		return slog.LevelDebug, nil
 	case "TRACE":
-		return hclog.Trace, nil
+		return log.LevelTrace, nil
 	default:
-		return hclog.NoLevel, fmt.Errorf("unknown log level: %s", level)
+		return slog.Level(0), fmt.Errorf("unknown log level: %s", level)
 	}
 }
 
@@ -617,13 +617,7 @@ func initLog(path string, flagLevel string) error {
 			return fmt.Errorf("creating log file %s: %v", path, err)
 		}
 
-		logger := hclog.New(&hclog.LoggerOptions{
-			Name:   "aztfexport",
-			Level:  level,
-			Output: f,
-		}).StandardLogger(&hclog.StandardLoggerOptions{
-			InferLevels: true,
-		})
+		logger := slog.New(slog.NewTextHandler(f, &slog.HandlerOptions{Level: level}))
 
 		// Enable log for aztfexport
 		log.SetLogger(logger)
@@ -634,7 +628,7 @@ func initLog(path string, flagLevel string) error {
 		// Enable log for azure sdk
 		os.Setenv("AZURE_SDK_GO_LOGGING", "all") // #nosec G104
 		azlog.SetListener(func(cls azlog.Event, msg string) {
-			logger.Printf("[TRACE] %s: %s\n", cls, msg)
+			logger.Log(context.Background(), log.LevelTrace, msg, "event", cls)
 		})
 	}
 	return nil
@@ -677,17 +671,17 @@ func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, 
 
 	defer func() {
 		if result == nil {
-			log.Printf("[INFO] aztfexport ends")
+			log.Info("aztfexport ends")
 			tc.Trace(telemetry.Info, "aztfexport ends")
 		} else {
-			log.Printf("[ERROR] aztfexport ends with error: %v", result)
+			log.Error("aztfexport ends with error", "error", result)
 			tc.Trace(telemetry.Error, fmt.Sprintf("aztfexport ends with error"))
 			tc.Trace(telemetry.Error, fmt.Sprintf("Error detail: %v", result))
 		}
 		tc.Close()
 	}()
 
-	log.Printf("[INFO] aztfexport starts with config: %#v", cfg)
+	log.Info("aztfexport starts", "config", fmt.Sprintf("%#v", cfg))
 	tc.Trace(telemetry.Info, "aztfexport starts")
 	tc.Trace(telemetry.Info, "Effective CLI: "+effectiveCLI)
 

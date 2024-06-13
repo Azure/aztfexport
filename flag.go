@@ -373,7 +373,7 @@ func (f FlagSet) BuildCommonConfig() (config.CommonConfig, error) {
 		// #nosec G204
 		tfc, err := tfclient.New(tfclient.Option{
 			Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
-			Logger: hclog.NewNullLogger(),
+			Logger: hclog.NewNullLogger(), // will be configured later in main
 		})
 		if err != nil {
 			return cfg, err
