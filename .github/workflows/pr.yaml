@@ -23,7 +23,7 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v3
       - name: Run Gosec Security Scanner
-        uses: securego/gosec@v2.20.0
+        uses: securego/gosec@2ae137a
         with:
           args: './...'
 
