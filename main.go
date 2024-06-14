@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	golog "log"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -26,6 +24,8 @@ import (
 
 	"github.com/magodo/armid"
 	"github.com/magodo/azlist/azlist"
+	"github.com/magodo/slog2hclog"
+	"github.com/magodo/terraform-client-go/tfclient"
 	"github.com/magodo/tfadd/providers/azapi"
 	"github.com/magodo/tfadd/providers/azurerm"
 
@@ -472,7 +472,7 @@ func main() {
 						TFResourceType: flagset.flagResType,
 					}
 
-					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResource))
+					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResource), flagset.hflagTFClientPluginPath)
 				},
 			},
 			{
@@ -506,7 +506,7 @@ func main() {
 						IncludeRoleAssignment: flagset.flagIncludeRoleAssignment,
 					}
 
-					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResourceGroup))
+					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResourceGroup), flagset.hflagTFClientPluginPath)
 				},
 			},
 			{
@@ -540,7 +540,7 @@ func main() {
 						IncludeResourceGroup:  flagset.flagIncludeResourceGroup,
 					}
 
-					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeQuery))
+					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeQuery), flagset.hflagTFClientPluginPath)
 				},
 			},
 			{
@@ -571,7 +571,7 @@ func main() {
 						MappingFile:  mapFile,
 					}
 
-					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeMappingFile))
+					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeMappingFile), flagset.hflagTFClientPluginPath)
 				},
 			},
 		},
@@ -603,14 +603,17 @@ func logLevel(level string) (slog.Level, error) {
 }
 
 func initLog(path string, flagLevel string) error {
-	golog.SetOutput(io.Discard)
+	//golog.SetOutput(io.Discard)
 
-	level, err := logLevel(flagLevel)
-	if err != nil {
-		return err
-	}
-
+	// Logger is only enabled when the log path is specified.
+	// This is because either interactive/non-interactive mode controls the terminal rendering,
+	// logging to stdout/stderr will impact the rendering.
 	if path != "" {
+		level, err := logLevel(flagLevel)
+		if err != nil {
+			return err
+		}
+
 		// #nosec G304
 		f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
 		if err != nil {
@@ -631,6 +634,7 @@ func initLog(path string, flagLevel string) error {
 			logger.Log(context.Background(), log.LevelTrace, msg, "event", cls)
 		})
 	}
+
 	return nil
 }
 
@@ -653,7 +657,7 @@ func subscriptionIdFromCLI() (string, error) {
 	return strconv.Unquote(strings.TrimSpace(stdout.String()))
 }
 
-func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, genMapFile bool, profileType string, effectiveCLI string) (result error) {
+func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, genMapFile bool, profileType string, effectiveCLI string, tfClientPluginPath string) (result error) {
 	switch strings.ToLower(profileType) {
 	case "cpu":
 		defer profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook).Stop()
@@ -665,6 +669,19 @@ func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, 
 	if err := initLog(flagLogPath, flagLogLevel); err != nil {
 		result = err
 		return
+	}
+
+	// Initialize the TFClient
+	if tfClientPluginPath != "" {
+		// #nosec G204
+		tfc, err := tfclient.New(tfclient.Option{
+			Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
+			Logger: slog2hclog.New(log.GetLogger(), nil),
+		})
+		if err != nil {
+			return err
+		}
+		cfg.TFClient = tfc
 	}
 
 	tc := cfg.TelemetryClient

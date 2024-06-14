@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/Azure/aztfexport/internal/cfgfile"
@@ -15,8 +14,6 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/gofrs/uuid"
-	"github.com/hashicorp/go-hclog"
-	"github.com/magodo/terraform-client-go/tfclient"
 	"github.com/urfave/cli/v2"
 )
 
@@ -335,6 +332,7 @@ func buildAzureSDKCredAndClientOpt(fset FlagSet) (azcore.TokenCredential, *arm.C
 	}
 }
 
+// BuildCommonConfig builds the CommonConfig from the FlagSet, except the TFClient, which is built afterwards as it requires a logger.
 func (f FlagSet) BuildCommonConfig() (config.CommonConfig, error) {
 	cred, clientOpt, err := buildAzureSDKCredAndClientOpt(f)
 	if err != nil {
@@ -367,18 +365,6 @@ func (f FlagSet) BuildCommonConfig() (config.CommonConfig, error) {
 			MainFileName:        "main.aztfexport.tf",
 			ImportBlockFileName: "import.aztfexport.tf",
 		}
-	}
-
-	if f.hflagTFClientPluginPath != "" {
-		// #nosec G204
-		tfc, err := tfclient.New(tfclient.Option{
-			Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
-			Logger: hclog.NewNullLogger(), // will be configured later in main
-		})
-		if err != nil {
-			return cfg, err
-		}
-		cfg.TFClient = tfc
 	}
 
 	return cfg, nil

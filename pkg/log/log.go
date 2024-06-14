@@ -4,14 +4,20 @@ import (
 	"context"
 	"io"
 	"log/slog"
+
+	"github.com/magodo/slog2hclog"
 )
 
 var logger = slog.New(slog.NewTextHandler(io.Discard, nil))
 
-const LevelTrace = slog.Level(slog.LevelDebug - 1)
+const LevelTrace = slog2hclog.SlogLevelTrace
 
 func SetLogger(l *slog.Logger) {
 	logger = l
+}
+
+func GetLogger() *slog.Logger {
+	return logger
 }
 
 func Trace(msg string, args ...any) {
