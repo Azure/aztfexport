@@ -8,8 +8,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v1
         with:
-          go-version: 1.19
-
+          go-version: 1.22
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
 
@@ -22,10 +21,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v2
-
+        uses: actions/checkout@v3
       - name: Run Gosec Security Scanner
-        uses: securego/gosec@v2.16.0
+        uses: securego/gosec@2ae137abcf405533ad6e549e9363e58e4f6e8b7d
         with:
           args: './...'
 
@@ -36,7 +34,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v1
         with:
-          go-version: 1.19
+          go-version: 1.22
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2

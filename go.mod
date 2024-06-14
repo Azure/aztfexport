@@ -1,6 +1,6 @@
 module github.com/Azure/aztfexport
 
-go 1.19
+go 1.21
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.9.0
@@ -11,7 +11,7 @@ require (
 	github.com/charmbracelet/bubbletea v0.22.1
 	github.com/charmbracelet/lipgloss v0.5.0
 	github.com/gofrs/uuid v3.3.0+incompatible
-	github.com/hashicorp/go-hclog v1.3.1
+	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/hc-install v0.6.2
 	github.com/hashicorp/hcl/v2 v2.17.0
@@ -20,8 +20,9 @@ require (
 	github.com/hashicorp/terraform-json v0.19.0
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/magodo/armid v0.0.0-20230511151020-27880e5961c3
-	github.com/magodo/azlist v0.0.0-20231101012443-e30f2da262c1
+	github.com/magodo/azlist v0.0.0-20240613024003-b4529218cc6a
 	github.com/magodo/aztft v0.3.1-0.20240429022627-002cdc06267a
+	github.com/magodo/slog2hclog v0.0.0-20240614031327-090ebd72a033
 	github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6
 	github.com/magodo/terraform-client-go v0.0.0-20230323074119-02ceb732dd25
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0

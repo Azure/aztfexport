@@ -118,7 +118,7 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if _, ok := msg.(spinner.TickMsg); !ok {
-		log.Printf("[DEBUG] UI update. STATUS: %s | MSG: %#v\n", m.status, msg)
+		log.Trace("UI update", "status", m.status, "msg", fmt.Sprintf("%#v", msg))
 	}
 
 	switch msg := msg.(type) {

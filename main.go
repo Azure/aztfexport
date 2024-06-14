@@ -5,8 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	golog "log"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -23,9 +22,10 @@ import (
 	"github.com/Azure/aztfexport/pkg/config"
 	"github.com/Azure/aztfexport/pkg/log"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/magodo/armid"
 	"github.com/magodo/azlist/azlist"
+	"github.com/magodo/slog2hclog"
+	"github.com/magodo/terraform-client-go/tfclient"
 	"github.com/magodo/tfadd/providers/azapi"
 	"github.com/magodo/tfadd/providers/azurerm"
 
@@ -70,12 +70,12 @@ func prepareConfigFile(ctx *cli.Context) error {
 		if id, err := cfgfile.GetInstallationIdFromCLI(); err == nil {
 			return id, nil
 		}
-		log.Printf("[DEBUG] Installation ID not found from Azure CLI: %v", err)
+		log.Debug("Installation ID not found from Azure CLI", "error", err)
 
 		if id, err := cfgfile.GetInstallationIdFromPWSH(); err == nil {
 			return id, nil
 		}
-		log.Printf("[DEBUG] Installation ID not found from Azure PWSH: %v", err)
+		log.Debug("Installation ID not found from Azure PWSH", "error", err)
 
 		uuid, err := uuid.NewV4()
 		if err != nil {
@@ -472,7 +472,7 @@ func main() {
 						TFResourceType: flagset.flagResType,
 					}
 
-					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResource))
+					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResource), flagset.hflagTFClientPluginPath)
 				},
 			},
 			{
@@ -506,7 +506,7 @@ func main() {
 						IncludeRoleAssignment: flagset.flagIncludeRoleAssignment,
 					}
 
-					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResourceGroup))
+					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResourceGroup), flagset.hflagTFClientPluginPath)
 				},
 			},
 			{
@@ -540,7 +540,7 @@ func main() {
 						IncludeResourceGroup:  flagset.flagIncludeResourceGroup,
 					}
 
-					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeQuery))
+					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeQuery), flagset.hflagTFClientPluginPath)
 				},
 			},
 			{
@@ -571,7 +571,7 @@ func main() {
 						MappingFile:  mapFile,
 					}
 
-					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeMappingFile))
+					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeMappingFile), flagset.hflagTFClientPluginPath)
 				},
 			},
 		},
@@ -585,45 +585,42 @@ func main() {
 	}
 }
 
-func logLevel(level string) (hclog.Level, error) {
-	switch level {
+func logLevel(level string) (slog.Level, error) {
+	switch strings.ToUpper(level) {
 	case "ERROR":
-		return hclog.Error, nil
+		return slog.LevelError, nil
 	case "WARN":
-		return hclog.Warn, nil
+		return slog.LevelWarn, nil
 	case "INFO":
-		return hclog.Info, nil
+		return slog.LevelInfo, nil
 	case "DEBUG":
-		return hclog.Debug, nil
+		return slog.LevelDebug, nil
 	case "TRACE":
-		return hclog.Trace, nil
+		return log.LevelTrace, nil
 	default:
-		return hclog.NoLevel, fmt.Errorf("unknown log level: %s", level)
+		return slog.Level(0), fmt.Errorf("unknown log level: %s", level)
 	}
 }
 
 func initLog(path string, flagLevel string) error {
-	golog.SetOutput(io.Discard)
+	//golog.SetOutput(io.Discard)
 
-	level, err := logLevel(flagLevel)
-	if err != nil {
-		return err
-	}
-
+	// Logger is only enabled when the log path is specified.
+	// This is because either interactive/non-interactive mode controls the terminal rendering,
+	// logging to stdout/stderr will impact the rendering.
 	if path != "" {
+		level, err := logLevel(flagLevel)
+		if err != nil {
+			return err
+		}
+
 		// #nosec G304
 		f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
 		if err != nil {
 			return fmt.Errorf("creating log file %s: %v", path, err)
 		}
 
-		logger := hclog.New(&hclog.LoggerOptions{
-			Name:   "aztfexport",
-			Level:  level,
-			Output: f,
-		}).StandardLogger(&hclog.StandardLoggerOptions{
-			InferLevels: true,
-		})
+		logger := slog.New(slog.NewTextHandler(f, &slog.HandlerOptions{Level: level}))
 
 		// Enable log for aztfexport
 		log.SetLogger(logger)
@@ -634,9 +631,10 @@ func initLog(path string, flagLevel string) error {
 		// Enable log for azure sdk
 		os.Setenv("AZURE_SDK_GO_LOGGING", "all") // #nosec G104
 		azlog.SetListener(func(cls azlog.Event, msg string) {
-			logger.Printf("[TRACE] %s: %s\n", cls, msg)
+			logger.Log(context.Background(), log.LevelTrace, msg, "event", cls)
 		})
 	}
+
 	return nil
 }
 
@@ -659,7 +657,7 @@ func subscriptionIdFromCLI() (string, error) {
 	return strconv.Unquote(strings.TrimSpace(stdout.String()))
 }
 
-func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, genMapFile bool, profileType string, effectiveCLI string) (result error) {
+func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, genMapFile bool, profileType string, effectiveCLI string, tfClientPluginPath string) (result error) {
 	switch strings.ToLower(profileType) {
 	case "cpu":
 		defer profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook).Stop()
@@ -673,21 +671,34 @@ func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, 
 		return
 	}
 
+	// Initialize the TFClient
+	if tfClientPluginPath != "" {
+		// #nosec G204
+		tfc, err := tfclient.New(tfclient.Option{
+			Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
+			Logger: slog2hclog.New(log.GetLogger(), nil),
+		})
+		if err != nil {
+			return err
+		}
+		cfg.TFClient = tfc
+	}
+
 	tc := cfg.TelemetryClient
 
 	defer func() {
 		if result == nil {
-			log.Printf("[INFO] aztfexport ends")
+			log.Info("aztfexport ends")
 			tc.Trace(telemetry.Info, "aztfexport ends")
 		} else {
-			log.Printf("[ERROR] aztfexport ends with error: %v", result)
+			log.Error("aztfexport ends with error", "error", result)
 			tc.Trace(telemetry.Error, fmt.Sprintf("aztfexport ends with error"))
 			tc.Trace(telemetry.Error, fmt.Sprintf("Error detail: %v", result))
 		}
 		tc.Close()
 	}()
 
-	log.Printf("[INFO] aztfexport starts with config: %#v", cfg)
+	log.Info("aztfexport starts", "config", fmt.Sprintf("%#v", cfg))
 	tc.Trace(telemetry.Info, "aztfexport starts")
 	tc.Trace(telemetry.Info, "Effective CLI: "+effectiveCLI)
 

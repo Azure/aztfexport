@@ -20,7 +20,7 @@ type MetaResource struct {
 }
 
 func NewMetaResource(cfg config.Config) (*MetaResource, error) {
-	log.Printf("[INFO] New resource meta")
+	log.Info("New resource meta")
 	baseMeta, err := NewBaseMeta(cfg.CommonConfig)
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func (meta *MetaResource) ListResource(_ context.Context) (ImportList, error) {
 			},
 		},
 	}
-	log.Printf("[DEBUG] Azure Resource set map to TF resource set")
+	log.Debug("Azure Resource set map to TF resource set")
 
 	var rl []resourceset.TFResource
 	if meta.useAzAPI() {
