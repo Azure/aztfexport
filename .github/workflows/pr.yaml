@@ -22,6 +22,12 @@ jobs:
     steps:
       - name: Checkout Source
         uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.22
+
       - name: Run Gosec Security Scanner
         # This is due to https://github.com/securego/gosec/issues/1105
         # Per https://github.com/securego/gosec/issues/1105#issuecomment-1948225619, the issue occurs since 2.19.0.
