@@ -30,7 +30,7 @@ jobs:
         # It's parent commit is 26e57d6b340778c2983cd61775bc7e8bb41d002a
         uses: securego/gosec@26e57d6b340778c2983cd61775bc7e8bb41d002a
         with:
-          args: '-tags -buildvcs=false ./...'
+          args: './...'
 
   depscheck:
     name: depscheck
