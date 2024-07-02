@@ -1,12 +1,30 @@
 package config
 
 import (
+	"github.com/Azure/aztfexport/internal/tfaddr"
 	"github.com/Azure/aztfexport/pkg/telemetry"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
+	"github.com/magodo/armid"
 	"github.com/magodo/terraform-client-go/tfclient"
 	"github.com/zclconf/go-cty/cty"
 )
+
+type ImportItem struct {
+	// Azure resource Id
+	AzureResourceID armid.ResourceId
+
+	// The TF resource id
+	TFResourceId string
+
+	// Whether this azure resource failed to import into terraform (this might due to the TFResourceType doesn't match the resource)
+	ImportError error
+
+	// The terraform resource
+	TFAddr tfaddr.TFAddr
+}
+
+type ImportCallback func(total int, item ImportItem)
 
 type OutputFileNames struct {
 	// The filename for the generated "terraform.tf" (default)
@@ -52,6 +70,8 @@ type CommonConfig struct {
 	FullConfig bool
 	// Parallelism specifies the parallelism for the process
 	Parallelism int
+	// ImportCallback is a way to inspect each resource after being imported during ParallelImport
+	ImportCallback ImportCallback
 	// ModulePath specifies the path of the module (e.g. "module1.module2") where the resources will be imported and config generated.
 	// Note that only modules whose "source" is local path is supported. By default, it is the root module.
 	ModulePath string

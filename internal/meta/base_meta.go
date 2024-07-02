@@ -92,6 +92,7 @@ type baseMeta struct {
 	providerConfig     map[string]cty.Value
 	fullConfig         bool
 	parallelism        int
+	importCallback     config.ImportCallback
 	generateImportFile bool
 
 	hclOnly  bool
@@ -216,6 +217,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		providerName:       cfg.ProviderName,
 		fullConfig:         cfg.FullConfig,
 		parallelism:        cfg.Parallelism,
+		importCallback:     cfg.ImportCallback,
 		generateImportFile: cfg.GenerateImportBlock,
 		hclOnly:            cfg.HCLOnly,
 		tfclient:           cfg.TFClient,
@@ -273,7 +275,8 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) e
 	meta.tc.Trace(telemetry.Info, "ParallelImport Enter")
 	defer meta.tc.Trace(telemetry.Info, "ParallelImport Leave")
 
-	itemsCh := make(chan *ImportItem, len(items))
+	total := len(items)
+	itemsCh := make(chan *ImportItem, total)
 	for _, item := range items {
 		itemsCh <- item
 	}
@@ -313,6 +316,15 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) e
 		wp.AddTask(func() (interface{}, error) {
 			for item := range itemsCh {
 				meta.importItem(ctx, item, i)
+				if meta.importCallback != nil {
+					item := config.ImportItem{
+						AzureResourceID: item.AzureResourceID,
+						TFResourceId:    item.TFResourceId,
+						ImportError:     item.ImportError,
+						TFAddr:          item.TFAddr,
+					}
+					meta.importCallback(total, item)
+				}
 			}
 			return i, nil
 		})
