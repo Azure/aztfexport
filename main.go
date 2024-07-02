@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,10 +19,8 @@ import (
 	"github.com/pkg/profile"
 
 	"github.com/Azure/aztfexport/pkg/config"
-	"github.com/Azure/aztfexport/pkg/log"
 
 	"github.com/magodo/armid"
-	"github.com/magodo/azlist/azlist"
 	"github.com/magodo/slog2hclog"
 	"github.com/magodo/terraform-client-go/tfclient"
 	"github.com/magodo/tfadd/providers/azapi"
@@ -31,13 +28,7 @@ import (
 
 	"github.com/Azure/aztfexport/internal"
 	"github.com/Azure/aztfexport/internal/ui"
-	azlog "github.com/Azure/azure-sdk-for-go/sdk/azcore/log"
 	"github.com/urfave/cli/v2"
-)
-
-var (
-	flagLogPath  string
-	flagLogLevel string
 )
 
 func prepareConfigFile(ctx *cli.Context) error {
@@ -70,13 +61,9 @@ func prepareConfigFile(ctx *cli.Context) error {
 		if id, err := cfgfile.GetInstallationIdFromCLI(); err == nil {
 			return id, nil
 		}
-		log.Debug("Installation ID not found from Azure CLI", "error", err)
-
 		if id, err := cfgfile.GetInstallationIdFromPWSH(); err == nil {
 			return id, nil
 		}
-		log.Debug("Installation ID not found from Azure PWSH", "error", err)
-
 		uuid, err := uuid.NewV4()
 		if err != nil {
 			return "", fmt.Errorf("generating installation id: %w", err)
@@ -239,13 +226,13 @@ func main() {
 			Name:        "log-path",
 			EnvVars:     []string{"AZTFEXPORT_LOG_PATH"},
 			Usage:       "The file path to store the log",
-			Destination: &flagLogPath,
+			Destination: &flagset.flagLogPath,
 		},
 		&cli.StringFlag{
 			Name:        "log-level",
 			EnvVars:     []string{"AZTFEXPORT_LOG_LEVEL"},
 			Usage:       `Log level, can be one of "ERROR", "WARN", "INFO", "DEBUG" and "TRACE"`,
-			Destination: &flagLogLevel,
+			Destination: &flagset.flagLogLevel,
 			Value:       "INFO",
 		},
 
@@ -585,59 +572,6 @@ func main() {
 	}
 }
 
-func logLevel(level string) (slog.Level, error) {
-	switch strings.ToUpper(level) {
-	case "ERROR":
-		return slog.LevelError, nil
-	case "WARN":
-		return slog.LevelWarn, nil
-	case "INFO":
-		return slog.LevelInfo, nil
-	case "DEBUG":
-		return slog.LevelDebug, nil
-	case "TRACE":
-		return log.LevelTrace, nil
-	default:
-		return slog.Level(0), fmt.Errorf("unknown log level: %s", level)
-	}
-}
-
-func initLog(path string, flagLevel string) error {
-	//golog.SetOutput(io.Discard)
-
-	// Logger is only enabled when the log path is specified.
-	// This is because either interactive/non-interactive mode controls the terminal rendering,
-	// logging to stdout/stderr will impact the rendering.
-	if path != "" {
-		level, err := logLevel(flagLevel)
-		if err != nil {
-			return err
-		}
-
-		// #nosec G304
-		f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
-		if err != nil {
-			return fmt.Errorf("creating log file %s: %v", path, err)
-		}
-
-		logger := slog.New(slog.NewTextHandler(f, &slog.HandlerOptions{Level: level}))
-
-		// Enable log for aztfexport
-		log.SetLogger(logger)
-
-		// Enable log for azlist
-		azlist.SetLogger(logger)
-
-		// Enable log for azure sdk
-		os.Setenv("AZURE_SDK_GO_LOGGING", "all") // #nosec G104
-		azlog.SetListener(func(cls azlog.Event, msg string) {
-			logger.Log(context.Background(), log.LevelTrace, msg, "event", cls)
-		})
-	}
-
-	return nil
-}
-
 func subscriptionIdFromCLI() (string, error) {
 	var stderr bytes.Buffer
 	var stdout bytes.Buffer
@@ -665,18 +599,12 @@ func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, 
 		defer profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook).Stop()
 	}
 
-	// Initialize log
-	if err := initLog(flagLogPath, flagLogLevel); err != nil {
-		result = err
-		return
-	}
-
 	// Initialize the TFClient
 	if tfClientPluginPath != "" {
 		// #nosec G204
 		tfc, err := tfclient.New(tfclient.Option{
 			Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
-			Logger: slog2hclog.New(log.GetLogger(), nil),
+			Logger: slog2hclog.New(cfg.Logger.WithGroup("provider"), nil),
 		})
 		if err != nil {
 			return err
@@ -688,17 +616,17 @@ func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, 
 
 	defer func() {
 		if result == nil {
-			log.Info("aztfexport ends")
+			cfg.Logger.Info("aztfexport ends")
 			tc.Trace(telemetry.Info, "aztfexport ends")
 		} else {
-			log.Error("aztfexport ends with error", "error", result)
+			cfg.Logger.Error("aztfexport ends with error", "error", result)
 			tc.Trace(telemetry.Error, fmt.Sprintf("aztfexport ends with error"))
 			tc.Trace(telemetry.Error, fmt.Sprintf("Error detail: %v", result))
 		}
 		tc.Close()
 	}()
 
-	log.Info("aztfexport starts", "config", fmt.Sprintf("%#v", cfg))
+	cfg.Logger.Info("aztfexport starts", "config", fmt.Sprintf("%#v", cfg))
 	tc.Trace(telemetry.Info, "aztfexport starts")
 	tc.Trace(telemetry.Info, "Effective CLI: "+effectiveCLI)
 

@@ -2,6 +2,8 @@ package meta
 
 import (
 	"context"
+	"io"
+	"log/slog"
 	"time"
 )
 
@@ -12,6 +14,10 @@ type MetaGroupDummy struct {
 
 func NewGroupMetaDummy(rg string, providerName string) MetaGroupDummy {
 	return MetaGroupDummy{rg: rg, providerName: providerName}
+}
+
+func (m MetaGroupDummy) Logger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }
 
 func (m MetaGroupDummy) ProviderName() string {

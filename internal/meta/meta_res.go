@@ -7,7 +7,6 @@ import (
 	"github.com/Azure/aztfexport/internal/resourceset"
 	"github.com/Azure/aztfexport/internal/tfaddr"
 	"github.com/Azure/aztfexport/pkg/config"
-	"github.com/Azure/aztfexport/pkg/log"
 	"github.com/magodo/armid"
 	"github.com/magodo/aztft/aztft"
 )
@@ -20,7 +19,7 @@ type MetaResource struct {
 }
 
 func NewMetaResource(cfg config.Config) (*MetaResource, error) {
-	log.Info("New resource meta")
+	cfg.Logger.Info("New resource meta")
 	baseMeta, err := NewBaseMeta(cfg.CommonConfig)
 	if err != nil {
 		return nil, err
@@ -51,13 +50,13 @@ func (meta *MetaResource) ListResource(_ context.Context) (ImportList, error) {
 			},
 		},
 	}
-	log.Debug("Azure Resource set map to TF resource set")
+	meta.Logger().Debug("Azure Resource set map to TF resource set")
 
 	var rl []resourceset.TFResource
 	if meta.useAzAPI() {
 		rl = resourceSet.ToTFAzAPIResources()
 	} else {
-		rl = resourceSet.ToTFAzureRMResources(meta.parallelism, meta.azureSDKCred, meta.azureSDKClientOpt)
+		rl = resourceSet.ToTFAzureRMResources(meta.Logger(), meta.parallelism, meta.azureSDKCred, meta.azureSDKClientOpt)
 	}
 
 	// This is to record known resource types. In case there is a known resource type and there comes another same typed resource,

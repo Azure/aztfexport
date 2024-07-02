@@ -3,6 +3,8 @@ package resourcegroup
 import (
 	"context"
 	"fmt"
+	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"testing"
@@ -111,6 +113,7 @@ module "sub-module" {
 	cfg := internalconfig.NonInteractiveModeConfig{
 		Config: config.Config{
 			CommonConfig: config.CommonConfig{
+				Logger:               slog.New(slog.NewTextHandler(io.Discard, nil)),
 				SubscriptionId:       os.Getenv("ARM_SUBSCRIPTION_ID"),
 				AzureSDKCredential:   cred,
 				AzureSDKClientOption: *clientOpt,

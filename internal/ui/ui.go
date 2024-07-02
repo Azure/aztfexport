@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/Azure/aztfexport/internal/config"
+	"github.com/Azure/aztfexport/internal/log"
 	internalmeta "github.com/Azure/aztfexport/internal/meta"
-	"github.com/Azure/aztfexport/pkg/log"
 	"github.com/Azure/aztfexport/pkg/meta"
 
 	"github.com/Azure/aztfexport/internal/ui/aztfexportclient"
@@ -118,7 +118,7 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if _, ok := msg.(spinner.TickMsg); !ok {
-		log.Trace("UI update", "status", m.status, "msg", fmt.Sprintf("%#v", msg))
+		m.meta.Logger().Log(context.Background(), log.LevelTrace, "UI update", "status", m.status, "msg", fmt.Sprintf("%#v", msg))
 	}
 
 	switch msg := msg.(type) {

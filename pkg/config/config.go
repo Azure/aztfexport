@@ -1,6 +1,8 @@
 package config
 
 import (
+	"log/slog"
+
 	"github.com/Azure/aztfexport/internal/tfaddr"
 	"github.com/Azure/aztfexport/pkg/telemetry"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
@@ -38,6 +40,7 @@ type OutputFileNames struct {
 }
 
 type CommonConfig struct {
+	Logger *slog.Logger
 	// SubscriptionId specifies the user's Azure subscription id.
 	SubscriptionId string
 	// AzureSDKCredential specifies the Azure SDK token credential
