@@ -7,7 +7,6 @@ import (
 	"github.com/Azure/aztfexport/internal/resourceset"
 	"github.com/Azure/aztfexport/internal/tfaddr"
 	"github.com/Azure/aztfexport/pkg/config"
-	"github.com/Azure/aztfexport/pkg/log"
 	"github.com/magodo/armid"
 	"github.com/magodo/azlist/azlist"
 )
@@ -21,7 +20,7 @@ type MetaResourceGroup struct {
 }
 
 func NewMetaResourceGroup(cfg config.Config) (*MetaResourceGroup, error) {
-	log.Info("New resource group meta")
+	cfg.Logger.Info("New resource group meta")
 	baseMeta, err := NewBaseMeta(cfg.CommonConfig)
 	if err != nil {
 		return nil, err
@@ -42,7 +41,7 @@ func (meta MetaResourceGroup) ScopeName() string {
 }
 
 func (meta *MetaResourceGroup) ListResource(ctx context.Context) (ImportList, error) {
-	log.Debug("Query resource set")
+	meta.Logger().Debug("Query resource set")
 	rset, err := meta.queryResourceSet(ctx, meta.resourceGroup)
 	if err != nil {
 		return nil, err
@@ -52,17 +51,17 @@ func (meta *MetaResourceGroup) ListResource(ctx context.Context) (ImportList, er
 	if meta.useAzAPI() {
 		rl = rset.ToTFAzAPIResources()
 	} else {
-		log.Debug("Populate resource set")
+		meta.Logger().Debug("Populate resource set")
 		if err := rset.PopulateResource(); err != nil {
 			return nil, fmt.Errorf("tweaking single resources in the azure resource set: %v", err)
 		}
-		log.Debug("Reduce resource set")
+		meta.Logger().Debug("Reduce resource set")
 		if err := rset.ReduceResource(); err != nil {
 			return nil, fmt.Errorf("tweaking across resources in the azure resource set: %v", err)
 		}
 
-		log.Debug("Azure Resource set map to TF resource set")
-		rl = rset.ToTFAzureRMResources(meta.parallelism, meta.azureSDKCred, meta.azureSDKClientOpt)
+		meta.Logger().Debug("Azure Resource set map to TF resource set")
+		rl = rset.ToTFAzureRMResources(meta.Logger(), meta.parallelism, meta.azureSDKCred, meta.azureSDKClientOpt)
 	}
 
 	var l ImportList
@@ -90,16 +89,21 @@ func (meta *MetaResourceGroup) ListResource(ctx context.Context) (ImportList, er
 }
 
 func (meta MetaResourceGroup) queryResourceSet(ctx context.Context, rg string) (*resourceset.AzureResourceSet, error) {
-	result, err := azlist.List(ctx, fmt.Sprintf("resourceGroup =~ %q", rg),
-		azlist.Option{
-			SubscriptionId:         meta.subscriptionId,
-			Cred:                   meta.azureSDKCred,
-			ClientOpt:              meta.azureSDKClientOpt,
-			Parallelism:            meta.parallelism,
-			Recursive:              true,
-			IncludeResourceGroup:   false,
-			ExtensionResourceTypes: extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
-		})
+	opt := azlist.Option{
+		Logger:                 meta.logger.WithGroup("azlist"),
+		SubscriptionId:         meta.subscriptionId,
+		Cred:                   meta.azureSDKCred,
+		ClientOpt:              meta.azureSDKClientOpt,
+		Parallelism:            meta.parallelism,
+		Recursive:              true,
+		IncludeResourceGroup:   false,
+		ExtensionResourceTypes: extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
+	}
+	lister, err := azlist.NewLister(opt)
+	if err != nil {
+		return nil, fmt.Errorf("building azlister: %v", err)
+	}
+	result, err := lister.List(ctx, fmt.Sprintf("resourceGroup =~ %q", rg))
 	if err != nil {
 		return nil, fmt.Errorf("listing resource set: %v", err)
 	}

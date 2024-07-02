@@ -8,7 +8,6 @@ import (
 	"sort"
 
 	"github.com/Azure/aztfexport/pkg/config"
-	"github.com/Azure/aztfexport/pkg/log"
 
 	"github.com/Azure/aztfexport/internal/resmap"
 	"github.com/Azure/aztfexport/internal/tfaddr"
@@ -21,7 +20,7 @@ type MetaMap struct {
 }
 
 func NewMetaMap(cfg config.Config) (*MetaMap, error) {
-	log.Info("New map meta")
+	cfg.Logger.Info("New map meta")
 	baseMeta, err := NewBaseMeta(cfg.CommonConfig)
 	if err != nil {
 		return nil, err
@@ -42,7 +41,7 @@ func (meta MetaMap) ScopeName() string {
 func (meta *MetaMap) ListResource(_ context.Context) (ImportList, error) {
 	var m resmap.ResourceMapping
 
-	log.Debug("Read resource set from mapping file")
+	meta.Logger().Debug("Read resource set from mapping file")
 	b, err := os.ReadFile(meta.mappingFile)
 	if err != nil {
 		return nil, fmt.Errorf("reading mapping file %s: %v", meta.mappingFile, err)

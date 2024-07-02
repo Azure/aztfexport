@@ -3,7 +3,9 @@ package resourcegroup
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -89,6 +91,7 @@ func runHCLOnly(t *testing.T, d test.Data, c cases.Case) {
 	cfg := internalconfig.NonInteractiveModeConfig{
 		Config: config.Config{
 			CommonConfig: config.CommonConfig{
+				Logger:               slog.New(slog.NewTextHandler(io.Discard, nil)),
 				SubscriptionId:       os.Getenv("ARM_SUBSCRIPTION_ID"),
 				AzureSDKCredential:   cred,
 				AzureSDKClientOption: *clientOpt,

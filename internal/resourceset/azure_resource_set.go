@@ -1,9 +1,9 @@
 package resourceset
 
 import (
+	"log/slog"
 	"sort"
 
-	"github.com/Azure/aztfexport/pkg/log"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
 
@@ -26,7 +26,7 @@ type PesudoResourceInfo struct {
 	TFId   string
 }
 
-func (rset AzureResourceSet) ToTFAzureRMResources(parallelism int, cred azcore.TokenCredential, clientOpt arm.ClientOptions) []TFResource {
+func (rset AzureResourceSet) ToTFAzureRMResources(logger *slog.Logger, parallelism int, cred azcore.TokenCredential, clientOpt arm.ClientOptions) []TFResource {
 	tfresources := []TFResource{}
 
 	wp := workerpool.NewWorkPool(parallelism)
@@ -42,7 +42,7 @@ func (rset AzureResourceSet) ToTFAzureRMResources(parallelism int, cred azcore.T
 	wp.Run(func(v interface{}) error {
 		res := v.(result)
 		if res.err != nil {
-			log.Warn("Failed to query resource type", "id", res.resid, "error", res.err)
+			logger.Warn("Failed to query resource type", "id", res.resid, "error", res.err)
 			// Still put this unresolved resource in the resource set, so that users can later specify the expected TF resource type.
 			tfresources = append(tfresources, TFResource{
 				AzureId: res.resid,
@@ -52,7 +52,7 @@ func (rset AzureResourceSet) ToTFAzureRMResources(parallelism int, cred azcore.T
 		} else {
 			if !res.exact {
 				// It is not possible to return multiple result when API is used.
-				log.Warn("No query result for resource type and TF id", "id", res.resid)
+				logger.Warn("No query result for resource type and TF id", "id", res.resid)
 				// Still put this unresolved resource in the resource set, so that users can later specify the expected TF resource type.
 				tfresources = append(tfresources, TFResource{
 					AzureId: res.resid,

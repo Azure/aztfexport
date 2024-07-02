@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,7 +14,6 @@ import (
 	tfjson "github.com/hashicorp/terraform-json"
 
 	"github.com/Azure/aztfexport/pkg/config"
-	"github.com/Azure/aztfexport/pkg/log"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/Azure/aztfexport/internal/client"
@@ -48,6 +48,8 @@ const SkippedResourcesFileName = "aztfexportSkippedResources.txt"
 type TFConfigTransformer func(configs ConfigInfos) (ConfigInfos, error)
 
 type BaseMeta interface {
+	// Logger returns a slog.Logger
+	Logger() *slog.Logger
 	// ProviderName returns the target provider name, which is either azurerm or azapi.
 	ProviderName() string
 	// Init initializes the base meta, including initialize terraform, provider and soem runtime temporary resources.
@@ -77,6 +79,7 @@ type BaseMeta interface {
 var _ BaseMeta = &baseMeta{}
 
 type baseMeta struct {
+	logger             *slog.Logger
 	subscriptionId     string
 	azureSDKCred       azcore.TokenCredential
 	azureSDKClientOpt  arm.ClientOptions
@@ -203,6 +206,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	}
 
 	meta := &baseMeta{
+		logger:             cfg.Logger,
 		subscriptionId:     cfg.SubscriptionId,
 		azureSDKCred:       cfg.AzureSDKCredential,
 		azureSDKClientOpt:  cfg.AzureSDKClientOption,
@@ -229,6 +233,10 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	}
 
 	return meta, nil
+}
+
+func (meta baseMeta) Logger() *slog.Logger {
+	return meta.logger
 }
 
 func (meta baseMeta) ProviderName() string {
@@ -301,7 +309,7 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) e
 		// Ensure the state file is removed after this round import, preparing for the next round.
 		defer os.Remove(stateFile)
 
-		log.Debug("Merging terraform state file (tfmerge)", "file", stateFile)
+		meta.Logger().Debug("Merging terraform state file (tfmerge)", "file", stateFile)
 		newState, err := tfmerge.Merge(ctx, meta.tf, meta.baseState, stateFile)
 		if err != nil {
 			return fmt.Errorf("failed to merge state file: %v", err)
@@ -679,12 +687,12 @@ func (meta *baseMeta) initImportDirs() error {
 }
 
 func (meta *baseMeta) initTF(ctx context.Context) error {
-	log.Info("Init Terraform")
+	meta.Logger().Info("Init Terraform")
 	execPath, err := FindTerraform(ctx)
 	if err != nil {
 		return fmt.Errorf("error finding a terraform exectuable: %w", err)
 	}
-	log.Info("Found terraform binary", "path", execPath)
+	meta.Logger().Info("Found terraform binary", "path", execPath)
 
 	newTF := func(dir string) (*tfexec.Terraform, error) {
 		tf, err := tfexec.NewTerraform(dir, execPath)
@@ -720,7 +728,7 @@ func (meta *baseMeta) initTF(ctx context.Context) error {
 }
 
 func (meta *baseMeta) initProvider(ctx context.Context) error {
-	log.Info("Init provider")
+	meta.Logger().Info("Init provider")
 
 	module, diags := tfconfig.LoadModule(meta.outdir)
 	if diags.HasErrors() {
@@ -733,7 +741,7 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 	}
 
 	if module.ProviderConfigs[meta.providerName] == nil {
-		log.Info("Output directory doesn't contain provider setting, create one then")
+		meta.Logger().Info("Output directory doesn't contain provider setting, create one then")
 		cfgFile := filepath.Join(meta.outdir, meta.outputFileNames.ProviderFileName)
 		// #nosec G306
 		if err := os.WriteFile(cfgFile, []byte(meta.buildProviderConfig()), 0644); err != nil {
@@ -742,7 +750,7 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 	}
 
 	if tfblock == nil {
-		log.Info("Output directory doesn't contain terraform block, create one then")
+		meta.Logger().Info("Output directory doesn't contain terraform block, create one then")
 		cfgFile := filepath.Join(meta.outdir, meta.outputFileNames.TerraformFileName)
 		// #nosec G306
 		if err := os.WriteFile(cfgFile, []byte(meta.buildTerraformConfig(meta.backendType)), 0644); err != nil {
@@ -756,7 +764,7 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 		opts = append(opts, tfexec.BackendConfig(opt))
 	}
 
-	log.Debug(`Run "terraform init" for the output directory`, "dir", meta.outdir)
+	meta.Logger().Debug(`Run "terraform init" for the output directory`, "dir", meta.outdir)
 	if err := meta.tf.Init(ctx, opts...); err != nil {
 		return fmt.Errorf("error running terraform init for the output directory: %s", err)
 	}
@@ -778,9 +786,9 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 				return nil, fmt.Errorf("error creating terraform config: %w", err)
 			}
 			if meta.devProvider {
-				log.Debug(`Skip running "terraform init" for the import directory (dev provider)`, "dir", meta.importBaseDirs[i])
+				meta.Logger().Debug(`Skip running "terraform init" for the import directory (dev provider)`, "dir", meta.importBaseDirs[i])
 			} else {
-				log.Debug(`Run "terraform init" for the import directory`, "dir", meta.importBaseDirs[i])
+				meta.Logger().Debug(`Run "terraform init" for the import directory`, "dir", meta.importBaseDirs[i])
 				if err := meta.importTFs[i].Init(ctx); err != nil {
 					return nil, fmt.Errorf("error running terraform init: %s", err)
 				}
@@ -797,7 +805,7 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 
 func (meta *baseMeta) importItem(ctx context.Context, item *ImportItem, importIdx int) {
 	if item.Skip() {
-		log.Info("Skipping resource", "tf_id", item.TFResourceId)
+		meta.Logger().Info("Skipping resource", "tf_id", item.TFResourceId)
 		return
 	}
 
@@ -819,7 +827,7 @@ func (meta *baseMeta) importItem_tf(ctx context.Context, item *ImportItem, impor
 	// #nosec G306
 	if err := os.WriteFile(cfgFile, []byte(tpl), 0644); err != nil {
 		err := fmt.Errorf("generating resource template file for %s: %w", item.TFAddr, err)
-		log.Error("Failed to generate resource template file", "error", err, "tf_addr", item.TFAddr)
+		meta.Logger().Error("Failed to generate resource template file", "error", err, "tf_addr", item.TFAddr)
 		item.ImportError = err
 		return
 	}
@@ -831,13 +839,13 @@ func (meta *baseMeta) importItem_tf(ctx context.Context, item *ImportItem, impor
 		addr = meta.moduleAddr + "." + addr
 	}
 
-	log.Info("Importing a resource", "tf_id", item.TFResourceId, "tf_addr", addr)
+	meta.Logger().Info("Importing a resource", "tf_id", item.TFResourceId, "tf_addr", addr)
 	// The actual resource type names in telemetry is redacted
 	meta.tc.Trace(telemetry.Info, fmt.Sprintf("Importing %s as %s", item.AzureResourceID.TypeString(), addr))
 
 	err := tf.Import(ctx, addr, item.TFResourceId)
 	if err != nil {
-		log.Error("Terraform import failed", "tf_addr", item.TFAddr, "error", err)
+		meta.Logger().Error("Terraform import failed", "tf_addr", item.TFAddr, "error", err)
 		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Importing %s failed", item.AzureResourceID.TypeString()))
 		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Error detail: %v", err))
 	} else {
@@ -850,7 +858,7 @@ func (meta *baseMeta) importItem_tf(ctx context.Context, item *ImportItem, impor
 func (meta *baseMeta) importItem_notf(ctx context.Context, item *ImportItem, importIdx int) {
 	// Import resources
 	addr := item.TFAddr.String()
-	log.Info("Importing a resource", "tf_id", item.TFResourceId, "tf_addr", addr)
+	meta.Logger().Info("Importing a resource", "tf_id", item.TFResourceId, "tf_addr", addr)
 	// The actual resource type names in telemetry is redacted
 	meta.tc.Trace(telemetry.Info, fmt.Sprintf("Importing %s as %s", item.AzureResourceID.TypeString(), addr))
 
@@ -859,7 +867,7 @@ func (meta *baseMeta) importItem_notf(ctx context.Context, item *ImportItem, imp
 		ID:       item.TFResourceId,
 	})
 	if diags.HasErrors() {
-		log.Error("Terraform import failed", "tf_addr", item.TFAddr, "error", diags.Err())
+		meta.Logger().Error("Terraform import failed", "tf_addr", item.TFAddr, "error", diags.Err())
 		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Importing %s failed", item.AzureResourceID.TypeString()))
 		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Error detail: %v", diags.Err()))
 		item.ImportError = diags.Err()
@@ -868,7 +876,7 @@ func (meta *baseMeta) importItem_notf(ctx context.Context, item *ImportItem, imp
 	}
 	if len(importResp.ImportedResources) != 1 {
 		err := fmt.Errorf("expect 1 resource being imported, got=%d", len(importResp.ImportedResources))
-		log.Error(err.Error())
+		meta.Logger().Error(err.Error())
 		meta.tc.Trace(telemetry.Error, err.Error())
 		item.ImportError = err
 		item.Imported = false
@@ -881,7 +889,7 @@ func (meta *baseMeta) importItem_notf(ctx context.Context, item *ImportItem, imp
 		Private:    res.Private,
 	})
 	if diags.HasErrors() {
-		log.Error("Terraform read a resource failed", "tf_addr", item.TFAddr, "error", diags.Err())
+		meta.Logger().Error("Terraform read a resource failed", "tf_addr", item.TFAddr, "error", diags.Err())
 		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Reading %s failed", item.AzureResourceID.TypeString()))
 		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Error detail: %v", diags.Err()))
 		item.ImportError = diags.Err()
