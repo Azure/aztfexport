@@ -19,17 +19,17 @@ require (
 	github.com/hashicorp/terraform-exec v0.20.0
 	github.com/hashicorp/terraform-json v0.19.0
 	github.com/hexops/gotextdiff v1.0.3
-	github.com/magodo/armid v0.0.0-20230511151020-27880e5961c3
+	github.com/magodo/armid v0.0.0-20240524082432-7ce06ae46c33
 	github.com/magodo/azlist v0.0.0-20240702100525-5ac55e2823fa
 	github.com/magodo/aztft v0.3.1-0.20240429022627-002cdc06267a
 	github.com/magodo/slog2hclog v0.0.0-20240614031327-090ebd72a033
-	github.com/magodo/spinner v0.0.0-20220720073946-50f31b2dc5a6
+	github.com/magodo/spinner v0.0.0-20240524082745-3a2305db1bdc
 	github.com/magodo/terraform-client-go v0.0.0-20230323074119-02ceb732dd25
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
 	github.com/magodo/tfadd v0.10.1-0.20240412023810-79ace00fe84d
 	github.com/magodo/tfmerge v0.0.0-20221214062955-f52e46d03402
 	github.com/magodo/tfstate v0.0.0-20220409052014-9b9568dda918
-	github.com/magodo/workerpool v0.0.0-20230119025400-40192d2716ea
+	github.com/magodo/workerpool v0.0.0-20240524082508-11838001bc35
 	github.com/microsoft/ApplicationInsights-Go v0.4.4
 	github.com/mitchellh/go-wordwrap v1.0.0
 	github.com/muesli/reflow v0.3.0
