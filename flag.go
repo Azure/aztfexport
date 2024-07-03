@@ -1,16 +1,21 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"io"
+	"log/slog"
 	"os"
 	"strings"
 
 	"github.com/Azure/aztfexport/internal/cfgfile"
+	"github.com/Azure/aztfexport/internal/log"
 	"github.com/Azure/aztfexport/pkg/config"
 	"github.com/Azure/aztfexport/pkg/telemetry"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
+	azlog "github.com/Azure/azure-sdk-for-go/sdk/azcore/log"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/gofrs/uuid"
@@ -40,6 +45,8 @@ type FlagSet struct {
 	flagHCLOnly             bool
 	flagModulePath          string
 	flagGenerateImportBlock bool
+	flagLogPath             string
+	flagLogLevel            string
 
 	// common flags (auth)
 	flagUseEnvironmentCred     bool
@@ -340,6 +347,7 @@ func (f FlagSet) BuildCommonConfig() (config.CommonConfig, error) {
 	}
 
 	cfg := config.CommonConfig{
+		Logger:               slog.New(slog.NewTextHandler(io.Discard, nil)),
 		SubscriptionId:       f.flagSubscriptionId,
 		AzureSDKCredential:   cred,
 		AzureSDKClientOption: *clientOpt,
@@ -367,5 +375,48 @@ func (f FlagSet) BuildCommonConfig() (config.CommonConfig, error) {
 		}
 	}
 
+	// Logger is only enabled when the log path is specified.
+	// This is because either interactive/non-interactive mode controls the terminal rendering,
+	// logging to stdout/stderr will impact the rendering.
+	if path := f.flagLogPath; path != "" {
+		level, err := logLevel(f.flagLogLevel)
+		if err != nil {
+			return config.CommonConfig{}, err
+		}
+
+		// #nosec G304
+		f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+		if err != nil {
+			return config.CommonConfig{}, fmt.Errorf("creating log file %s: %v", path, err)
+		}
+
+		logger := slog.New(slog.NewTextHandler(f, &slog.HandlerOptions{Level: level}))
+
+		// Enable log for azure sdk
+		os.Setenv("AZURE_SDK_GO_LOGGING", "all") // #nosec G104
+		azlog.SetListener(func(cls azlog.Event, msg string) {
+			logger.Log(context.Background(), log.LevelTrace, msg, "event", cls)
+		})
+
+		cfg.Logger = logger
+	}
+
 	return cfg, nil
+}
+
+func logLevel(level string) (slog.Level, error) {
+	switch strings.ToUpper(level) {
+	case "ERROR":
+		return slog.LevelError, nil
+	case "WARN":
+		return slog.LevelWarn, nil
+	case "INFO":
+		return slog.LevelInfo, nil
+	case "DEBUG":
+		return slog.LevelDebug, nil
+	case "TRACE":
+		return log.LevelTrace, nil
+	default:
+		return slog.Level(0), fmt.Errorf("unknown log level: %s", level)
+	}
 }
