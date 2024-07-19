@@ -2,6 +2,7 @@ package config
 
 import (
 	"log/slog"
+	"time"
 
 	"github.com/Azure/aztfexport/internal/tfaddr"
 	"github.com/Azure/aztfexport/pkg/telemetry"
@@ -26,7 +27,7 @@ type ImportItem struct {
 	TFAddr tfaddr.TFAddr
 }
 
-type ImportCallback func(total int, item ImportItem)
+type ImportCallback func(startTime time.Time, total int, item ImportItem)
 
 type OutputFileNames struct {
 	// The filename for the generated "terraform.tf" (default)
@@ -73,8 +74,10 @@ type CommonConfig struct {
 	FullConfig bool
 	// Parallelism specifies the parallelism for the process
 	Parallelism int
-	// ImportCallback is a way to inspect each resource after being imported during ParallelImport
-	ImportCallback ImportCallback
+	// PreImportHook is called before each resource is imported during ParallelImport
+	PreImportHook ImportCallback
+	// PostImportHook is called after each resource is imported during ParallelImport
+	PostImportHook ImportCallback
 	// ModulePath specifies the path of the module (e.g. "module1.module2") where the resources will be imported and config generated.
 	// Note that only modules whose "source" is local path is supported. By default, it is the root module.
 	ModulePath string

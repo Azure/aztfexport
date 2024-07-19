@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	tfjson "github.com/hashicorp/terraform-json"
 
@@ -95,7 +96,8 @@ type baseMeta struct {
 	providerConfig     map[string]cty.Value
 	fullConfig         bool
 	parallelism        int
-	importCallback     config.ImportCallback
+	preImportHook      config.ImportCallback
+	postImportHook     config.ImportCallback
 	generateImportFile bool
 
 	hclOnly  bool
@@ -221,7 +223,8 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		providerName:       cfg.ProviderName,
 		fullConfig:         cfg.FullConfig,
 		parallelism:        cfg.Parallelism,
-		importCallback:     cfg.ImportCallback,
+		preImportHook:      cfg.PreImportHook,
+		postImportHook:     cfg.PostImportHook,
 		generateImportFile: cfg.GenerateImportBlock,
 		hclOnly:            cfg.HCLOnly,
 		tfclient:           cfg.TFClient,
@@ -323,15 +326,19 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) e
 		i := i
 		wp.AddTask(func() (interface{}, error) {
 			for item := range itemsCh {
+				iitem := config.ImportItem{
+					AzureResourceID: item.AzureResourceID,
+					TFResourceId:    item.TFResourceId,
+					ImportError:     item.ImportError,
+					TFAddr:          item.TFAddr,
+				}
+				startTime := time.Now()
+				if meta.preImportHook != nil {
+					meta.preImportHook(startTime, total, iitem)
+				}
 				meta.importItem(ctx, item, i)
-				if meta.importCallback != nil {
-					item := config.ImportItem{
-						AzureResourceID: item.AzureResourceID,
-						TFResourceId:    item.TFResourceId,
-						ImportError:     item.ImportError,
-						TFAddr:          item.TFAddr,
-					}
-					meta.importCallback(total, item)
+				if meta.postImportHook != nil {
+					meta.postImportHook(startTime, total, iitem)
 				}
 			}
 			return i, nil
@@ -858,7 +865,7 @@ func (meta *baseMeta) importItem_tf(ctx context.Context, item *ImportItem, impor
 func (meta *baseMeta) importItem_notf(ctx context.Context, item *ImportItem, importIdx int) {
 	// Import resources
 	addr := item.TFAddr.String()
-	meta.Logger().Info("Importing a resource", "tf_id", item.TFResourceId, "tf_addr", addr)
+	meta.Logger().Debug("Importing a resource", "tf_id", item.TFResourceId, "tf_addr", addr)
 	// The actual resource type names in telemetry is redacted
 	meta.tc.Trace(telemetry.Info, fmt.Sprintf("Importing %s as %s", item.AzureResourceID.TypeString(), addr))
 
@@ -897,6 +904,7 @@ func (meta *baseMeta) importItem_notf(ctx context.Context, item *ImportItem, imp
 		return
 	}
 
+	meta.Logger().Debug("Finish importing a resource", "tf_id", item.TFResourceId, "tf_addr", addr)
 	item.State = readResp.NewState
 	item.ImportError = nil
 	item.Imported = true
