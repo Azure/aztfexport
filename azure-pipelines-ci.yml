@@ -5,6 +5,6 @@ pool:
   name: pool-windows-2019
 
 steps:
-  - task: securedevelopmentteam.vss-secure-development-tools.build-task-credscan.CredScan@2
+  - task: securedevelopmentteam.vss-secure-development-tools.build-task-credscan.CredScan@3
     inputs:
-      toolMajorVersion: 'V2'
+      toolMajorVersion: 'V3'
