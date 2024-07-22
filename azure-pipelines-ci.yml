@@ -8,5 +8,3 @@ steps:
   - task: securedevelopmentteam.vss-secure-development-tools.build-task-credscan.CredScan@3
     inputs:
       toolMajorVersion: 'V3'
-    env:
-      GDN_SUPPRESS_FORKED_BUILD_WARNING: true
