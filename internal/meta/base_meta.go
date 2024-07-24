@@ -207,6 +207,60 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		}
 	}
 
+	// Merge the auth configs to the provider config, if the config not defined
+	providerConfig := cfg.ProviderConfig
+	if providerConfig == nil {
+		providerConfig = map[string]cty.Value{}
+	}
+
+	setIfNoExist := func(k string, v cty.Value) {
+		if _, ok := providerConfig[k]; !ok {
+			providerConfig[k] = v
+		}
+	}
+	if cfg.SubscriptionId != "" {
+		setIfNoExist("subscription_id", cty.StringVal(cfg.SubscriptionId))
+	}
+	if v := cfg.AuthConfig.Environment; v != "" {
+		setIfNoExist("environment", cty.StringVal(v))
+	}
+	if v := cfg.AuthConfig.TenantID; v != "" {
+		setIfNoExist("tenant_id", cty.StringVal(v))
+	}
+
+	if len(cfg.AuthConfig.AuxiliaryTenantIDs) != 0 {
+		var tenantIds []cty.Value
+		for _, id := range cfg.AuthConfig.AuxiliaryTenantIDs {
+			tenantIds = append(tenantIds, cty.StringVal(id))
+		}
+		setIfNoExist("auxiliary_tenant_ids", cty.ListVal(tenantIds))
+	}
+
+	if v := cfg.AuthConfig.ClientID; v != "" {
+		setIfNoExist("client_id", cty.StringVal(v))
+	}
+	if v := cfg.AuthConfig.ClientSecret; v != "" {
+		setIfNoExist("client_secret", cty.StringVal(v))
+	}
+	if v := cfg.AuthConfig.ClientCertificate; v != "" {
+		setIfNoExist("client_certificate", cty.StringVal(v))
+	}
+	if v := cfg.AuthConfig.ClientCertificatePassword; v != "" {
+		setIfNoExist("client_certificate_password", cty.StringVal(v))
+	}
+	if v := cfg.AuthConfig.OIDCTokenRequestToken; v != "" {
+		setIfNoExist("oidc_request_token", cty.StringVal(v))
+	}
+	if v := cfg.AuthConfig.OIDCTokenRequestURL; v != "" {
+		setIfNoExist("oidc_request_url", cty.StringVal(v))
+	}
+	if v := cfg.AuthConfig.OIDCAssertionToken; v != "" {
+		setIfNoExist("oidc_token", cty.StringVal(v))
+	}
+	setIfNoExist("use_msi", cty.BoolVal(cfg.AuthConfig.UseManagedIdentity))
+	setIfNoExist("use_cli", cty.BoolVal(cfg.AuthConfig.UseAzureCLI))
+	setIfNoExist("use_oidc", cty.BoolVal(cfg.AuthConfig.UseOIDC))
+
 	meta := &baseMeta{
 		logger:             cfg.Logger,
 		subscriptionId:     cfg.SubscriptionId,
@@ -219,7 +273,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		devProvider:        cfg.DevProvider,
 		backendType:        cfg.BackendType,
 		backendConfig:      cfg.BackendConfig,
-		providerConfig:     cfg.ProviderConfig,
+		providerConfig:     providerConfig,
 		providerName:       cfg.ProviderName,
 		fullConfig:         cfg.FullConfig,
 		parallelism:        cfg.Parallelism,
@@ -580,14 +634,15 @@ func (meta *baseMeta) buildTerraformConfig(backendType string) string {
 func (meta *baseMeta) buildProviderConfig() string {
 	f := hclwrite.NewEmptyFile()
 
+	var body *hclwrite.Body
 	if meta.useAzAPI() {
-		f.Body().AppendNewBlock("provider", []string{"azapi"}).Body()
+		body = f.Body().AppendNewBlock("provider", []string{"azapi"}).Body()
 	} else {
-		body := f.Body().AppendNewBlock("provider", []string{"azurerm"}).Body()
+		body = f.Body().AppendNewBlock("provider", []string{"azurerm"}).Body()
 		body.AppendNewBlock("features", nil)
-		for k, v := range meta.providerConfig {
-			body.SetAttributeValue(k, v)
-		}
+	}
+	for k, v := range meta.providerConfig {
+		body.SetAttributeValue(k, v)
 	}
 	return string(f.Bytes())
 }

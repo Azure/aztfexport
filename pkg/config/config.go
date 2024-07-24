@@ -42,6 +42,9 @@ type OutputFileNames struct {
 
 type CommonConfig struct {
 	Logger *slog.Logger
+	// AuthConfig specifies the authentication config for provider
+	// This doesn't impact the auth of the tool itself (e.g. listing resources), which is controlled by AzureSDKCredential field.
+	AuthConfig AuthConfig
 	// SubscriptionId specifies the user's Azure subscription id.
 	SubscriptionId string
 	// AzureSDKCredential specifies the Azure SDK token credential

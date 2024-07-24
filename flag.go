@@ -12,12 +12,10 @@ import (
 	"github.com/Azure/aztfexport/internal/log"
 	"github.com/Azure/aztfexport/pkg/config"
 	"github.com/Azure/aztfexport/pkg/telemetry"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
 	azlog "github.com/Azure/azure-sdk-for-go/sdk/azcore/log"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
-	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/gofrs/uuid"
 	"github.com/urfave/cli/v2"
 )
@@ -26,7 +24,6 @@ var flagset FlagSet
 
 type FlagSet struct {
 	// common flags
-	flagEnv                 string
 	flagSubscriptionId      string
 	flagOutputDir           string
 	flagOverwrite           bool
@@ -49,14 +46,23 @@ type FlagSet struct {
 	flagLogLevel            string
 
 	// common flags (auth)
-	flagUseEnvironmentCred     bool
-	flagUseManagedIdentityCred bool
-	flagUseAzureCLICred        bool
-	flagUseOIDCCred            bool
-	flagOIDCRequestToken       string
-	flagOIDCRequestURL         string
-	flagOIDCTokenFilePath      string
-	flagOIDCToken              string
+	flagEnv                       string
+	flagTenantId                  string
+	flagAuxiliaryTenantIds        cli.StringSlice
+	flagClientId                  string
+	flagClientIdFilePath          string
+	flagClientCertificate         string
+	flagClientCertificatePath     string
+	flagClientCertificatePassword string
+	flagClientSecret              string
+	flagClientSecretFilePath      string
+	flagOIDCRequestToken          string
+	flagOIDCRequestURL            string
+	flagOIDCTokenFilePath         string
+	flagOIDCToken                 string
+	flagUseManagedIdentityCred    bool
+	flagUseAzureCLICred           bool
+	flagUseOIDCCred               bool
 
 	// common flags (hidden)
 	hflagMockClient         bool
@@ -100,14 +106,13 @@ func (flag FlagSet) DescribeCLI(mode string) string {
 	args := []string{mode}
 
 	// The following flags are skipped eiter not interesting, or might contain sensitive info:
-	// - flagSubscriptionId
 	// - flagOutputDir
 	// - flagDevProvider
 	// - flagBackendConfig
 	// - all hflags
 
-	if flag.flagEnv != "" {
-		args = append(args, "--env="+flag.flagEnv)
+	if flag.flagSubscriptionId != "" {
+		args = append(args, "--subscription=*")
 	}
 	if flag.flagOverwrite {
 		args = append(args, "--overwrite=true")
@@ -152,17 +157,35 @@ func (flag FlagSet) DescribeCLI(mode string) string {
 		args = append(args, "--generate-import-block=true")
 	}
 
-	if flag.flagUseEnvironmentCred {
-		args = append(args, "--use-environment-cred=true")
+	if flag.flagEnv != "" {
+		args = append(args, "--env="+flag.flagEnv)
 	}
-	if flag.flagUseManagedIdentityCred {
-		args = append(args, "--use-managed-identity-cred=true")
+	if flag.flagTenantId != "" {
+		args = append(args, "--tenant-id=*")
 	}
-	if flag.flagUseAzureCLICred {
-		args = append(args, "--use-azure-cli-cred=true")
+	if v := flag.flagAuxiliaryTenantIds.Value(); len(v) != 0 {
+		args = append(args, fmt.Sprintf("--tenant-id=[%d]", len(v)))
 	}
-	if flag.flagUseOIDCCred {
-		args = append(args, "--use-oidc-cred=true")
+	if flag.flagClientId != "" {
+		args = append(args, "--client-id=*")
+	}
+	if flag.flagClientIdFilePath != "" {
+		args = append(args, "--client-id-file-path="+flag.flagClientIdFilePath)
+	}
+	if flag.flagClientCertificate != "" {
+		args = append(args, "--client-certificate=*")
+	}
+	if flag.flagClientCertificatePath != "" {
+		args = append(args, "--client-certificate-path="+flag.flagClientCertificatePath)
+	}
+	if flag.flagClientCertificatePassword != "" {
+		args = append(args, "--client-certificate-password=*")
+	}
+	if flag.flagClientSecret != "" {
+		args = append(args, "--client-secret=***")
+	}
+	if flag.flagClientSecretFilePath != "" {
+		args = append(args, "--client-secret-file-path="+flag.flagClientSecretFilePath)
 	}
 	if flag.flagOIDCRequestToken != "" {
 		args = append(args, "--oidc-request-token=*")
@@ -175,6 +198,15 @@ func (flag FlagSet) DescribeCLI(mode string) string {
 	}
 	if flag.flagOIDCToken != "" {
 		args = append(args, "--oidc-token=*")
+	}
+	if flag.flagUseManagedIdentityCred {
+		args = append(args, "--use-managed-identity-cred=true")
+	}
+	if flag.flagUseAzureCLICred {
+		args = append(args, "--use-azure-cli-cred=true")
+	}
+	if flag.flagUseOIDCCred {
+		args = append(args, "--use-oidc-cred=true")
 	}
 
 	if flag.hflagTFClientPluginPath != "" {
@@ -237,10 +269,96 @@ func initTelemetryClient(subscriptionId string) telemetry.Client {
 	return telemetry.NewAppInsight(subscriptionId, installId, sessionId)
 }
 
-// buildAzureSDKCredAndClientOpt builds the Azure SDK credential and client option from multiple sources (i.e. environment variables, MSI, Azure CLI).
-func buildAzureSDKCredAndClientOpt(fset FlagSet) (azcore.TokenCredential, *arm.ClientOptions, error) {
+func (f FlagSet) buildAuthConfig() (*config.AuthConfig, error) {
+	clientId := f.flagClientId
+	if path := f.flagClientIdFilePath; path != "" {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("reading Client ID from file %q: %v", path, err)
+		}
+		clientId = strings.TrimSpace(string(b))
+	}
+
+	clientSecret := f.flagClientSecret
+	if path := f.flagClientSecretFilePath; path != "" {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("reading Client secret from file %q: %v", path, err)
+		}
+		clientSecret = strings.TrimSpace(string(b))
+	}
+
+	clientCert := f.flagClientCertificate
+	if path := f.flagClientCertificatePath; path != "" {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("reading Client certificate from file %q: %v", path, err)
+		}
+		clientCert = strings.TrimSpace(string(b))
+	}
+
+	oidcToken := f.flagOIDCToken
+	if path := f.flagOIDCTokenFilePath; path != "" {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("reading OIDC token from file %q: %v", path, err)
+		}
+		oidcToken = strings.TrimSpace(string(b))
+	}
+
+	c := config.AuthConfig{
+		Environment:               f.flagEnv,
+		TenantID:                  f.flagTenantId,
+		AuxiliaryTenantIDs:        f.flagAuxiliaryTenantIds.Value(),
+		ClientID:                  clientId,
+		ClientSecret:              clientSecret,
+		ClientCertificate:         clientCert,
+		ClientCertificatePassword: f.flagClientCertificatePassword,
+		OIDCTokenRequestToken:     f.flagOIDCRequestToken,
+		OIDCTokenRequestURL:       f.flagOIDCRequestURL,
+		OIDCAssertionToken:        oidcToken,
+		UseAzureCLI:               f.flagUseAzureCLICred,
+		UseManagedIdentity:        f.flagUseManagedIdentityCred,
+		UseOIDC:                   f.flagUseOIDCCred,
+	}
+
+	return &c, nil
+}
+
+// BuildCommonConfig builds the CommonConfig from the FlagSet, except the TFClient, which is built afterwards as it requires a logger.
+func (f FlagSet) BuildCommonConfig() (config.CommonConfig, error) {
+	// Logger is only enabled when the log path is specified.
+	// This is because either interactive/non-interactive mode controls the terminal rendering,
+	// logging to stdout/stderr will impact the rendering.
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	if path := f.flagLogPath; path != "" {
+		level, err := logLevel(f.flagLogLevel)
+		if err != nil {
+			return config.CommonConfig{}, err
+		}
+
+		// #nosec G304
+		f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+		if err != nil {
+			return config.CommonConfig{}, fmt.Errorf("creating log file %s: %v", path, err)
+		}
+
+		logger := slog.New(slog.NewTextHandler(f, &slog.HandlerOptions{Level: level}))
+
+		// Enable log for azure sdk
+		os.Setenv("AZURE_SDK_GO_LOGGING", "all") // #nosec G104
+		azlog.SetListener(func(cls azlog.Event, msg string) {
+			logger.Log(context.Background(), log.LevelTrace, msg, "event", cls)
+		})
+	}
+
+	authConfig, err := f.buildAuthConfig()
+	if err != nil {
+		return config.CommonConfig{}, err
+	}
+
 	var cloudCfg cloud.Configuration
-	switch env := fset.flagEnv; strings.ToLower(env) {
+	switch env := f.flagEnv; strings.ToLower(env) {
 	case "public":
 		cloudCfg = cloud.AzurePublic
 	case "usgovernment":
@@ -248,109 +366,40 @@ func buildAzureSDKCredAndClientOpt(fset FlagSet) (azcore.TokenCredential, *arm.C
 	case "china":
 		cloudCfg = cloud.AzureChina
 	default:
-		return nil, nil, fmt.Errorf("unknown environment specified: %q", env)
+		return config.CommonConfig{}, fmt.Errorf("unknown environment specified: %q", env)
 	}
 
-	// Maps the auth related environment variables used in the provider to what azidentity honors
-	if v, ok := os.LookupEnv("ARM_TENANT_ID"); ok {
-		// #nosec G104
-		os.Setenv("AZURE_TENANT_ID", v)
-	}
-	if v, ok := os.LookupEnv("ARM_CLIENT_ID"); ok {
-		// #nosec G104
-		os.Setenv("AZURE_CLIENT_ID", v)
-	}
-	if v, ok := os.LookupEnv("ARM_CLIENT_SECRET"); ok {
-		// #nosec G104
-		os.Setenv("AZURE_CLIENT_SECRET", v)
-	}
-	if v, ok := os.LookupEnv("ARM_CLIENT_CERTIFICATE_PATH"); ok {
-		// #nosec G104
-		os.Setenv("AZURE_CLIENT_CERTIFICATE_PATH", v)
-	}
-
-	clientOpt := &arm.ClientOptions{
+	clientOpt := arm.ClientOptions{
 		ClientOptions: policy.ClientOptions{
 			Cloud: cloudCfg,
 			Telemetry: policy.TelemetryOptions{
-				ApplicationID: fmt.Sprintf("aztfexport(%s)", fset.flagProviderName),
+				ApplicationID: fmt.Sprintf("aztfexport(%s)", f.flagProviderName),
 				Disabled:      false,
 			},
 			Logging: policy.LogOptions{
 				IncludeBody: true,
 			},
 		},
+		AuxiliaryTenants:      authConfig.AuxiliaryTenantIDs,
+		DisableRPRegistration: true,
 	}
 
-	tenantId := os.Getenv("ARM_TENANT_ID")
-	var (
-		cred azcore.TokenCredential
-		err  error
-	)
-	switch {
-	case fset.flagUseEnvironmentCred:
-		cred, err = azidentity.NewEnvironmentCredential(&azidentity.EnvironmentCredentialOptions{
-			ClientOptions: clientOpt.ClientOptions,
-		})
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to new Environment credential: %v", err)
-		}
-		return cred, clientOpt, nil
-	case fset.flagUseManagedIdentityCred:
-		cred, err = azidentity.NewManagedIdentityCredential(&azidentity.ManagedIdentityCredentialOptions{
-			ClientOptions: clientOpt.ClientOptions,
-		})
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to new Managed Identity credential: %v", err)
-		}
-		return cred, clientOpt, nil
-	case fset.flagUseAzureCLICred:
-		cred, err = azidentity.NewAzureCLICredential(&azidentity.AzureCLICredentialOptions{
-			TenantID: tenantId,
-		})
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to new Azure CLI credential: %v", err)
-		}
-		return cred, clientOpt, nil
-	case fset.flagUseOIDCCred:
-		cred, err = NewOidcCredential(&OidcCredentialOptions{
-			ClientOptions: clientOpt.ClientOptions,
-			TenantID:      tenantId,
-			ClientID:      os.Getenv("ARM_CLIENT_ID"),
-			RequestToken:  fset.flagOIDCRequestToken,
-			RequestUrl:    fset.flagOIDCRequestURL,
-			Token:         fset.flagOIDCToken,
-			TokenFilePath: fset.flagOIDCTokenFilePath,
-		})
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to new OIDC credential: %v", err)
-		}
-		return cred, clientOpt, nil
-	default:
-		opt := &azidentity.DefaultAzureCredentialOptions{
-			ClientOptions: clientOpt.ClientOptions,
-			TenantID:      tenantId,
-		}
-		cred, err := azidentity.NewDefaultAzureCredential(opt)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to new Default credential: %v", err)
-		}
-		return cred, clientOpt, nil
-	}
-}
-
-// BuildCommonConfig builds the CommonConfig from the FlagSet, except the TFClient, which is built afterwards as it requires a logger.
-func (f FlagSet) BuildCommonConfig() (config.CommonConfig, error) {
-	cred, clientOpt, err := buildAzureSDKCredAndClientOpt(f)
+	cred, err := NewDefaultAzureCredential(*logger, &DefaultAzureCredentialOptions{
+		AuthConfig:               *authConfig,
+		ClientOptions:            clientOpt.ClientOptions,
+		DisableInstanceDiscovery: false,
+		SendCertificateChain:     false,
+	})
 	if err != nil {
-		return config.CommonConfig{}, err
+		return config.CommonConfig{}, fmt.Errorf("failed to new credential: %v", err)
 	}
 
 	cfg := config.CommonConfig{
-		Logger:               slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Logger:               logger,
+		AuthConfig:           *authConfig,
 		SubscriptionId:       f.flagSubscriptionId,
 		AzureSDKCredential:   cred,
-		AzureSDKClientOption: *clientOpt,
+		AzureSDKClientOption: clientOpt,
 		OutputDir:            f.flagOutputDir,
 		ProviderVersion:      f.flagProviderVersion,
 		ProviderName:         f.flagProviderName,
@@ -373,32 +422,6 @@ func (f FlagSet) BuildCommonConfig() (config.CommonConfig, error) {
 			MainFileName:        "main.aztfexport.tf",
 			ImportBlockFileName: "import.aztfexport.tf",
 		}
-	}
-
-	// Logger is only enabled when the log path is specified.
-	// This is because either interactive/non-interactive mode controls the terminal rendering,
-	// logging to stdout/stderr will impact the rendering.
-	if path := f.flagLogPath; path != "" {
-		level, err := logLevel(f.flagLogLevel)
-		if err != nil {
-			return config.CommonConfig{}, err
-		}
-
-		// #nosec G304
-		f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
-		if err != nil {
-			return config.CommonConfig{}, fmt.Errorf("creating log file %s: %v", path, err)
-		}
-
-		logger := slog.New(slog.NewTextHandler(f, &slog.HandlerOptions{Level: level}))
-
-		// Enable log for azure sdk
-		os.Setenv("AZURE_SDK_GO_LOGGING", "all") // #nosec G104
-		azlog.SetListener(func(cls azlog.Event, msg string) {
-			logger.Log(context.Background(), log.LevelTrace, msg, "event", cls)
-		})
-
-		cfg.Logger = logger
 	}
 
 	return cfg, nil

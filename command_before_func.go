@@ -50,19 +50,57 @@ func commandBeforeFunc(fset *FlagSet) func(ctx *cli.Context) error {
 				return fmt.Errorf("`--tfclient-plugin-path` must be used together with `--hcl-only`")
 			}
 		}
-		occur := 0
-		for _, ok := range []bool{
-			fset.flagUseEnvironmentCred,
-			fset.flagUseManagedIdentityCred,
-			fset.flagUseAzureCLICred,
-			fset.flagUseOIDCCred,
-		} {
-			if ok {
-				occur += 1
-			}
+
+		if err := conflictArgs([]argDesc{
+			{
+				name:  "--client-id",
+				isSet: fset.flagClientId != "",
+			},
+			{
+				name:  "--client-id-file-path",
+				isSet: fset.flagClientIdFilePath != "",
+			},
+		}); err != nil {
+			return err
 		}
-		if occur > 1 {
-			return fmt.Errorf("only one of `--use-environment-cred`, `--use-managed-identity-cred`, `--use-azure-cli-cred` and `--use-oidc-cred` can be specified")
+
+		if err := conflictArgs([]argDesc{
+			{
+				name:  "--client-certificate",
+				isSet: fset.flagClientCertificate != "",
+			},
+			{
+				name:  "--client-certificate-path",
+				isSet: fset.flagClientCertificatePath != "",
+			},
+		}); err != nil {
+			return err
+		}
+
+		if err := conflictArgs([]argDesc{
+			{
+				name:  "--client-secret",
+				isSet: fset.flagClientSecret != "",
+			},
+			{
+				name:  "--client-secret-file-path",
+				isSet: fset.flagClientSecretFilePath != "",
+			},
+		}); err != nil {
+			return err
+		}
+
+		if err := conflictArgs([]argDesc{
+			{
+				name:  "--oidc-token",
+				isSet: fset.flagOIDCToken != "",
+			},
+			{
+				name:  "--oidc-token-file-path",
+				isSet: fset.flagOIDCTokenFilePath != "",
+			},
+		}); err != nil {
+			return err
 		}
 
 		// Initialize output directory
@@ -186,4 +224,22 @@ The output directory is not empty. Please choose one of actions below:
 		}
 		return nil
 	}
+}
+
+type argDesc struct {
+	name  string
+	isSet bool
+}
+
+func conflictArgs(argDescs []argDesc) error {
+	var conflictArgs []string
+	for _, desc := range argDescs {
+		if desc.isSet {
+			conflictArgs = append(conflictArgs, fmt.Sprintf("%q", desc.name))
+		}
+	}
+	if len(conflictArgs) > 1 {
+		return fmt.Errorf("only one of the followings can be specified: %s", strings.Join(conflictArgs, ", "))
+	}
+	return nil
 }
