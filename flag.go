@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"log/slog"
@@ -276,7 +277,7 @@ func (f FlagSet) buildAuthConfig() (*config.AuthConfig, error) {
 		if err != nil {
 			return nil, fmt.Errorf("reading Client ID from file %q: %v", path, err)
 		}
-		clientId = strings.TrimSpace(string(b))
+		clientId = string(b)
 	}
 
 	clientSecret := f.flagClientSecret
@@ -285,16 +286,16 @@ func (f FlagSet) buildAuthConfig() (*config.AuthConfig, error) {
 		if err != nil {
 			return nil, fmt.Errorf("reading Client secret from file %q: %v", path, err)
 		}
-		clientSecret = strings.TrimSpace(string(b))
+		clientSecret = string(b)
 	}
 
-	clientCert := f.flagClientCertificate
+	clientCertEncoded := f.flagClientCertificate
 	if path := f.flagClientCertificatePath; path != "" {
 		b, err := os.ReadFile(path)
 		if err != nil {
 			return nil, fmt.Errorf("reading Client certificate from file %q: %v", path, err)
 		}
-		clientCert = strings.TrimSpace(string(b))
+		clientCertEncoded = base64.StdEncoding.EncodeToString(b)
 	}
 
 	oidcToken := f.flagOIDCToken
@@ -312,7 +313,7 @@ func (f FlagSet) buildAuthConfig() (*config.AuthConfig, error) {
 		AuxiliaryTenantIDs:        f.flagAuxiliaryTenantIds.Value(),
 		ClientID:                  clientId,
 		ClientSecret:              clientSecret,
-		ClientCertificate:         clientCert,
+		ClientCertificateEncoded:  clientCertEncoded,
 		ClientCertificatePassword: f.flagClientCertificatePassword,
 		OIDCTokenRequestToken:     f.flagOIDCRequestToken,
 		OIDCTokenRequestURL:       f.flagOIDCRequestURL,
@@ -343,7 +344,7 @@ func (f FlagSet) BuildCommonConfig() (config.CommonConfig, error) {
 			return config.CommonConfig{}, fmt.Errorf("creating log file %s: %v", path, err)
 		}
 
-		logger := slog.New(slog.NewTextHandler(f, &slog.HandlerOptions{Level: level}))
+		logger = slog.New(slog.NewTextHandler(f, &slog.HandlerOptions{Level: level}))
 
 		// Enable log for azure sdk
 		os.Setenv("AZURE_SDK_GO_LOGGING", "all") // #nosec G104

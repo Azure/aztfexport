@@ -39,6 +39,7 @@ require (
 	github.com/tidwall/sjson v1.2.5
 	github.com/urfave/cli/v2 v2.24.1
 	github.com/zclconf/go-cty v1.14.1
+	software.sslmate.com/src/go-pkcs12 v0.4.0
 )
 
 require (

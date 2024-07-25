@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/x509"
+	"encoding/base64"
 	"fmt"
 	"log/slog"
 
@@ -9,6 +11,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	"software.sslmate.com/src/go-pkcs12"
 )
 
 type DefaultAzureCredentialOptions struct {
@@ -57,27 +60,34 @@ func NewDefaultAzureCredential(logger slog.Logger, opt *DefaultAzureCredentialOp
 	}
 
 	logger.Info("Building credential via client certificaite")
-	certs, key, err := azidentity.ParseCertificates([]byte(opt.AuthConfig.ClientCertificate), []byte(opt.AuthConfig.ClientCertificatePassword))
-	if err == nil {
-		if cred, err := azidentity.NewClientCertificateCredential(
-			opt.AuthConfig.TenantID,
-			opt.AuthConfig.ClientID,
-			certs,
-			key,
-			&azidentity.ClientCertificateCredentialOptions{
-				ClientOptions:              opt.ClientOptions,
-				AdditionallyAllowedTenants: opt.AuthConfig.AuxiliaryTenantIDs,
-				DisableInstanceDiscovery:   opt.DisableInstanceDiscovery,
-				SendCertificateChain:       opt.SendCertificateChain,
-			},
-		); err == nil {
-			logger.Info("Successfully built credential via client certificate")
-			creds = append(creds, cred)
-		} else {
-			logger.Warn("Building credential via client certificate failed", "error", err)
-		}
+	if cert, err := base64.StdEncoding.DecodeString(opt.AuthConfig.ClientCertificateEncoded); err != nil {
+		logger.Warn("Building credential via client certificate failed", "error", fmt.Errorf("base64 decoidng certificate: %v", err))
 	} else {
-		logger.Warn("Building credential via client secret failed", "error", fmt.Errorf(`failed to parse certificate: %v`, err))
+		// We are using a 3rd party module for parsing the certificate (the same one as is used by go-azure-sdk/sdk/auth/client_certificate_authorizer.go)
+		// Reason can be found at: https://github.com/Azure/azure-sdk-for-go/issues/22906
+		//certs, key, err := azidentity.ParseCertificates(cert, []byte(opt.AuthConfig.ClientCertificatePassword))
+		key, cert, _, err := pkcs12.DecodeChain(cert, opt.AuthConfig.ClientCertificatePassword)
+		if err == nil {
+			if cred, err := azidentity.NewClientCertificateCredential(
+				opt.AuthConfig.TenantID,
+				opt.AuthConfig.ClientID,
+				[]*x509.Certificate{cert},
+				key,
+				&azidentity.ClientCertificateCredentialOptions{
+					ClientOptions:              opt.ClientOptions,
+					AdditionallyAllowedTenants: opt.AuthConfig.AuxiliaryTenantIDs,
+					DisableInstanceDiscovery:   opt.DisableInstanceDiscovery,
+					SendCertificateChain:       opt.SendCertificateChain,
+				},
+			); err == nil {
+				logger.Info("Successfully built credential via client certificate")
+				creds = append(creds, cred)
+			} else {
+				logger.Warn("Building credential via client certificate failed", "error", err)
+			}
+		} else {
+			logger.Warn("Building credential via client certificate failed", "error", fmt.Errorf(`failed to parse certificate: %v`, err))
+		}
 	}
 
 	if !opt.AuthConfig.UseOIDC {

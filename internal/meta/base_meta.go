@@ -173,11 +173,8 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	// #nosec G104
 	os.Setenv("AZURE_HTTP_USER_AGENT", cfg.AzureSDKClientOption.Telemetry.ApplicationID)
 
-	// Avoid the AzureRM provider to call the expensive RP listing API, repeatedly.
-	// #nosec G104
+	// Disable AzureRM provider's enahnced validation, which will cause RP listing, that is expensive.
 	os.Setenv("ARM_PROVIDER_ENHANCED_VALIDATION", "false")
-	// #nosec G104
-	os.Setenv("ARM_SKIP_PROVIDER_REGISTRATION", "true")
 
 	outputFileNames := cfg.OutputFileNames
 	if outputFileNames.TerraformFileName == "" {
@@ -207,7 +204,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		}
 	}
 
-	// Merge the auth configs to the provider config, if the config not defined
+	// Update provider config if not explicitly defined
 	providerConfig := cfg.ProviderConfig
 	if providerConfig == nil {
 		providerConfig = map[string]cty.Value{}
@@ -218,6 +215,8 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 			providerConfig[k] = v
 		}
 	}
+
+	// Update provider config for auth config
 	if cfg.SubscriptionId != "" {
 		setIfNoExist("subscription_id", cty.StringVal(cfg.SubscriptionId))
 	}
@@ -242,7 +241,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	if v := cfg.AuthConfig.ClientSecret; v != "" {
 		setIfNoExist("client_secret", cty.StringVal(v))
 	}
-	if v := cfg.AuthConfig.ClientCertificate; v != "" {
+	if v := cfg.AuthConfig.ClientCertificateEncoded; v != "" {
 		setIfNoExist("client_certificate", cty.StringVal(v))
 	}
 	if v := cfg.AuthConfig.ClientCertificatePassword; v != "" {
@@ -260,6 +259,9 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	setIfNoExist("use_msi", cty.BoolVal(cfg.AuthConfig.UseManagedIdentity))
 	setIfNoExist("use_cli", cty.BoolVal(cfg.AuthConfig.UseAzureCLI))
 	setIfNoExist("use_oidc", cty.BoolVal(cfg.AuthConfig.UseOIDC))
+
+	// Update provider config for provider registration
+	setIfNoExist("skip_provider_registration", cty.BoolVal(true))
 
 	meta := &baseMeta{
 		logger:             cfg.Logger,

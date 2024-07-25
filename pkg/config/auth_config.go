@@ -7,7 +7,7 @@ type AuthConfig struct {
 
 	ClientID                  string
 	ClientSecret              string
-	ClientCertificate         string
+	ClientCertificateEncoded  string
 	ClientCertificatePassword string
 
 	OIDCTokenRequestToken string

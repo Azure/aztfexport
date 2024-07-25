@@ -262,13 +262,13 @@ func main() {
 		&cli.StringFlag{
 			Name:        "client-certificate",
 			EnvVars:     []string{"AZTFEXPORT_CLIENT_CERTIFICATE", "ARM_CLIENT_CERTIFICATE"},
-			Usage:       "The Azure client certificate",
+			Usage:       "A base64-encoded PKCS#12 bundle to be used as the client certificate for authentication",
 			Destination: &flagset.flagClientCertificate,
 		},
 		&cli.StringFlag{
 			Name:        "client-certificate-path",
 			EnvVars:     []string{"AZTFEXPORT_CLIENT_CERTIFICATE_PATH", "ARM_CLIENT_CERTIFICATE_PATH"},
-			Usage:       "The Azure client certificate file path",
+			Usage:       "The path to the Client Certificate (PKCS#12) associated with the Service Principal which should be used",
 			Destination: &flagset.flagClientCertificatePath,
 		},
 		&cli.StringFlag{
