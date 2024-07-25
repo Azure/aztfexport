@@ -11,6 +11,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	"github.com/hashicorp/go-multierror"
 	"software.sslmate.com/src/go-pkcs12"
 )
 
@@ -37,6 +38,7 @@ type DefaultAzureCredential struct {
 // NewDefaultAzureCredential creates a DefaultAzureCredential. Pass nil for options to accept defaults.
 func NewDefaultAzureCredential(logger slog.Logger, opt *DefaultAzureCredentialOptions) (*DefaultAzureCredential, error) {
 	var creds []azcore.TokenCredential
+	var errors error
 
 	if opt == nil {
 		opt = &DefaultAzureCredentialOptions{}
@@ -56,18 +58,26 @@ func NewDefaultAzureCredential(logger slog.Logger, opt *DefaultAzureCredentialOp
 		logger.Info("Successfully built credential via client secret")
 		creds = append(creds, cred)
 	} else {
-		logger.Warn("Building credential via client secret failed", "error", err)
+		thisErr := fmt.Errorf("Building credential via client secret failed: %v", err)
+		logger.Warn(thisErr.Error())
+		errors = multierror.Append(errors, thisErr)
 	}
 
 	logger.Info("Building credential via client certificaite")
 	if cert, err := base64.StdEncoding.DecodeString(opt.AuthConfig.ClientCertificateEncoded); err != nil {
-		logger.Warn("Building credential via client certificate failed", "error", fmt.Errorf("base64 decoidng certificate: %v", err))
+		thisErr := fmt.Errorf("Building credential via client certificate failed: base64 decoidng certificate: %v", err)
+		logger.Warn(thisErr.Error())
+		errors = multierror.Append(errors, thisErr)
 	} else {
 		// We are using a 3rd party module for parsing the certificate (the same one as is used by go-azure-sdk/sdk/auth/client_certificate_authorizer.go)
 		// Reason can be found at: https://github.com/Azure/azure-sdk-for-go/issues/22906
 		//certs, key, err := azidentity.ParseCertificates(cert, []byte(opt.AuthConfig.ClientCertificatePassword))
 		key, cert, _, err := pkcs12.DecodeChain(cert, opt.AuthConfig.ClientCertificatePassword)
-		if err == nil {
+		if err != nil {
+			thisErr := fmt.Errorf("Building credential via client certificate failed: failed to parse certificate: %v", err)
+			logger.Warn(thisErr.Error())
+			errors = multierror.Append(errors, thisErr)
+		} else {
 			if cred, err := azidentity.NewClientCertificateCredential(
 				opt.AuthConfig.TenantID,
 				opt.AuthConfig.ClientID,
@@ -79,14 +89,14 @@ func NewDefaultAzureCredential(logger slog.Logger, opt *DefaultAzureCredentialOp
 					DisableInstanceDiscovery:   opt.DisableInstanceDiscovery,
 					SendCertificateChain:       opt.SendCertificateChain,
 				},
-			); err == nil {
+			); err != nil {
+				thisErr := fmt.Errorf("Building credential via client certificate failed: %v", err)
+				logger.Warn(thisErr.Error())
+				errors = multierror.Append(errors, thisErr)
+			} else {
 				logger.Info("Successfully built credential via client certificate")
 				creds = append(creds, cred)
-			} else {
-				logger.Warn("Building credential via client certificate failed", "error", err)
 			}
-		} else {
-			logger.Warn("Building credential via client certificate failed", "error", fmt.Errorf(`failed to parse certificate: %v`, err))
 		}
 	}
 
@@ -101,11 +111,13 @@ func NewDefaultAzureCredential(logger slog.Logger, opt *DefaultAzureCredentialOp
 			RequestToken:  opt.AuthConfig.OIDCTokenRequestToken,
 			RequestUrl:    opt.AuthConfig.OIDCTokenRequestURL,
 			Token:         opt.AuthConfig.OIDCAssertionToken,
-		}); err == nil {
+		}); err != nil {
+			thisErr := fmt.Errorf("Building credential via OIDC failed: %v", err)
+			logger.Warn(thisErr.Error())
+			errors = multierror.Append(errors, thisErr)
+		} else {
 			logger.Info("Successfully built credential via OIDC")
 			creds = append(creds, cred)
-		} else {
-			logger.Warn("Building credential via OIDC failed", "error", err)
 		}
 	}
 
@@ -116,11 +128,13 @@ func NewDefaultAzureCredential(logger slog.Logger, opt *DefaultAzureCredentialOp
 		if cred, err := azidentity.NewManagedIdentityCredential(&azidentity.ManagedIdentityCredentialOptions{
 			ClientOptions: opt.ClientOptions,
 			ID:            azidentity.ClientID(opt.AuthConfig.ClientID),
-		}); err == nil {
+		}); err != nil {
+			thisErr := fmt.Errorf("Building credential via managed identity failed: %v", err)
+			logger.Warn(thisErr.Error())
+			errors = multierror.Append(errors, thisErr)
+		} else {
 			logger.Info("Successfully built credential via managed identity")
 			creds = append(creds, cred)
-		} else {
-			logger.Warn("Building credential via managed identity failed", "error", err)
 		}
 	}
 
@@ -131,16 +145,19 @@ func NewDefaultAzureCredential(logger slog.Logger, opt *DefaultAzureCredentialOp
 		if cred, err := azidentity.NewAzureCLICredential(&azidentity.AzureCLICredentialOptions{
 			AdditionallyAllowedTenants: opt.AuthConfig.AuxiliaryTenantIDs,
 			TenantID:                   opt.AuthConfig.TenantID,
-		}); err == nil {
+		}); err != nil {
+			thisErr := fmt.Errorf("Building credential via Azure CLI failed: %v", err)
+			logger.Warn(thisErr.Error())
+			errors = multierror.Append(errors, thisErr)
+		} else {
 			logger.Info("Successfully built credential via Azure CLI")
 			creds = append(creds, cred)
-		} else {
-			logger.Warn("Building credential via Azure CLI failed", "error", err)
 		}
 	}
 
 	chain, err := azidentity.NewChainedTokenCredential(creds, nil)
 	if err != nil {
+		err = multierror.Append(err, fmt.Errorf("Errors collected so far: %v", err))
 		return nil, err
 	}
 	return &DefaultAzureCredential{chain: chain}, nil
