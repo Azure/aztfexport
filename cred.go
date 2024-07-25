@@ -157,7 +157,7 @@ func NewDefaultAzureCredential(logger slog.Logger, opt *DefaultAzureCredentialOp
 
 	chain, err := azidentity.NewChainedTokenCredential(creds, nil)
 	if err != nil {
-		err = multierror.Append(err, fmt.Errorf("Errors collected so far: %v", err))
+		err = multierror.Append(err, fmt.Errorf("Errors from credential build tries: %v", errors))
 		return nil, err
 	}
 	return &DefaultAzureCredential{chain: chain}, nil
