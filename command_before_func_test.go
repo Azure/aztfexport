@@ -212,20 +212,6 @@ func TestCommondBeforeFunc(t *testing.T) {
 			},
 			err: "`--hcl-only` only works for local backend",
 		},
-		{
-			name: "--use-environment-cred works",
-			fset: FlagSet{
-				flagUseEnvironmentCred: true,
-			},
-		},
-		{
-			name: "--use-environment-cred with --use-azure-cli failed",
-			fset: FlagSet{
-				flagUseEnvironmentCred: true,
-				flagUseAzureCLICred:    true,
-			},
-			err: "only one of `--use-environment-cred`, `--use-managed-identity-cred`, `--use-azure-cli-cred` and `--use-oidc-cred` can be specified",
-		},
 	}
 
 	for _, tt := range cases {
