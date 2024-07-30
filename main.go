@@ -93,16 +93,7 @@ func prepareConfigFile(ctx *cli.Context) error {
 func main() {
 	commonFlags := []cli.Flag{
 		&cli.StringFlag{
-			Name: "env",
-			// Honor the "ARM_ENVIRONMENT" as is used by the provider, for easier use.
-			EnvVars:     []string{"AZTFEXPORT_ENV", "ARM_ENVIRONMENT"},
-			Usage:       `The cloud environment, can be one of "public", "usgovernment" and "china"`,
-			Destination: &flagset.flagEnv,
-			Value:       "public",
-		},
-		&cli.StringFlag{
-			Name: "subscription-id",
-			// Honor the "ARM_SUBSCRIPTION_ID" as is used by the provider, for easier use.
+			Name:        "subscription-id",
 			EnvVars:     []string{"AZTFEXPORT_SUBSCRIPTION_ID", "ARM_SUBSCRIPTION_ID"},
 			Aliases:     []string{"s"},
 			Usage:       "The subscription id",
@@ -237,29 +228,66 @@ func main() {
 		},
 
 		// Common flags (auth)
-		&cli.BoolFlag{
-			Name:        "use-environment-cred",
-			EnvVars:     []string{"AZTFEXPORT_USE_ENVIRONMENT_CRED"},
-			Usage:       "Explicitly use the environment variables to do authentication",
-			Destination: &flagset.flagUseEnvironmentCred,
+		&cli.StringFlag{
+			Name:        "env",
+			EnvVars:     []string{"AZTFEXPORT_ENV", "ARM_ENVIRONMENT"},
+			Usage:       `The cloud environment, can be one of "public", "usgovernment" and "china"`,
+			Destination: &flagset.flagEnv,
+			Value:       "public",
 		},
-		&cli.BoolFlag{
-			Name:        "use-managed-identity-cred",
-			EnvVars:     []string{"AZTFEXPORT_USE_MANAGED_IDENTITY_CRED"},
-			Usage:       "Explicitly use the managed identity that is provided by the Azure host to do authentication",
-			Destination: &flagset.flagUseManagedIdentityCred,
+		&cli.StringFlag{
+			Name:        "tenant-id",
+			EnvVars:     []string{"AZTFEXPORT_TENANT_ID", "ARM_TENANT_ID"},
+			Usage:       "The Azure tenant id",
+			Destination: &flagset.flagTenantId,
 		},
-		&cli.BoolFlag{
-			Name:        "use-azure-cli-cred",
-			EnvVars:     []string{"AZTFEXPORT_USE_AZURE_CLI_CRED"},
-			Usage:       "Explicitly use the Azure CLI to do authentication",
-			Destination: &flagset.flagUseAzureCLICred,
+		&cli.StringSliceFlag{
+			Name:        "auxiliary-tenant-ids",
+			EnvVars:     []string{"AZTFEXPORT_AUXILIARY_TENANT_IDS", "ARM_AUXILIARY_TENANT_IDS"},
+			Usage:       "The Azure auxiliary tenant ids (comma separated)",
+			Destination: &flagset.flagAuxiliaryTenantIds,
 		},
-		&cli.BoolFlag{
-			Name:        "use-oidc-cred",
-			EnvVars:     []string{"AZTFEXPORT_USE_OIDC_CRED"},
-			Usage:       "Explicitly use the OIDC to do authentication",
-			Destination: &flagset.flagUseOIDCCred,
+		&cli.StringFlag{
+			Name:        "client-id",
+			EnvVars:     []string{"AZTFEXPORT_CLIENT_ID", "ARM_CLIENT_ID"},
+			Usage:       "The Azure client id",
+			Destination: &flagset.flagClientId,
+		},
+		&cli.StringFlag{
+			Name:        "client-id-file-path",
+			EnvVars:     []string{"AZTFEXPORT_CLIENT_ID_FILE_PATH", "ARM_CLIENT_ID_FILE_PATH"},
+			Usage:       "The Azure client id file path",
+			Destination: &flagset.flagClientIdFilePath,
+		},
+		&cli.StringFlag{
+			Name:        "client-certificate",
+			EnvVars:     []string{"AZTFEXPORT_CLIENT_CERTIFICATE", "ARM_CLIENT_CERTIFICATE"},
+			Usage:       "A base64-encoded PKCS#12 bundle to be used as the client certificate for authentication",
+			Destination: &flagset.flagClientCertificate,
+		},
+		&cli.StringFlag{
+			Name:        "client-certificate-path",
+			EnvVars:     []string{"AZTFEXPORT_CLIENT_CERTIFICATE_PATH", "ARM_CLIENT_CERTIFICATE_PATH"},
+			Usage:       "The path to the Client Certificate (PKCS#12) associated with the Service Principal which should be used",
+			Destination: &flagset.flagClientCertificatePath,
+		},
+		&cli.StringFlag{
+			Name:        "client-certificate-password",
+			EnvVars:     []string{"AZTFEXPORT_CLIENT_CERTIFICATE_PASSWORD", "ARM_CLIENT_CERTIFICATE_PASSWORD"},
+			Usage:       "The password associated with the Client Certificate",
+			Destination: &flagset.flagClientCertificatePassword,
+		},
+		&cli.StringFlag{
+			Name:        "client-secret",
+			EnvVars:     []string{"AZTFEXPORT_CLIENT_SECRET", "ARM_CLIENT_SECRET"},
+			Usage:       "The Azure client secret",
+			Destination: &flagset.flagClientSecret,
+		},
+		&cli.StringFlag{
+			Name:        "client-secret-file-path",
+			EnvVars:     []string{"AZTFEXPORT_CLIENT_SECRET_FILE_PATH", "ARM_CLIENT_SECRET_FILE_PATH"},
+			Usage:       "The Azure client secret file path",
+			Destination: &flagset.flagClientSecretFilePath,
 		},
 		&cli.StringFlag{
 			Name:        "oidc-request-token",
@@ -284,6 +312,27 @@ func main() {
 			EnvVars:     []string{"AZTFEXPORT_OIDC_TOKEN", "ARM_OIDC_TOKEN"},
 			Usage:       "The ID token when authenticating using OIDC",
 			Destination: &flagset.flagOIDCToken,
+		},
+		&cli.BoolFlag{
+			Name:        "use-managed-identity-cred",
+			EnvVars:     []string{"AZTFEXPORT_USE_MANAGED_IDENTITY_CRED", "ARM_USE_MSI"},
+			Usage:       "Explicitly use the managed identity that is provided by the Azure host to do authentication",
+			Destination: &flagset.flagUseManagedIdentityCred,
+			Value:       false,
+		},
+		&cli.BoolFlag{
+			Name:        "use-azure-cli-cred",
+			EnvVars:     []string{"AZTFEXPORT_USE_AZURE_CLI_CRED", "ARM_USE_CLI"},
+			Usage:       "Explicitly use the Azure CLI to do authentication",
+			Destination: &flagset.flagUseAzureCLICred,
+			Value:       true,
+		},
+		&cli.BoolFlag{
+			Name:        "use-oidc-cred",
+			EnvVars:     []string{"AZTFEXPORT_USE_OIDC_CRED", "ARM_USE_OIDC"},
+			Usage:       "Explicitly use the OIDC to do authentication",
+			Destination: &flagset.flagUseOIDCCred,
+			Value:       false,
 		},
 
 		// Hidden flags

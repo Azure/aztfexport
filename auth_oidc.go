@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 
@@ -21,28 +20,25 @@ type OidcCredential struct {
 	requestToken string
 	requestUrl   string
 
-	token         string
-	tokenFilePath string
+	token string
 
 	cred *azidentity.ClientAssertionCredential
 }
 
 type OidcCredentialOptions struct {
 	azcore.ClientOptions
-	TenantID      string
-	ClientID      string
-	RequestToken  string
-	RequestUrl    string
-	Token         string
-	TokenFilePath string
+	TenantID     string
+	ClientID     string
+	RequestToken string
+	RequestUrl   string
+	Token        string
 }
 
 func NewOidcCredential(options *OidcCredentialOptions) (*OidcCredential, error) {
 	w := &OidcCredential{
-		requestToken:  options.RequestToken,
-		requestUrl:    options.RequestUrl,
-		token:         options.Token,
-		tokenFilePath: options.TokenFilePath,
+		requestToken: options.RequestToken,
+		requestUrl:   options.RequestUrl,
+		token:        options.Token,
 	}
 
 	cred, err := azidentity.NewClientAssertionCredential(options.TenantID, options.ClientID, w.getAssertion, &azidentity.ClientAssertionCredentialOptions{ClientOptions: options.ClientOptions})
@@ -61,15 +57,6 @@ func (w *OidcCredential) GetToken(ctx context.Context, opts policy.TokenRequestO
 func (w *OidcCredential) getAssertion(ctx context.Context) (string, error) {
 	if w.token != "" {
 		return w.token, nil
-	}
-
-	if w.tokenFilePath != "" {
-		idTokenData, err := os.ReadFile(w.tokenFilePath)
-		if err != nil {
-			return "", fmt.Errorf("reading token file: %v", err)
-		}
-
-		return string(idTokenData), nil
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, w.requestUrl, http.NoBody)

@@ -12,6 +12,7 @@ require (
 	github.com/charmbracelet/lipgloss v0.5.0
 	github.com/gofrs/uuid v3.3.0+incompatible
 	github.com/hashicorp/go-hclog v1.6.3
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/hc-install v0.7.0
 	github.com/hashicorp/hcl/v2 v2.17.0
@@ -39,6 +40,7 @@ require (
 	github.com/tidwall/sjson v1.2.5
 	github.com/urfave/cli/v2 v2.24.1
 	github.com/zclconf/go-cty v1.14.1
+	software.sslmate.com/src/go-pkcs12 v0.4.0
 )
 
 require (
@@ -102,7 +104,6 @@ require (
 	github.com/google/pprof v0.0.0-20211214055906-6f57359322fd // indirect
 	github.com/google/uuid v1.3.1 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
-	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-plugin v1.4.8 // indirect
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f // indirect
 	github.com/hashicorp/terraform-plugin-go v0.14.3 // indirect
