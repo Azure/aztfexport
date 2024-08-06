@@ -27,7 +27,7 @@ type ImportItem struct {
 	TFAddr tfaddr.TFAddr
 }
 
-type ImportCallback func(startTime time.Time, total int, item ImportItem)
+type ImportCallback func(startTime time.Time, item ImportItem)
 
 type OutputFileNames struct {
 	// The filename for the generated "terraform.tf" (default)

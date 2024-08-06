@@ -337,11 +337,11 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) e
 				}
 				startTime := time.Now()
 				if meta.preImportHook != nil {
-					meta.preImportHook(startTime, total, iitem)
+					meta.preImportHook(startTime, iitem)
 				}
 				meta.importItem(ctx, item, i)
 				if meta.postImportHook != nil {
-					meta.postImportHook(startTime, total, iitem)
+					meta.postImportHook(startTime, iitem)
 				}
 			}
 			return i, nil
