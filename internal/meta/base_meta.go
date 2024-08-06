@@ -75,6 +75,9 @@ type BaseMeta interface {
 	// CleanUpWorkspace is a weired method that is only meant to be used internally by aztfexport, which under the hood will remove everything in the output directory, except the generated TF config.
 	// This method does nothing if HCLOnly in the Config is not set.
 	CleanUpWorkspace(ctx context.Context) error
+
+	SetPreImportHook(config.ImportCallback)
+	SetPostImportHook(config.ImportCallback)
 }
 
 var _ BaseMeta = &baseMeta{}
@@ -390,11 +393,11 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) e
 				}
 				startTime := time.Now()
 				if meta.preImportHook != nil {
-					meta.preImportHook(startTime, total, iitem)
+					meta.preImportHook(startTime, iitem)
 				}
 				meta.importItem(ctx, item, i)
 				if meta.postImportHook != nil {
-					meta.postImportHook(startTime, total, iitem)
+					meta.postImportHook(startTime, iitem)
 				}
 			}
 			return i, nil
@@ -586,6 +589,14 @@ func (meta baseMeta) CleanUpWorkspace(_ context.Context) error {
 	}
 
 	return nil
+}
+
+func (meta *baseMeta) SetPreImportHook(cb config.ImportCallback) {
+	meta.preImportHook = cb
+}
+
+func (meta *baseMeta) SetPostImportHook(cb config.ImportCallback) {
+	meta.postImportHook = cb
 }
 
 func (meta baseMeta) generateCfg(ctx context.Context, l ImportList, cfgTrans ...TFConfigTransformer) error {

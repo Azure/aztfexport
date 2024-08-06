@@ -5,6 +5,8 @@ import (
 	"io"
 	"log/slog"
 	"time"
+
+	"github.com/Azure/aztfexport/pkg/config"
 )
 
 type MetaGroupDummy struct {
@@ -12,8 +14,8 @@ type MetaGroupDummy struct {
 	providerName string
 }
 
-func NewGroupMetaDummy(rg string, providerName string) MetaGroupDummy {
-	return MetaGroupDummy{rg: rg, providerName: providerName}
+func NewGroupMetaDummy(rg string, providerName string) *MetaGroupDummy {
+	return &MetaGroupDummy{rg: rg, providerName: providerName}
 }
 
 func (m MetaGroupDummy) Logger() *slog.Logger {
@@ -95,4 +97,10 @@ func (m MetaGroupDummy) ExportSkippedResources(_ context.Context, l ImportList) 
 func (m MetaGroupDummy) CleanUpWorkspace(_ context.Context) error {
 	time.Sleep(500 * time.Millisecond)
 	return nil
+}
+
+func (meta *MetaGroupDummy) SetPreImportHook(cb config.ImportCallback) {
+}
+
+func (meta *MetaGroupDummy) SetPostImportHook(cb config.ImportCallback) {
 }
