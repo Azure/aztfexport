@@ -27,7 +27,7 @@ require (
 	github.com/magodo/spinner v0.0.0-20240524082745-3a2305db1bdc
 	github.com/magodo/terraform-client-go v0.0.0-20230323074119-02ceb732dd25
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
-	github.com/magodo/tfadd v0.10.1-0.20240412023810-79ace00fe84d
+	github.com/magodo/tfadd v0.10.1-0.20240809033926-59efddadfd95
 	github.com/magodo/tfmerge v0.0.0-20221214062955-f52e46d03402
 	github.com/magodo/tfstate v0.0.0-20220409052014-9b9568dda918
 	github.com/magodo/workerpool v0.0.0-20240524082508-11838001bc35

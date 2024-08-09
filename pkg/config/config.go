@@ -75,6 +75,8 @@ type CommonConfig struct {
 	ProviderConfig map[string]cty.Value
 	// FullConfig specifies whether to export all (non computed-only) Terarform properties when generating TF configs.
 	FullConfig bool
+	// MaskSensitive specifies whether to mask sensitive attributes when generating TF configs.
+	MaskSensitive bool
 	// Parallelism specifies the parallelism for the process
 	Parallelism int
 	// PreImportHook is called before each resource is imported during ParallelImport

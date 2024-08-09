@@ -161,6 +161,13 @@ func main() {
 			Value:       false,
 			Destination: &flagset.flagFullConfig,
 		},
+		&cli.BoolFlag{
+			Name:        "mask-sensitive",
+			EnvVars:     []string{"AZTFEXPORT_MASK_SENSITIVE"},
+			Usage:       "Mask sensitive attributes in the Terraform configuration. This may require manual modifications to produce a valid config",
+			Value:       false,
+			Destination: &flagset.flagMaskSensitive,
+		},
 		&cli.IntFlag{
 			Name:        "parallelism",
 			EnvVars:     []string{"AZTFEXPORT_PARALLELISM"},

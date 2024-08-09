@@ -83,21 +83,25 @@ type BaseMeta interface {
 var _ BaseMeta = &baseMeta{}
 
 type baseMeta struct {
-	logger             *slog.Logger
-	subscriptionId     string
-	azureSDKCred       azcore.TokenCredential
-	azureSDKClientOpt  arm.ClientOptions
-	outdir             string
-	outputFileNames    config.OutputFileNames
-	tf                 *tfexec.Terraform
-	resourceClient     *armresources.Client
-	providerVersion    string
-	devProvider        bool
-	providerName       string
-	backendType        string
-	backendConfig      []string
-	providerConfig     map[string]cty.Value
-	fullConfig         bool
+	logger            *slog.Logger
+	subscriptionId    string
+	azureSDKCred      azcore.TokenCredential
+	azureSDKClientOpt arm.ClientOptions
+	outdir            string
+	outputFileNames   config.OutputFileNames
+	tf                *tfexec.Terraform
+	resourceClient    *armresources.Client
+	providerVersion   string
+	devProvider       bool
+	providerName      string
+	backendType       string
+	backendConfig     []string
+	providerConfig    map[string]cty.Value
+
+	// tfadd options
+	fullConfig    bool
+	maskSensitive bool
+
 	parallelism        int
 	preImportHook      config.ImportCallback
 	postImportHook     config.ImportCallback
@@ -281,6 +285,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		providerConfig:     providerConfig,
 		providerName:       cfg.ProviderName,
 		fullConfig:         cfg.FullConfig,
+		maskSensitive:      cfg.MaskSensitive,
 		parallelism:        cfg.Parallelism,
 		preImportHook:      cfg.PreImportHook,
 		postImportHook:     cfg.PostImportHook,
@@ -1009,7 +1014,9 @@ func (meta baseMeta) stateToConfig(ctx context.Context, list ImportList) (Config
 					ProviderName: providerName,
 					Value:        item.State,
 				},
-				meta.fullConfig)
+				tfadd.Full(meta.fullConfig),
+				tfadd.MaskSenstitive(meta.maskSensitive),
+			)
 			if err != nil {
 				return nil, fmt.Errorf("generating state for resource %s: %v", item.TFAddr, err)
 			}
@@ -1026,7 +1033,7 @@ func (meta baseMeta) stateToConfig(ctx context.Context, list ImportList) (Config
 		}
 
 		var err error
-		bs, err = tfadd.StateForTargets(ctx, meta.tf, addrs, tfadd.Full(meta.fullConfig))
+		bs, err = tfadd.StateForTargets(ctx, meta.tf, addrs, tfadd.Full(meta.fullConfig), tfadd.MaskSenstitive(meta.maskSensitive))
 		if err != nil {
 			return nil, fmt.Errorf("converting terraform state to config: %w", err)
 		}
