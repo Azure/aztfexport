@@ -27,7 +27,7 @@ func NewMeta(cfg config.Config) (Meta, error) {
 		return meta.NewMetaQuery(cfg)
 	case cfg.MappingFile != "":
 		return meta.NewMetaMap(cfg)
-	case cfg.ResourceId != "":
+	case len(cfg.ResourceIds) != 0:
 		return meta.NewMetaResource(cfg)
 	default:
 		return nil, fmt.Errorf("invalid group config")

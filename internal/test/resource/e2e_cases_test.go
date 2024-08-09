@@ -69,26 +69,29 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 
 	cred, clientOpt := test.BuildCredAndClientOpt(t)
 
-	for idx, rctx := range l {
-		cfg := internalconfig.NonInteractiveModeConfig{
-			Config: config.Config{
-				CommonConfig: config.CommonConfig{
-					Logger:               slog.New(slog.NewTextHandler(io.Discard, nil)),
-					SubscriptionId:       os.Getenv("ARM_SUBSCRIPTION_ID"),
-					AzureSDKCredential:   cred,
-					AzureSDKClientOption: *clientOpt,
-					OutputDir:            aztfexportDir,
-					BackendType:          "local",
-					DevProvider:          true,
-					Parallelism:          1,
-					ProviderName:         "azurerm",
-				},
-				ResourceId:     rctx.AzureId,
-				TFResourceName: fmt.Sprintf("res-%d", idx),
+	cfg := internalconfig.NonInteractiveModeConfig{
+		Config: config.Config{
+			CommonConfig: config.CommonConfig{
+				Logger:               slog.New(slog.NewTextHandler(io.Discard, nil)),
+				SubscriptionId:       os.Getenv("ARM_SUBSCRIPTION_ID"),
+				AzureSDKCredential:   cred,
+				AzureSDKClientOption: *clientOpt,
+				OutputDir:            aztfexportDir,
+				BackendType:          "local",
+				DevProvider:          true,
+				Parallelism:          1,
+				ProviderName:         "azurerm",
 			},
-			PlainUI: true,
-		}
-		t.Logf("Resource importing %s\n", rctx.AzureId)
+		},
+		PlainUI: true,
+	}
+
+	// Test single resouce mode
+	for idx, rctx := range l {
+		cfg.ResourceIds = []string{rctx.AzureId}
+		cfg.TFResourceName = fmt.Sprintf("res-%d", idx)
+
+		t.Logf("Single resource importing %s\n", rctx.AzureId)
 		if err := utils.RemoveEverythingUnder(cfg.OutputDir); err != nil {
 			t.Fatalf("failed to clean up the output directory: %v", err)
 		}
@@ -97,7 +100,36 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 		}
 		test.Verify(t, ctx, aztfexportDir, tfexecPath, rctx.ExpectResourceCount)
 	}
+
+	// Test multi-resource mode
+	var resourceIds []string
+	var total int
+	for _, rctx := range l {
+		resourceIds = append(resourceIds, rctx.AzureId)
+		total += rctx.ExpectResourceCount
+	}
+
+	cfg.ResourceNamePattern = "res-"
+	cfg.ResourceIds = resourceIds
+	cfg.CommonConfig.Parallelism = total
+
+	t.Logf("Multiple resources importing %v\n", resourceIds)
+	if err := utils.RemoveEverythingUnder(cfg.OutputDir); err != nil {
+		t.Fatalf("failed to clean up the output directory: %v", err)
+	}
+	if err := internal.BatchImport(ctx, cfg); err != nil {
+		t.Fatalf("failed to run resource import: %v", err)
+	}
+	test.Verify(t, ctx, aztfexportDir, tfexecPath, total)
 }
+
+func TestVnet(t *testing.T) {
+	t.Parallel()
+	test.Precheck(t)
+	c, d := cases.CaseVnet{}, test.NewData()
+	runCase(t, d, c)
+}
+
 func TestComputeVMDisk(t *testing.T) {
 	t.Parallel()
 	test.Precheck(t)

@@ -74,8 +74,9 @@ type FlagSet struct {
 	// Subcommand specific flags
 	//
 	// res:
-	// flagResName
-	// flagResType
+	// flagResName (for single resource)
+	// flagResType (for single resource)
+	// flagPattern (for multi resources)
 	//
 	// rg:
 	// flagPattern
@@ -94,18 +95,20 @@ type FlagSet struct {
 	flagIncludeResourceGroup  bool
 }
 
+type Mode string
+
 const (
-	ModeResource      = "resource"
-	ModeResourceGroup = "resource-group"
-	ModeQuery         = "query"
-	ModeMappingFile   = "mapping-file"
+	ModeResource      Mode = "resource"
+	ModeResourceGroup Mode = "resource-group"
+	ModeQuery         Mode = "query"
+	ModeMappingFile   Mode = "mapping-file"
 )
 
 // DescribeCLI construct a description of the CLI based on the flag set and the specified mode.
 // The main reason is to record the usage of some "interesting" options in the telemetry.
 // Note that only insensitive values are recorded (i.e. subscription id, resource id, etc are not recorded)
-func (flag FlagSet) DescribeCLI(mode string) string {
-	args := []string{mode}
+func (flag FlagSet) DescribeCLI(mode Mode) string {
+	args := []string{string(mode)}
 
 	// The following flags are skipped eiter not interesting, or might contain sensitive info:
 	// - flagOutputDir
@@ -224,6 +227,9 @@ func (flag FlagSet) DescribeCLI(mode string) string {
 		}
 		if flag.flagResType != "" {
 			args = append(args, "--type="+flag.flagResType)
+		}
+		if flag.flagPattern != "" {
+			args = append(args, "--name-pattern="+flag.flagPattern)
 		}
 	case ModeResourceGroup:
 		if flag.flagPattern != "" {

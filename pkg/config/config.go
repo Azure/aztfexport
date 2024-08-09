@@ -103,8 +103,8 @@ type Config struct {
 
 	// Exactly one of below is specified
 
-	// ResourceId specifies the Azure resource id, this indicates the resource mode.
-	ResourceId string
+	// ResourceIds specifies the list of Azure resource ids, this indicates the resource mode.
+	ResourceIds []string
 	// ResourceGroupName specifies the name of the resource group, this indicates the resource group mode.
 	ResourceGroupName string
 	// ARGPredicate specifies the ARG where predicate, this indicates the query mode.
@@ -112,7 +112,7 @@ type Config struct {
 	// MappingFile specifies the path of mapping file, this indicates the map file mode.
 	MappingFile string
 
-	// ResourceNamePattern specifies the resource name pattern, this only applies to resource group mode and query mode.
+	// ResourceNamePattern specifies the resource name pattern, this only applies to resource group mode, query mode and multi-resource mode.
 	ResourceNamePattern string
 
 	// RecursiveQuery specifies whether to recursively list the child/proxy resources of the ARG resulted resource list, this only applies to query mode.

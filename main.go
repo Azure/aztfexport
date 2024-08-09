@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -370,15 +371,22 @@ func main() {
 		&cli.StringFlag{
 			Name:        "name",
 			EnvVars:     []string{"AZTFEXPORT_NAME"},
-			Usage:       `The Terraform resource name.`,
-			Value:       "res-0",
+			Usage:       `The Terraform resource name (only works for single resource mode).`,
 			Destination: &flagset.flagResName,
 		},
 		&cli.StringFlag{
 			Name:        "type",
 			EnvVars:     []string{"AZTFEXPORT_TYPE"},
-			Usage:       `The Terraform resource type.`,
+			Usage:       `The Terraform resource type (only works for single resource mode).`,
 			Destination: &flagset.flagResType,
+		},
+		&cli.StringFlag{
+			Name:        "name-pattern",
+			EnvVars:     []string{"AZTFEXPORT_NAME_PATTERN"},
+			Aliases:     []string{"p"},
+			Usage:       `The pattern of the resource name. The semantic of a pattern is the same as Go's os.CreateTemp() (only works for multi-resource mode).`,
+			Value:       "res-",
+			Destination: &flagset.flagPattern,
 		},
 	}, commonFlags...)
 
@@ -426,12 +434,12 @@ func main() {
 		Commands: []*cli.Command{
 			{
 				Name:      "config",
-				Usage:     `Configuring the tool`,
+				Usage:     `Configuring the tool.`,
 				UsageText: "aztfexport config [subcommand]",
 				Subcommands: []*cli.Command{
 					{
 						Name:      "set",
-						Usage:     `Set a configuration item for aztfexport`,
+						Usage:     `Set a configuration item for aztfexport.`,
 						UsageText: "aztfexport config set key value",
 						Action: func(c *cli.Context) error {
 							if c.NArg() != 2 {
@@ -446,7 +454,7 @@ func main() {
 					},
 					{
 						Name:      "get",
-						Usage:     `Get a configuration item for aztfexport`,
+						Usage:     `Get a configuration item for aztfexport.`,
 						UsageText: "aztfexport config get key",
 						Action: func(c *cli.Context) error {
 							if c.NArg() != 1 {
@@ -464,7 +472,7 @@ func main() {
 					},
 					{
 						Name:      "show",
-						Usage:     `Show the full configuration for aztfexport`,
+						Usage:     `Show the full configuration for aztfexport.`,
 						UsageText: "aztfexport config show",
 						Action: func(c *cli.Context) error {
 							cfg, err := cfgfile.GetConfig()
@@ -482,24 +490,47 @@ func main() {
 				},
 			},
 			{
-				Name:      ModeResource,
+				Name:      string(ModeResource),
 				Aliases:   []string{"res"},
-				Usage:     "Exporting a single resource",
-				UsageText: "aztfexport resource [option] <resource id>",
+				Usage:     "Exporting one or more resources. The arguments can be resource ids, or path to files (prefixed with `@`) that contain resource id in each line.",
+				UsageText: "aztfexport resource [option] [<resourceId> | @<resourceIdFile>...]",
 				Flags:     resourceFlags,
-				Before:    commandBeforeFunc(&flagset),
+				Before:    commandBeforeFunc(&flagset, ModeResource),
 				Action: func(c *cli.Context) error {
 					if c.NArg() == 0 {
 						return fmt.Errorf("No resource id specified")
 					}
-					if c.NArg() > 1 {
-						return fmt.Errorf("More than one resource ids specified")
-					}
 
-					resId := c.Args().First()
+					var resIds []string
+					for _, arg := range c.Args().Slice() {
+						if !strings.HasPrefix(arg, "@") {
+							if _, err := armid.ParseResourceId(arg); err != nil {
+								return fmt.Errorf("invalid resource id: %v", err)
+							}
+							resIds = append(resIds, arg)
+							continue
+						}
 
-					if _, err := armid.ParseResourceId(resId); err != nil {
-						return fmt.Errorf("invalid resource id: %v", err)
+						path := strings.TrimPrefix(arg, "@")
+						f, err := os.Open(path)
+						if err != nil {
+							return fmt.Errorf("failed to open file %q: %v", path, err)
+						}
+
+						if err := func() error {
+							defer f.Close()
+							scanner := bufio.NewScanner(f)
+							for scanner.Scan() {
+								resId := strings.TrimSpace(scanner.Text())
+								if _, err := armid.ParseResourceId(resId); err != nil {
+									return fmt.Errorf("invalid resource id (contained in %q): %v", path, err)
+								}
+								resIds = append(resIds, resId)
+							}
+							return scanner.Err()
+						}(); err != nil {
+							return fmt.Errorf("scanning %q: %v", path, err)
+						}
 					}
 
 					commonConfig, err := flagset.BuildCommonConfig()
@@ -509,22 +540,23 @@ func main() {
 
 					// Initialize the config
 					cfg := config.Config{
-						CommonConfig:   commonConfig,
-						ResourceId:     resId,
-						TFResourceName: flagset.flagResName,
-						TFResourceType: flagset.flagResType,
+						CommonConfig:        commonConfig,
+						ResourceIds:         resIds,
+						TFResourceName:      flagset.flagResName,
+						TFResourceType:      flagset.flagResType,
+						ResourceNamePattern: flagset.flagPattern,
 					}
 
 					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResource), flagset.hflagTFClientPluginPath)
 				},
 			},
 			{
-				Name:      ModeResourceGroup,
+				Name:      string(ModeResourceGroup),
 				Aliases:   []string{"rg"},
-				Usage:     "Exporting a resource group and the nested resources resides within it",
+				Usage:     "Exporting a resource group and the nested resources resides within it.",
 				UsageText: "aztfexport resource-group [option] <resource group name>",
 				Flags:     resourceGroupFlags,
-				Before:    commandBeforeFunc(&flagset),
+				Before:    commandBeforeFunc(&flagset, ModeResourceGroup),
 				Action: func(c *cli.Context) error {
 					if c.NArg() == 0 {
 						return fmt.Errorf("No resource group specified")
@@ -553,11 +585,11 @@ func main() {
 				},
 			},
 			{
-				Name:      ModeQuery,
-				Usage:     "Exporting a customized scope of resources determined by an Azure Resource Graph where predicate",
+				Name:      string(ModeQuery),
+				Usage:     "Exporting a customized scope of resources determined by an Azure Resource Graph where predicate.",
 				UsageText: "aztfexport query [option] <ARG where predicate>",
 				Flags:     queryFlags,
-				Before:    commandBeforeFunc(&flagset),
+				Before:    commandBeforeFunc(&flagset, ModeQuery),
 				Action: func(c *cli.Context) error {
 					if c.NArg() == 0 {
 						return fmt.Errorf("No query specified")
@@ -587,12 +619,12 @@ func main() {
 				},
 			},
 			{
-				Name:      ModeMappingFile,
+				Name:      string(ModeMappingFile),
 				Aliases:   []string{"map"},
-				Usage:     "Exporting a customized scope of resources determined by the resource mapping file",
+				Usage:     "Exporting a customized scope of resources determined by the resource mapping file.",
 				UsageText: "aztfexport mapping-file [option] <resource mapping file>",
 				Flags:     mappingFileFlags,
-				Before:    commandBeforeFunc(&flagset),
+				Before:    commandBeforeFunc(&flagset, ModeMappingFile),
 				Action: func(c *cli.Context) error {
 					if c.NArg() == 0 {
 						return fmt.Errorf("No resource mapping file specified")

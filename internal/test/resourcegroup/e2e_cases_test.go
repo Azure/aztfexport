@@ -87,6 +87,13 @@ func runCase(t *testing.T, d test.Data, c cases.Case) {
 	test.Verify(t, ctx, aztfexportDir, tfexecPath, c.Total())
 }
 
+func TestVnet(t *testing.T) {
+	t.Parallel()
+	test.Precheck(t)
+	c, d := cases.CaseVnet{}, test.NewData()
+	runCase(t, d, c)
+}
+
 func TestComputeVMDisk(t *testing.T) {
 	t.Parallel()
 	test.Precheck(t)
