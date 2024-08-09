@@ -11,8 +11,8 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func commandBeforeFunc(fset *FlagSet) func(ctx *cli.Context) error {
-	return func(_ *cli.Context) error {
+func commandBeforeFunc(fset *FlagSet, mode Mode) func(ctx *cli.Context) error {
+	return func(ctx *cli.Context) error {
 		// Common flags check
 		if fset.flagAppend {
 			if fset.flagOverwrite {
@@ -101,6 +101,19 @@ func commandBeforeFunc(fset *FlagSet) func(ctx *cli.Context) error {
 			},
 		}); err != nil {
 			return err
+		}
+
+		// Mode specific flags check
+		switch mode {
+		case ModeResource:
+			if ctx.Args().Len() > 1 || (ctx.Args().Len() == 1 && strings.HasPrefix(ctx.Args().First(), "@")) {
+				if fset.flagResType != "" {
+					return fmt.Errorf("`--type` can't be specified for multi-resource mode")
+				}
+				if fset.flagResName != "" {
+					return fmt.Errorf("`--name` can't be specified for multi-resource mode")
+				}
+			}
 		}
 
 		// Initialize output directory

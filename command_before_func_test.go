@@ -226,7 +226,7 @@ func TestCommondBeforeFunc(t *testing.T) {
 				tt.fset.flagSubscriptionId = "test"
 			}
 
-			err := commandBeforeFunc(&tt.fset)(nil)
+			err := commandBeforeFunc(&tt.fset, "")(nil)
 			if tt.err == "" {
 				require.NoError(t, err)
 				if tt.postCheck != nil {

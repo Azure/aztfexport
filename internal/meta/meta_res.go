@@ -13,9 +13,11 @@ import (
 
 type MetaResource struct {
 	baseMeta
-	AzureId      armid.ResourceId
-	ResourceName string
-	ResourceType string
+	AzureIds           []armid.ResourceId
+	ResourceName       string
+	ResourceType       string
+	resourceNamePrefix string
+	resourceNameSuffix string
 }
 
 func NewMetaResource(cfg config.Config) (*MetaResource, error) {
@@ -25,79 +27,119 @@ func NewMetaResource(cfg config.Config) (*MetaResource, error) {
 		return nil, err
 	}
 
-	id, err := armid.ParseResourceId(cfg.ResourceId)
-	if err != nil {
-		return nil, err
+	var ids []armid.ResourceId
+
+	for _, id := range cfg.ResourceIds {
+		id, err := armid.ParseResourceId(id)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
 	}
+
 	meta := &MetaResource{
 		baseMeta:     *baseMeta,
-		AzureId:      id,
+		AzureIds:     ids,
 		ResourceName: cfg.TFResourceName,
 		ResourceType: cfg.TFResourceType,
 	}
+
+	meta.resourceNamePrefix, meta.resourceNameSuffix = resourceNamePattern(cfg.ResourceNamePattern)
+
 	return meta, nil
 }
 
 func (meta MetaResource) ScopeName() string {
-	return meta.AzureId.String()
+	if len(meta.AzureIds) == 1 {
+		return meta.AzureIds[0].String()
+	} else {
+		return meta.AzureIds[0].String() + " and more..."
+	}
 }
 
-func (meta *MetaResource) ListResource(_ context.Context) (ImportList, error) {
-	resourceSet := &resourceset.AzureResourceSet{
-		Resources: []resourceset.AzureResource{
-			{
-				Id: meta.AzureId,
-			},
-		},
+func (meta *MetaResource) ListResource(ctx context.Context) (ImportList, error) {
+	var resources []resourceset.AzureResource
+	for _, id := range meta.AzureIds {
+		resources = append(resources, resourceset.AzureResource{Id: id})
 	}
+
+	rset := &resourceset.AzureResourceSet{
+		Resources: resources,
+	}
+
 	meta.Logger().Debug("Azure Resource set map to TF resource set")
 
 	var rl []resourceset.TFResource
 	if meta.useAzAPI() {
-		rl = resourceSet.ToTFAzAPIResources()
+		rl = rset.ToTFAzAPIResources()
 	} else {
-		rl = resourceSet.ToTFAzureRMResources(meta.Logger(), meta.parallelism, meta.azureSDKCred, meta.azureSDKClientOpt)
+		rl = rset.ToTFAzureRMResources(meta.Logger(), meta.parallelism, meta.azureSDKCred, meta.azureSDKClientOpt)
 	}
 
-	// This is to record known resource types. In case there is a known resource type and there comes another same typed resource,
-	// then we need to modify the resource name. Otherwise, there will be a resource address conflict.
-	// See https://github.com/Azure/aztfexport/issues/275 for an example.
-	rtCnt := map[string]int{}
-
 	var l ImportList
-	for _, res := range rl {
+
+	// The ResourceName and ResourceType are only honored for single resource
+	if len(rl) == 1 {
+		res := rl[0]
+
+		// Honor the ResourceName
 		name := meta.ResourceName
-		rtCnt[res.TFType]++
-		if rtCnt[res.TFType] > 1 {
-			name += fmt.Sprintf("-%d", rtCnt[res.TFType]-1)
+		if name == "" {
+			name = fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, 0, meta.resourceNameSuffix)
 		}
+
+		// Honor the ResourceType
+		tftype := res.TFType
+		tfid := res.TFId
+		if meta.ResourceType != "" && meta.ResourceType != res.TFType {
+			// res.TFType can be either empty (if aztft failed to query), or not.
+			// If the user has specified a different type, then use it.
+			tftype = meta.ResourceType
+
+			// Also use this resource type to requery its resource id.
+			var err error
+			tfid, err = aztft.QueryId(res.AzureId.String(), meta.ResourceType,
+				&aztft.APIOption{
+					Cred:         meta.azureSDKCred,
+					ClientOption: meta.azureSDKClientOpt,
+				})
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		tfAddr := tfaddr.TFAddr{
-			Type: res.TFType, // this might be empty if have multiple matches in aztft
+			Type: tftype,
 			Name: name,
 		}
+
 		item := ImportItem{
 			AzureResourceID: res.AzureId,
-			TFResourceId:    res.TFId, // this might be empty if have multiple matches in aztft
+			TFResourceId:    tfid,
 			TFAddr:          tfAddr,
 			TFAddrCache:     tfAddr,
 		}
+		l = append(l, item)
+		return l, nil
+	}
 
-		// Some special Azure resource is missing the essential property that is used by aztft to detect their TF resource type.
-		// In this case, users can use the `--type` option to manually specify the TF resource type.
-		if meta.ResourceType != "" && !meta.useAzAPI() {
-			if meta.AzureId.Equal(res.AzureId) {
-				tfid, err := aztft.QueryId(meta.AzureId.String(), meta.ResourceType,
-					&aztft.APIOption{
-						Cred:         meta.azureSDKCred,
-						ClientOption: meta.azureSDKClientOpt,
-					})
-				if err != nil {
-					return nil, err
-				}
-				item.TFResourceId = tfid
-				item.TFAddr.Type = meta.ResourceType
-				item.TFAddrCache.Type = meta.ResourceType
-			}
+	// Multi-resource mode only honors the resourceName[Pre|Suf]fix
+	for i, res := range rl {
+		tfAddr := tfaddr.TFAddr{
+			Type: "",
+			Name: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, i, meta.resourceNameSuffix),
+		}
+		item := ImportItem{
+			AzureResourceID: res.AzureId,
+			TFResourceId:    res.TFId,
+			TFAddr:          tfAddr,
+			TFAddrCache:     tfAddr,
+		}
+		if res.TFType != "" {
+			item.TFAddr.Type = res.TFType
+			item.TFAddrCache.Type = res.TFType
+			item.Recommendations = []string{res.TFType}
+			item.IsRecommended = true
 		}
 
 		l = append(l, item)
