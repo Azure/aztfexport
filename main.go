@@ -115,7 +115,7 @@ func main() {
 			Name:        "overwrite",
 			EnvVars:     []string{"AZTFEXPORT_OVERWRITE"},
 			Aliases:     []string{"f"},
-			Usage:       "Overwrites the output directory if it is not empty (use with caution)",
+			Usage:       "Proceed with non-empty output directory, which is likely to pollute the directory and cause errors (use with caution)",
 			Destination: &flagset.flagOverwrite,
 		},
 		&cli.BoolFlag{

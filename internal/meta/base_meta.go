@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -541,53 +540,15 @@ func (meta baseMeta) ExportSkippedResources(_ context.Context, l ImportList) err
 }
 
 func (meta baseMeta) CleanUpWorkspace(_ context.Context) error {
-	// For hcl only mode with using terraform binary, we will have to clean up everything under the output directory,
+	// For hcl only mode with using terraform binary, we will have to clean up the state and terraform cli/provider related files the output directory,
 	// except for the TF code, resource mapping file and ignore list file.
 	if meta.hclOnly && meta.tfclient == nil {
-		tmpDir, err := os.MkdirTemp("", "")
-		if err != nil {
-			return err
-		}
-		defer func() {
-			// #nosec G104
-			os.RemoveAll(tmpDir)
-		}()
-
-		tmpMainCfg := filepath.Join(tmpDir, meta.outputFileNames.MainFileName)
-		tmpProviderCfg := filepath.Join(tmpDir, meta.outputFileNames.ProviderFileName)
-		tmpResourceMappingFileName := filepath.Join(tmpDir, ResourceMappingFileName)
-		tmpSkippedResourcesFileName := filepath.Join(tmpDir, SkippedResourcesFileName)
-
-		if err := utils.CopyFile(filepath.Join(meta.outdir, meta.outputFileNames.MainFileName), tmpMainCfg); err != nil {
-			return err
-		}
-		if err := utils.CopyFile(filepath.Join(meta.outdir, meta.outputFileNames.ProviderFileName), tmpProviderCfg); err != nil {
-			return err
-		}
-		if err := utils.CopyFile(filepath.Join(meta.outdir, ResourceMappingFileName), tmpResourceMappingFileName); err != nil {
-			return err
-		}
-		if err := utils.CopyFile(filepath.Join(meta.outdir, SkippedResourcesFileName), tmpSkippedResourcesFileName); err != nil {
-			if !errors.Is(err, os.ErrNotExist) {
-				return err
-			}
-		}
-
-		if err := utils.RemoveEverythingUnder(meta.outdir); err != nil {
-			return err
-		}
-
-		if err := utils.CopyFile(tmpMainCfg, filepath.Join(meta.outdir, meta.outputFileNames.MainFileName)); err != nil {
-			return err
-		}
-		if err := utils.CopyFile(tmpProviderCfg, filepath.Join(meta.outdir, meta.outputFileNames.ProviderFileName)); err != nil {
-			return err
-		}
-		if err := utils.CopyFile(tmpResourceMappingFileName, filepath.Join(meta.outdir, ResourceMappingFileName)); err != nil {
-			return err
-		}
-		if err := utils.CopyFile(tmpSkippedResourcesFileName, filepath.Join(meta.outdir, SkippedResourcesFileName)); err != nil {
-			if !errors.Is(err, os.ErrNotExist) {
+		for _, entryName := range []string{
+			"terraform.tfstate",
+			".terraform",
+			".terraform.lock.hcl",
+		} {
+			if err := os.RemoveAll(filepath.Join(meta.outdir, entryName)); err != nil {
 				return err
 			}
 		}
