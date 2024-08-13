@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Azure/aztfexport/internal/meta"
 	"github.com/Azure/aztfexport/internal/utils"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	"github.com/urfave/cli/v2"
@@ -131,9 +130,6 @@ func commandBeforeFunc(fset *FlagSet, mode Mode) func(ctx *cli.Context) error {
 		if !empty {
 			switch {
 			case fset.flagOverwrite:
-				if err := utils.RemoveEverythingUnder(fset.flagOutputDir, meta.ResourceMappingFileName); err != nil {
-					return fmt.Errorf("failed to clean up output directory %q: %v", fset.flagOutputDir, err)
-				}
 			case fset.flagAppend:
 				tfblock, err = utils.InspecTerraformBlock(fset.flagOutputDir)
 				if err != nil {
@@ -148,7 +144,7 @@ func commandBeforeFunc(fset *FlagSet, mode Mode) func(ctx *cli.Context) error {
 				fmt.Printf(`
 The output directory is not empty. Please choose one of actions below:
 
-* Press "Y" to overwrite the existing directory with new files
+* Press "Y" to proceed that will likely pollute the existing files and cause errors
 * Press "N" to append new files and add to the existing state instead
 * Press other keys to quit
 
@@ -158,9 +154,6 @@ The output directory is not empty. Please choose one of actions below:
 				fmt.Scanf("%s", &ans)
 				switch strings.ToLower(ans) {
 				case "y":
-					if err := utils.RemoveEverythingUnder(fset.flagOutputDir, meta.ResourceMappingFileName); err != nil {
-						return err
-					}
 				case "n":
 					if fset.flagHCLOnly {
 						return fmt.Errorf("`--hcl-only` can only run within an empty directory. Use `-o` to specify an empty directory.")
