@@ -114,7 +114,7 @@ func (meta MetaQuery) queryResourceSet(ctx context.Context, predicate string, re
 	}
 	result, err := lister.List(ctx, predicate)
 	if err != nil {
-		return nil, fmt.Errorf("listing resource set: %v", err)
+		return nil, fmt.Errorf("listing resource set: %w", err)
 	}
 
 	var rl []resourceset.AzureResource
