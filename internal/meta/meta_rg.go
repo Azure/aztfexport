@@ -105,7 +105,7 @@ func (meta MetaResourceGroup) queryResourceSet(ctx context.Context, rg string) (
 	}
 	result, err := lister.List(ctx, fmt.Sprintf("resourceGroup =~ %q", rg))
 	if err != nil {
-		return nil, fmt.Errorf("listing resource set: %v", err)
+		return nil, fmt.Errorf("listing resource set: %w", err)
 	}
 
 	var rl []resourceset.AzureResource
