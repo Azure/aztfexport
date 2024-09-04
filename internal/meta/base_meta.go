@@ -938,6 +938,15 @@ func (meta *baseMeta) importItem_notf(ctx context.Context, item *ImportItem, imp
 		return
 	}
 
+	// Ensure the state is not null
+	if readResp.NewState.IsNull() {
+		meta.Logger().Error("Cannot import an non-existent resource", "tf_addr", item.TFAddr)
+		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Cannot import an non-existent resource: %s", item.AzureResourceID.TypeString()))
+		item.ImportError = fmt.Errorf("Cannot import non-existent remote object")
+		item.Imported = false
+		return
+	}
+
 	meta.Logger().Debug("Finish importing a resource", "tf_id", item.TFResourceId, "tf_addr", addr)
 	item.State = readResp.NewState
 	item.ImportError = nil
