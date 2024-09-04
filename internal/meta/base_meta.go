@@ -924,6 +924,7 @@ func (meta *baseMeta) importItem_notf(ctx context.Context, item *ImportItem, imp
 		return
 	}
 	res := importResp.ImportedResources[0]
+
 	readResp, diags := meta.tfclient.ReadResource(ctx, typ.ReadResourceRequest{
 		TypeName:   res.TypeName,
 		PriorState: res.State,
@@ -934,6 +935,15 @@ func (meta *baseMeta) importItem_notf(ctx context.Context, item *ImportItem, imp
 		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Reading %s failed", item.AzureResourceID.TypeString()))
 		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Error detail: %v", diags.Err()))
 		item.ImportError = diags.Err()
+		item.Imported = false
+		return
+	}
+
+	// Ensure the state is not null
+	if readResp.NewState.IsNull() {
+		meta.Logger().Error("Cannot import an non-existent resource", "tf_addr", item.TFAddr)
+		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Cannot import an non-existent resource: %s", item.AzureResourceID.TypeString()))
+		item.ImportError = fmt.Errorf("Cannot import non-existent remote object")
 		item.Imported = false
 		return
 	}
