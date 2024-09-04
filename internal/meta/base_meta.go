@@ -924,7 +924,6 @@ func (meta *baseMeta) importItem_notf(ctx context.Context, item *ImportItem, imp
 		return
 	}
 	res := importResp.ImportedResources[0]
-
 	readResp, diags := meta.tfclient.ReadResource(ctx, typ.ReadResourceRequest{
 		TypeName:   res.TypeName,
 		PriorState: res.State,
