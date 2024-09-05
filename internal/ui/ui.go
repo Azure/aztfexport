@@ -265,6 +265,7 @@ func (m model) logoView() string {
 }
 
 func importErrorView(m model) string {
+	// #nosec G115
 	return m.importerrormsg.Item.TFResourceId + "\n\n" + common.ErrorMsgStyle.Render(wordwrap.WrapString(m.importerrormsg.Item.ImportError.Error(), uint(m.winsize.Width-indentLevel)))
 }
 
@@ -273,5 +274,6 @@ func summaryView(m model) string {
 }
 
 func errorView(m model) string {
+	// #nosec G115
 	return common.ErrorMsgStyle.Render(wordwrap.WrapString(m.err.Error(), uint(m.winsize.Width-indentLevel)))
 }

@@ -180,6 +180,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	os.Setenv("AZURE_HTTP_USER_AGENT", cfg.AzureSDKClientOption.Telemetry.ApplicationID)
 
 	// Disable AzureRM provider's enahnced validation, which will cause RP listing, that is expensive.
+	// #nosec G104
 	os.Setenv("ARM_PROVIDER_ENHANCED_VALIDATION", "false")
 
 	outputFileNames := cfg.OutputFileNames
