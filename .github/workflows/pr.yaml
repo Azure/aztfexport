@@ -19,6 +19,8 @@ jobs:
   gosec:
     name: gosec
     runs-on: ubuntu-latest
+    env:
+      GOFLAGS: '-buildvcs=false'
     steps:
       - name: Checkout Source
         uses: actions/checkout@v3
@@ -26,7 +28,7 @@ jobs:
       - name: Run Gosec Security Scanner
         uses: securego/gosec@v2.21.1
         with:
-          args: '-tags -buildvcs=false ./...'
+          args: './...'
 
   depscheck:
     name: depscheck
