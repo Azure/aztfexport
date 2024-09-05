@@ -26,7 +26,7 @@ jobs:
       - name: Run Gosec Security Scanner
         uses: securego/gosec@v2.21.1
         with:
-          args: '-buildvcs=false ./...'
+          args: '-tags -buildvcs=false ./...'
 
   depscheck:
     name: depscheck
