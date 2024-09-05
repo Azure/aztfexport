@@ -268,7 +268,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	setIfNoExist("use_oidc", cty.BoolVal(cfg.AuthConfig.UseOIDC))
 
 	// Update provider config for provider registration
-	setIfNoExist("skip_provider_registration", cty.BoolVal(true))
+	setIfNoExist("resource_provider_registrations", cty.StringVal("none"))
 
 	meta := &baseMeta{
 		logger:             cfg.Logger,
