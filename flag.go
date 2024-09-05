@@ -283,6 +283,7 @@ func initTelemetryClient(subscriptionId string) telemetry.Client {
 func (f FlagSet) buildAuthConfig() (*config.AuthConfig, error) {
 	clientId := f.flagClientId
 	if path := f.flagClientIdFilePath; path != "" {
+		// #nosec G304
 		b, err := os.ReadFile(path)
 		if err != nil {
 			return nil, fmt.Errorf("reading Client ID from file %q: %v", path, err)
@@ -292,6 +293,7 @@ func (f FlagSet) buildAuthConfig() (*config.AuthConfig, error) {
 
 	clientSecret := f.flagClientSecret
 	if path := f.flagClientSecretFilePath; path != "" {
+		// #nosec G304
 		b, err := os.ReadFile(path)
 		if err != nil {
 			return nil, fmt.Errorf("reading Client secret from file %q: %v", path, err)
@@ -301,6 +303,7 @@ func (f FlagSet) buildAuthConfig() (*config.AuthConfig, error) {
 
 	clientCertEncoded := f.flagClientCertificate
 	if path := f.flagClientCertificatePath; path != "" {
+		// #nosec G304
 		b, err := os.ReadFile(path)
 		if err != nil {
 			return nil, fmt.Errorf("reading Client certificate from file %q: %v", path, err)
@@ -310,6 +313,7 @@ func (f FlagSet) buildAuthConfig() (*config.AuthConfig, error) {
 
 	oidcToken := f.flagOIDCToken
 	if path := f.flagOIDCTokenFilePath; path != "" {
+		// #nosec G304
 		b, err := os.ReadFile(path)
 		if err != nil {
 			return nil, fmt.Errorf("reading OIDC token from file %q: %v", path, err)

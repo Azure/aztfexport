@@ -512,6 +512,7 @@ func main() {
 						}
 
 						path := strings.TrimPrefix(arg, "@")
+						// #nosec G304
 						f, err := os.Open(path)
 						if err != nil {
 							return fmt.Errorf("failed to open file %q: %v", path, err)
