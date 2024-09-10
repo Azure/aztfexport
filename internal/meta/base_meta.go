@@ -268,7 +268,12 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 	setIfNoExist("use_oidc", cty.BoolVal(cfg.AuthConfig.UseOIDC))
 
 	// Update provider config for provider registration
-	setIfNoExist("resource_provider_registrations", cty.StringVal("none"))
+	switch cfg.ProviderName {
+	case "azurerm":
+		setIfNoExist("resource_provider_registrations", cty.StringVal("none"))
+	case "azapi":
+		setIfNoExist("skip_provider_registration", cty.BoolVal(true))
+	}
 
 	meta := &baseMeta{
 		logger:             cfg.Logger,
