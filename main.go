@@ -421,6 +421,18 @@ func main() {
 			Usage:       "Include the resource groups that the exported resources belong to",
 			Destination: &flagset.flagIncludeResourceGroup,
 		},
+		&cli.StringFlag{
+			Name:        "arg-table",
+			EnvVars:     []string{"AZTFEXPORT_ARG_TABLE"},
+			Usage:       `The Azure Resource Graph table name. Defaults to "Resources".`,
+			Destination: &flagset.flagARGTable,
+		},
+		&cli.StringFlag{
+			Name:        "arg-authorization-scope-filter",
+			EnvVars:     []string{"AZTFEXPORT_ARG_AUTHORIZATION_SCOPE_FILTER"},
+			Usage:       `The Azure Resource Graph Authorization Scope Filter parameter. Possible values are: "AtScopeAndBelow", "AtScopeAndAbove", "AtScopeAboveAndBelow" and "AtScopeExact"`,
+			Destination: &flagset.flagARGAuthorizationScopeFilter,
+		},
 	}, resourceGroupFlags...)
 
 	mappingFileFlags := append([]cli.Flag{}, commonFlags...)
@@ -608,12 +620,14 @@ func main() {
 
 					// Initialize the config
 					cfg := config.Config{
-						CommonConfig:          commonConfig,
-						ARGPredicate:          predicate,
-						ResourceNamePattern:   flagset.flagPattern,
-						RecursiveQuery:        flagset.flagRecursive,
-						IncludeRoleAssignment: flagset.flagIncludeRoleAssignment,
-						IncludeResourceGroup:  flagset.flagIncludeResourceGroup,
+						CommonConfig:                commonConfig,
+						ARGPredicate:                predicate,
+						ResourceNamePattern:         flagset.flagPattern,
+						RecursiveQuery:              flagset.flagRecursive,
+						IncludeRoleAssignment:       flagset.flagIncludeRoleAssignment,
+						IncludeResourceGroup:        flagset.flagIncludeResourceGroup,
+						ARGTable:                    flagset.flagARGTable,
+						ARGAuthorizationScopeFilter: flagset.flagARGAuthorizationScopeFilter,
 					}
 
 					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeQuery), flagset.hflagTFClientPluginPath)

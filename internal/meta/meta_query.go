@@ -7,17 +7,20 @@ import (
 	"github.com/Azure/aztfexport/internal/resourceset"
 	"github.com/Azure/aztfexport/internal/tfaddr"
 	"github.com/Azure/aztfexport/pkg/config"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resourcegraph/armresourcegraph"
 	"github.com/magodo/azlist/azlist"
 )
 
 type MetaQuery struct {
 	baseMeta
-	argPredicate          string
-	recursiveQuery        bool
-	resourceNamePrefix    string
-	resourceNameSuffix    string
-	includeRoleAssignment bool
-	includeResourceGroup  bool
+	argPredicate                 string
+	recursiveQuery               bool
+	resourceNamePrefix           string
+	resourceNameSuffix           string
+	includeRoleAssignment        bool
+	includeResourceGroup         bool
+	argTable                     string
+	argAuthenticationScopeFilter armresourcegraph.AuthorizationScopeFilter
 }
 
 func NewMetaQuery(cfg config.Config) (*MetaQuery, error) {
@@ -28,11 +31,13 @@ func NewMetaQuery(cfg config.Config) (*MetaQuery, error) {
 	}
 
 	meta := &MetaQuery{
-		baseMeta:              *baseMeta,
-		argPredicate:          cfg.ARGPredicate,
-		recursiveQuery:        cfg.RecursiveQuery,
-		includeRoleAssignment: cfg.IncludeRoleAssignment,
-		includeResourceGroup:  cfg.IncludeResourceGroup,
+		baseMeta:                     *baseMeta,
+		argPredicate:                 cfg.ARGPredicate,
+		recursiveQuery:               cfg.RecursiveQuery,
+		includeRoleAssignment:        cfg.IncludeRoleAssignment,
+		includeResourceGroup:         cfg.IncludeResourceGroup,
+		argTable:                     cfg.ARGTable,
+		argAuthenticationScopeFilter: armresourcegraph.AuthorizationScopeFilter(cfg.ARGAuthorizationScopeFilter),
 	}
 	meta.resourceNamePrefix, meta.resourceNameSuffix = resourceNamePattern(cfg.ResourceNamePattern)
 
@@ -99,14 +104,16 @@ func (meta *MetaQuery) ListResource(ctx context.Context) (ImportList, error) {
 
 func (meta MetaQuery) queryResourceSet(ctx context.Context, predicate string, recursive bool) (*resourceset.AzureResourceSet, error) {
 	opt := azlist.Option{
-		Logger:                 meta.logger.WithGroup("azlist"),
-		SubscriptionId:         meta.subscriptionId,
-		Cred:                   meta.azureSDKCred,
-		ClientOpt:              meta.azureSDKClientOpt,
-		Parallelism:            meta.parallelism,
-		Recursive:              recursive,
-		ExtensionResourceTypes: extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
-		IncludeResourceGroup:   meta.includeResourceGroup,
+		Logger:                      meta.logger.WithGroup("azlist"),
+		SubscriptionId:              meta.subscriptionId,
+		Cred:                        meta.azureSDKCred,
+		ClientOpt:                   meta.azureSDKClientOpt,
+		Parallelism:                 meta.parallelism,
+		Recursive:                   recursive,
+		IncludeResourceGroup:        meta.includeResourceGroup,
+		ExtensionResourceTypes:      extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
+		ARGTable:                    meta.argTable,
+		ARGAuthorizationScopeFilter: meta.argAuthenticationScopeFilter,
 	}
 	lister, err := azlist.NewLister(opt)
 	if err != nil {

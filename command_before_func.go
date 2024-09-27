@@ -3,9 +3,11 @@ package main
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/Azure/aztfexport/internal/utils"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resourcegraph/armresourcegraph"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	"github.com/urfave/cli/v2"
 )
@@ -111,6 +113,12 @@ func commandBeforeFunc(fset *FlagSet, mode Mode) func(ctx *cli.Context) error {
 				}
 				if fset.flagResName != "" {
 					return fmt.Errorf("`--name` can't be specified for multi-resource mode")
+				}
+			}
+		case ModeQuery:
+			if fset.flagARGAuthorizationScopeFilter != "" {
+				if !slices.Contains(armresourcegraph.PossibleAuthorizationScopeFilterValues(), armresourcegraph.AuthorizationScopeFilter(fset.flagARGAuthorizationScopeFilter)) {
+					return fmt.Errorf("invalid value of `--arg-authorization-scope-filter`")
 				}
 			}
 		}

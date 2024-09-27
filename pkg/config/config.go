@@ -112,20 +112,35 @@ type Config struct {
 	// MappingFile specifies the path of mapping file, this indicates the map file mode.
 	MappingFile string
 
-	// ResourceNamePattern specifies the resource name pattern, this only applies to resource group mode, query mode and multi-resource mode.
+	/////////////////////////
+	// Scope: rg, res (multi), query
+
+	// ResourceNamePattern specifies the resource name pattern
 	ResourceNamePattern string
 
-	// RecursiveQuery specifies whether to recursively list the child/proxy resources of the ARG resulted resource list, this only applies to query mode.
-	RecursiveQuery bool
+	/////////////////////////
+	// Scope: rg, query
 
-	// TFResourceName specifies the TF resource name, this only applies to resource mode.
-	TFResourceName string
-	// TFResourceName specifies the TF resource type (if empty, will try to deduce the type), this only applies to resource mode.
-	TFResourceType string
-
-	// IncludeRoleAssignment specifies whether to include the role assginments assigned to the exported resources, this only applies to rg and query mode
+	// IncludeRoleAssignment specifies whether to include the role assginments assigned to the exported resources
 	IncludeRoleAssignment bool
 
-	// IncludeResourceGroup specifies whether to include the resource groups that the exported resources belong to, this only applies to query mode
+	/////////////////////////
+	// Scope: res (single)
+
+	// TFResourceName specifies the TF resource name
+	TFResourceName string
+	// TFResourceName specifies the TF resource type (if empty, will try to deduce the type)
+	TFResourceType string
+
+	/////////////////////////
+	// Scope: query
+
+	// RecursiveQuery specifies whether to recursively list the child/proxy resources of the ARG resulted resource list
+	RecursiveQuery bool
+	// IncludeResourceGroup specifies whether to include the resource groups that the exported resources belong to
 	IncludeResourceGroup bool
+	// ARGTable specifies the ARG table name, which defaults to the "Resources" table
+	ARGTable string
+	//  ARGAuthorizationScopeFilter specifies the AuthorizationScopeFilter parameter. Possible values are: "AtScopeAndBelow", "AtScopeAndAbove", "AtScopeAboveAndBelow" and "AtScopeExact"
+	ARGAuthorizationScopeFilter string
 }
