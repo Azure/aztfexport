@@ -87,12 +87,16 @@ type FlagSet struct {
 	// flagRecursive
 	// flagIncludeRoleAssignment
 	// flagIncludeResourceGroup
-	flagPattern               string
-	flagRecursive             bool
-	flagResName               string
-	flagResType               string
-	flagIncludeRoleAssignment bool
-	flagIncludeResourceGroup  bool
+	// flagARGTable
+	// flagARGAuthorizationScopeFilter
+	flagPattern                     string
+	flagRecursive                   bool
+	flagResName                     string
+	flagResType                     string
+	flagIncludeRoleAssignment       bool
+	flagIncludeResourceGroup        bool
+	flagARGTable                    string
+	flagARGAuthorizationScopeFilter string
 }
 
 type Mode string
@@ -250,6 +254,12 @@ func (flag FlagSet) DescribeCLI(mode Mode) string {
 		}
 		if flag.flagIncludeResourceGroup {
 			args = append(args, "--include-resource-group=true")
+		}
+		if flag.flagARGTable != "" {
+			args = append(args, "--arg-table="+flag.flagARGTable)
+		}
+		if flag.flagARGAuthorizationScopeFilter != "" {
+			args = append(args, "--arg-authorization-scope-filter="+flag.flagARGAuthorizationScopeFilter)
 		}
 	}
 	return "aztfexport " + strings.Join(args, " ")
