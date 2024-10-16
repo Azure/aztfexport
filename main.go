@@ -705,8 +705,17 @@ func realMain(ctx context.Context, cfg config.Config, batch, mockMeta, plainUI, 
 	// Initialize the TFClient
 	if tfClientPluginPath != "" {
 		// #nosec G204
+		cmd := exec.Command(flagset.hflagTFClientPluginPath)
+		cmd.Env = append(cmd.Env,
+			// Disable AzureRM provider's enahnced validation, which will cause RP listing, that is expensive.
+			// The setting for with_tf version is done during the init_tf function of meta Init phase.
+			"ARM_PROVIDER_ENHANCED_VALIDATION=false",
+			// AzureRM provider will honor env.var "AZURE_HTTP_USER_AGENT" when constructing for HTTP "User-Agent" header.
+			// The setting for with_tf version is done during the init_tf function of meta Init phase.
+			"AZURE_HTTP_USER_AGENT="+cfg.AzureSDKClientOption.Telemetry.ApplicationID,
+		)
 		tfc, err := tfclient.New(tfclient.Option{
-			Cmd:    exec.Command(flagset.hflagTFClientPluginPath),
+			Cmd:    cmd,
 			Logger: slog2hclog.New(cfg.Logger.WithGroup("provider"), nil),
 		})
 		if err != nil {

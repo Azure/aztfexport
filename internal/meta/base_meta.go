@@ -173,16 +173,6 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		return nil, fmt.Errorf("new resource client")
 	}
 
-	// Consider setting below environment variables via `tf.SetEnv()` once issue https://github.com/hashicorp/terraform-exec/issues/337 is resolved.
-
-	// AzureRM provider will honor env.var "AZURE_HTTP_USER_AGENT" when constructing for HTTP "User-Agent" header.
-	// #nosec G104
-	os.Setenv("AZURE_HTTP_USER_AGENT", cfg.AzureSDKClientOption.Telemetry.ApplicationID)
-
-	// Disable AzureRM provider's enahnced validation, which will cause RP listing, that is expensive.
-	// #nosec G104
-	os.Setenv("ARM_PROVIDER_ENHANCED_VALIDATION", "false")
-
 	outputFileNames := cfg.OutputFileNames
 	if outputFileNames.TerraformFileName == "" {
 		outputFileNames.TerraformFileName = "terraform.tf"
@@ -664,6 +654,18 @@ func (meta *baseMeta) init_notf(ctx context.Context) error {
 }
 
 func (meta *baseMeta) init_tf(ctx context.Context) error {
+	// Consider setting below environment variables via `tf.SetEnv()` once issue https://github.com/hashicorp/terraform-exec/issues/337 is resolved.
+
+	// Disable AzureRM provider's enahnced validation, which will cause RP listing, that is expensive.
+	// The setting for notf version is done during the tfclient initialization in main function.
+	// #nosec G104
+	os.Setenv("ARM_PROVIDER_ENHANCED_VALIDATION", "false")
+
+	// AzureRM provider will honor env.var "AZURE_HTTP_USER_AGENT" when constructing for HTTP "User-Agent" header.
+	// The setting for notf version is done during the tfclient initialization in main function.
+	// #nosec G104
+	os.Setenv("AZURE_HTTP_USER_AGENT", meta.azureSDKClientOpt.Telemetry.ApplicationID)
+
 	// Create the import directories per parallelism
 	if err := meta.initImportDirs(); err != nil {
 		return err
