@@ -233,8 +233,8 @@ github.com/magodo/armid v0.0.0-20240524082432-7ce06ae46c33 h1:KmQ16pNsI7DaELU+Cb
 github.com/magodo/armid v0.0.0-20240524082432-7ce06ae46c33/go.mod h1:rR8E7zfGMbmfnSQvrkFiWYdhrfTqsVSltelnZB09BwA=
 github.com/magodo/azlist v0.0.0-20240926110356-8798310310af h1:r55nPAyFztYNdXNVmZgNtDU6AbKbfdy/Cbg6xnOnidM=
 github.com/magodo/azlist v0.0.0-20240926110356-8798310310af/go.mod h1:xefFDOxzRssOEjGoxvrO8jeTWlzHXbY6sCJYOt+Jh5k=
-github.com/magodo/aztft v0.3.1-0.20240823092950-b8a7f3cdf3ae h1:+2PWj5sHws1EsOmStkdiMA5vjgchGGyasSfcNZ6Cbj4=
-github.com/magodo/aztft v0.3.1-0.20240823092950-b8a7f3cdf3ae/go.mod h1:swhCPmbwehJXrVgu8SCr/XFb2e9tkgEp+Wnnv3K0ZsQ=
+github.com/magodo/aztft v0.3.1-0.20241016083327-4e38dba42294 h1:C7M1y0YBziSS+Vdb/tZ3TdTvjph6B9RC13KZ7T+xMDI=
+github.com/magodo/aztft v0.3.1-0.20241016083327-4e38dba42294/go.mod h1:KQixUbCSpXiFkjLyy0lrtZY+2doHvJ1EIdtyhmVs3KQ=
 github.com/magodo/slog2hclog v0.0.0-20240614031327-090ebd72a033 h1:K2seYsMAzoICCLdDe7uU2WyaACLW+tvdTWG3QB+pyec=
 github.com/magodo/slog2hclog v0.0.0-20240614031327-090ebd72a033/go.mod h1:8PvdX1kpjMEmR7LTNZ0QulFpD9j3E/eJijru+4nHY7M=
 github.com/magodo/spinner v0.0.0-20240524082745-3a2305db1bdc h1:I/jBt/0pVX7/Z08qj7ZSzZjTFBvvDchIX2p9lFjKqs0=
