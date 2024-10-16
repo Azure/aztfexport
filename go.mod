@@ -28,9 +28,9 @@ require (
 	github.com/magodo/spinner v0.0.0-20240524082745-3a2305db1bdc
 	github.com/magodo/terraform-client-go v0.0.0-20240804032252-6d93a97fabb2
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
-	github.com/magodo/tfadd v0.10.1-0.20240829111832-c025a689b9bb
+	github.com/magodo/tfadd v0.10.1-0.20241016044504-203ca5aec3e0
 	github.com/magodo/tfmerge v0.0.0-20221214062955-f52e46d03402
-	github.com/magodo/tfstate v0.0.0-20240829105815-03d52976fa13
+	github.com/magodo/tfstate v0.0.0-20241016043929-2c95177bf0e6
 	github.com/magodo/workerpool v0.0.0-20240524082508-11838001bc35
 	github.com/microsoft/ApplicationInsights-Go v0.4.4
 	github.com/mitchellh/go-wordwrap v1.0.0
@@ -111,7 +111,7 @@ require (
 	github.com/hashicorp/yamux v0.1.1 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
-	github.com/magodo/tfpluginschema v0.0.0-20240829104406-475dca949d75 // indirect
+	github.com/magodo/tfpluginschema v0.0.0-20240902090353-0525d7d8c1c2 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
