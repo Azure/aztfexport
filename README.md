@@ -31,8 +31,16 @@ go install github.com/Azure/aztfexport@latest
 
 #### Windows
 
+##### WinGet
+
 ```bash
 winget install aztfexport
+```
+
+##### Chocolatey
+
+```bash
+choco install aztfexport
 ```
 
 #### Homebrew (Linux/macOS)
