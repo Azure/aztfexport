@@ -96,7 +96,7 @@ func (meta MetaResourceGroup) queryResourceSet(ctx context.Context, rg string) (
 		ClientOpt:              meta.azureSDKClientOpt,
 		Parallelism:            meta.parallelism,
 		Recursive:              true,
-		IncludeResourceGroup:   false,
+		IncludeResourceGroup:   true,
 		ExtensionResourceTypes: extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
 	}
 	lister, err := azlist.NewLister(opt)
@@ -117,13 +117,16 @@ func (meta MetaResourceGroup) queryResourceSet(ctx context.Context, rg string) (
 		rl = append(rl, res)
 	}
 
-	// Especially, adding the resoruce group itself to the resource set
-	rl = append(rl,
-		resourceset.AzureResource{Id: &armid.ResourceGroup{
-			SubscriptionId: meta.subscriptionId,
-			Name:           meta.resourceGroup,
-		}},
-	)
+	// Especially, if there is no resource within the resource group, the azlist will return an empty list.
+	// In this case, we'll have to add the resource group manually.
+	if len(rl) == 0 {
+		rl = append(rl,
+			resourceset.AzureResource{Id: &armid.ResourceGroup{
+				SubscriptionId: meta.subscriptionId,
+				Name:           meta.resourceGroup,
+			}},
+		)
+	}
 
 	return &resourceset.AzureResourceSet{Resources: rl}, nil
 }
