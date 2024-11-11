@@ -7,7 +7,6 @@ import (
 	"github.com/Azure/aztfexport/internal/resourceset"
 	"github.com/Azure/aztfexport/internal/tfaddr"
 	"github.com/Azure/aztfexport/pkg/config"
-	"github.com/magodo/armid"
 	"github.com/magodo/azlist/azlist"
 )
 
@@ -118,14 +117,34 @@ func (meta MetaResourceGroup) queryResourceSet(ctx context.Context, rg string) (
 	}
 
 	// Especially, if there is no resource within the resource group, the azlist will return an empty list.
-	// In this case, we'll have to add the resource group manually.
+	// In this case, we'll have to add the resource group as an element of ResourceContainers.
 	if len(rl) == 0 {
-		rl = append(rl,
-			resourceset.AzureResource{Id: &armid.ResourceGroup{
-				SubscriptionId: meta.subscriptionId,
-				Name:           meta.resourceGroup,
-			}},
-		)
+		opt = azlist.Option{
+			Logger:                 meta.logger.WithGroup("azlist"),
+			SubscriptionId:         meta.subscriptionId,
+			Cred:                   meta.azureSDKCred,
+			ClientOpt:              meta.azureSDKClientOpt,
+			Parallelism:            meta.parallelism,
+			Recursive:              true,
+			IncludeResourceGroup:   true,
+			ExtensionResourceTypes: extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
+			ARGTable:               "ResourceContainers",
+		}
+		lister, err = azlist.NewLister(opt)
+		if err != nil {
+			return nil, fmt.Errorf("building azlister: %v", err)
+		}
+		result, err = lister.List(ctx, fmt.Sprintf("name == %q", rg))
+		if err != nil {
+			return nil, fmt.Errorf("listing resource set: %w", err)
+		}
+		for _, res := range result.Resources {
+			res := resourceset.AzureResource{
+				Id:         res.Id,
+				Properties: res.Properties,
+			}
+			rl = append(rl, res)
+		}
 	}
 
 	return &resourceset.AzureResourceSet{Resources: rl}, nil
