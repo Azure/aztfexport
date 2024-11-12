@@ -7,7 +7,6 @@ import (
 	"github.com/Azure/aztfexport/internal/resourceset"
 	"github.com/Azure/aztfexport/internal/tfaddr"
 	"github.com/Azure/aztfexport/pkg/config"
-	"github.com/magodo/armid"
 	"github.com/magodo/azlist/azlist"
 )
 
@@ -89,26 +88,26 @@ func (meta *MetaResourceGroup) ListResource(ctx context.Context) (ImportList, er
 }
 
 func (meta MetaResourceGroup) queryResourceSet(ctx context.Context, rg string) (*resourceset.AzureResourceSet, error) {
+	var rl []resourceset.AzureResource
+
+	// Try to get the resource group (with any extension resources) first, in case it doesn't exist.
 	opt := azlist.Option{
 		Logger:                 meta.logger.WithGroup("azlist"),
 		SubscriptionId:         meta.subscriptionId,
 		Cred:                   meta.azureSDKCred,
 		ClientOpt:              meta.azureSDKClientOpt,
 		Parallelism:            meta.parallelism,
-		Recursive:              true,
-		IncludeResourceGroup:   true,
 		ExtensionResourceTypes: extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
+		ARGTable:               "ResourceContainers",
 	}
 	lister, err := azlist.NewLister(opt)
 	if err != nil {
-		return nil, fmt.Errorf("building azlister: %v", err)
+		return nil, fmt.Errorf("building azlister for listing resource group only: %v", err)
 	}
-	result, err := lister.List(ctx, fmt.Sprintf("resourceGroup =~ %q", rg))
+	result, err := lister.List(ctx, fmt.Sprintf("name == %q", rg))
 	if err != nil {
-		return nil, fmt.Errorf("listing resource set: %w", err)
+		return nil, fmt.Errorf("listing resource group only: %w", err)
 	}
-
-	var rl []resourceset.AzureResource
 	for _, res := range result.Resources {
 		res := resourceset.AzureResource{
 			Id:         res.Id,
@@ -117,15 +116,35 @@ func (meta MetaResourceGroup) queryResourceSet(ctx context.Context, rg string) (
 		rl = append(rl, res)
 	}
 
-	// Especially, if there is no resource within the resource group, the azlist will return an empty list.
-	// In this case, we'll have to add the resource group manually.
-	if len(rl) == 0 {
-		rl = append(rl,
-			resourceset.AzureResource{Id: &armid.ResourceGroup{
-				SubscriptionId: meta.subscriptionId,
-				Name:           meta.resourceGroup,
-			}},
-		)
+	// Skip the resource listing if the resource group itself doesn't exist.
+	if len(result.Resources) == 0 {
+		return &resourceset.AzureResourceSet{}, nil
+	}
+
+	// List the resources within the resource group.
+	opt = azlist.Option{
+		Logger:                 meta.logger.WithGroup("azlist"),
+		SubscriptionId:         meta.subscriptionId,
+		Cred:                   meta.azureSDKCred,
+		ClientOpt:              meta.azureSDKClientOpt,
+		Parallelism:            meta.parallelism,
+		ExtensionResourceTypes: extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
+		Recursive:              true,
+	}
+	lister, err = azlist.NewLister(opt)
+	if err != nil {
+		return nil, fmt.Errorf("building azlister for listing resource group: %v", err)
+	}
+	result, err = lister.List(ctx, fmt.Sprintf("resourceGroup =~ %q", rg))
+	if err != nil {
+		return nil, fmt.Errorf("listing resource group: %w", err)
+	}
+	for _, res := range result.Resources {
+		res := resourceset.AzureResource{
+			Id:         res.Id,
+			Properties: res.Properties,
+		}
+		rl = append(rl, res)
 	}
 
 	return &resourceset.AzureResourceSet{Resources: rl}, nil
