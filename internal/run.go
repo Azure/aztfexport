@@ -56,6 +56,10 @@ func BatchImport(ctx context.Context, cfg config.NonInteractiveModeConfig) error
 			return fmt.Errorf("exporting Resource Mapping file: %v", err)
 		}
 
+		if len(list.NonSkipped()) == 0 {
+			return fmt.Errorf("no resource found")
+		}
+
 		// Return early if only generating mapping file
 		if cfg.GenMappingFileOnly {
 			return nil
