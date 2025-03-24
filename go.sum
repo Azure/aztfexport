@@ -56,6 +56,8 @@ github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/internal v1.1.2 h1:mLY+pNL
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/internal v1.1.2/go.mod h1:FbdwsQ2EzwvXxOPcMFYO8ogEc9uMMIj3YkmCdXdAFmk=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/internal/v2 v2.0.0 h1:PTFGRSlMKCQelWwxUyYVEUqseBJVemLyqWJjvMyt0do=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/internal/v2 v2.0.0/go.mod h1:LRr2FzBTQlONPPa5HREE5+RjSCTXl7BwOvYOaWTqCaI=
+github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/internal/v3 v3.1.0 h1:2qsIIvxVT+uE6yrNldntJKlLRgxGbZ85kgtz5SNBhMw=
+github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/internal/v3 v3.1.0/go.mod h1:AW8VEadnhw9xox+VaVd9sP7NjzOAnaZBLRH6Tq3cJ38=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/iothub/armiothub v1.1.1 h1:Dh8SxVXcSyQN76LI4IseKyrnqyTUsx336Axg8zDYSMs=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/iothub/armiothub v1.1.1/go.mod h1:fqmmortNEICbosf7BfNVO3wWs6Cz/pkxYfExJC97Vy8=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/keyvault/armkeyvault v1.0.0 h1:Jc2KcpCDMu7wJfkrzn7fs/53QMDXH78GuqnH4HOd7zs=
@@ -88,8 +90,8 @@ github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resourcegraph/armresourceg
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resourcegraph/armresourcegraph v0.6.0/go.mod h1:KKrvyReEXgIA2D4ez2Jq5dRynJW4bOjRDkONdze2qjs=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armdeploymentscripts v1.0.0 h1:qd/BfXBy0s/cPn/hVVX+Ps0HolpC1NsHE2p+L2zB4C4=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armdeploymentscripts v1.0.0/go.mod h1:P1SgXux7JvaLh0fwpYwtY2csL+RYAc033mNha1Txlm8=
-github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources v1.1.1 h1:7CBQ+Ei8SP2c6ydQTGCCrS35bDxgTMfoP2miAwK++OU=
-github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources v1.1.1/go.mod h1:c/wcGeGx5FUPbM/JltUYHZcKmigwyVLJlDq+4HdtXaw=
+github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources v1.2.0 h1:Dd+RhdJn0OTtVGaeDLZpcumkIVCtA/3/Fo42+eoYvVM=
+github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources v1.2.0/go.mod h1:5kakwfW5CjC9KK+Q4wjXAg+ShuIm2mBMua0ZFj2C8PE=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/securityinsights/armsecurityinsights/v2 v2.0.0-beta.1 h1:9mTTrRpS9YeiH3n0FwWBCOd9Sg6AdQYwcpRCjK3+WQ4=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/securityinsights/armsecurityinsights/v2 v2.0.0-beta.1/go.mod h1:+Vn4YGqMk8/urNMX3IMR2lggm5cKqRQN13pUkqcfgyA=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/sql/armsql v1.2.0 h1:S087deZ0kP1RUg4pU7w9U9xpUedTCbOtz+mnd0+hrkQ=
@@ -108,6 +110,8 @@ github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/synapse/armsynapse v0.5.0 
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/synapse/armsynapse v0.5.0/go.mod h1:0LrLPHG/bVyQWENxWqSj2ycnnrpTjeSFrKuWymCBceM=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/timeseriesinsights/armtimeseriesinsights v1.0.0 h1:6zhHj/nA0VfUglOeV8geEXVw/XGAqsAyKjDK2B5gctE=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/timeseriesinsights/armtimeseriesinsights v1.0.0/go.mod h1:BJ1j39YchhMI91ICCnhfdwPe4bN59SdA4vYWd0bfF+g=
+github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/webpubsub/armwebpubsub v1.3.0 h1:NyzzELDBMwCl+jHnUAEzv/4t9tp0vVn78vUou/7yqvM=
+github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/webpubsub/armwebpubsub v1.3.0/go.mod h1:3cqAZX7JxhdbywHK3b1iaO/VcP9Kv+yvZ/s44EO2+LI=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/workloads/armworkloads v1.1.0 h1:kW9b3n/hV4/JgghAPinYHolJtocM/gPNCaeuqLqXzpc=
 github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/workloads/armworkloads v1.1.0/go.mod h1:G2hOQegwo7b7uqWaKRfqt6GG3x/eOnUA3qhT49fQRwA=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.2.2 h1:XHOnouVk1mxXfQidrMEnLlPk9UMeRtyBTnEFtxkV0kU=
@@ -239,8 +243,8 @@ github.com/magodo/armid v0.0.0-20240524082432-7ce06ae46c33 h1:KmQ16pNsI7DaELU+Cb
 github.com/magodo/armid v0.0.0-20240524082432-7ce06ae46c33/go.mod h1:rR8E7zfGMbmfnSQvrkFiWYdhrfTqsVSltelnZB09BwA=
 github.com/magodo/azlist v0.0.0-20240926110356-8798310310af h1:r55nPAyFztYNdXNVmZgNtDU6AbKbfdy/Cbg6xnOnidM=
 github.com/magodo/azlist v0.0.0-20240926110356-8798310310af/go.mod h1:xefFDOxzRssOEjGoxvrO8jeTWlzHXbY6sCJYOt+Jh5k=
-github.com/magodo/aztft v0.3.1-0.20250131035929-4eb4b79ce4dd h1:MxIOEA5KEyP7TsCTZm6nYmijmEmT1tWG43f1rCtFSzQ=
-github.com/magodo/aztft v0.3.1-0.20250131035929-4eb4b79ce4dd/go.mod h1:cWgec1jugIZ7IaMPwocFyk5BY8X6rtiLtDAfJQQNNf0=
+github.com/magodo/aztft v0.3.1-0.20250324031348-fbf7c30e3b7d h1:/AGJkiLAkwGup632jI9GVpxbZrU8zpAHSRDItLwQgUE=
+github.com/magodo/aztft v0.3.1-0.20250324031348-fbf7c30e3b7d/go.mod h1:ANoe0gR4AvpwHh3vR99Zg7zTzFynW/ZaD7CJSah9xZ0=
 github.com/magodo/slog2hclog v0.0.0-20240614031327-090ebd72a033 h1:K2seYsMAzoICCLdDe7uU2WyaACLW+tvdTWG3QB+pyec=
 github.com/magodo/slog2hclog v0.0.0-20240614031327-090ebd72a033/go.mod h1:8PvdX1kpjMEmR7LTNZ0QulFpD9j3E/eJijru+4nHY7M=
 github.com/magodo/spinner v0.0.0-20240524082745-3a2305db1bdc h1:I/jBt/0pVX7/Z08qj7ZSzZjTFBvvDchIX2p9lFjKqs0=
@@ -249,8 +253,8 @@ github.com/magodo/terraform-client-go v0.0.0-20240804032252-6d93a97fabb2 h1:X2ph
 github.com/magodo/terraform-client-go v0.0.0-20240804032252-6d93a97fabb2/go.mod h1:dzTs6Qwy8/VUWYMQ+Vo9gMXe5uOVbfCw/1ovE3g5q1E=
 github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0 h1:aNtr4iNv/tex2t8W1u3scAoNHEnFlTKhNNHOpYStqbs=
 github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0/go.mod h1:MqYhNP+PC386Bjsx5piZe7T4vDm5QIPv8b1RU0prVnU=
-github.com/magodo/tfadd v0.10.1-0.20250127230319-1e3fea4a88f9 h1:/lw7wJDxfjgl0U1UNWfQA/Z8Bbk/eLcy0rzTnzuGbS4=
-github.com/magodo/tfadd v0.10.1-0.20250127230319-1e3fea4a88f9/go.mod h1:EPtb7onUwcgcrXliCGc7IirgUxABSX5waXctUPWv2Ng=
+github.com/magodo/tfadd v0.10.1-0.20250324032158-5e61c7105490 h1:N3KVgOouRhoI9q+MKDGhQdCvcogUvtMbmKVLXWLWFDk=
+github.com/magodo/tfadd v0.10.1-0.20250324032158-5e61c7105490/go.mod h1:EPtb7onUwcgcrXliCGc7IirgUxABSX5waXctUPWv2Ng=
 github.com/magodo/tfmerge v0.0.0-20221214062955-f52e46d03402 h1:RyaR4VE7hoR9AyoVH414cpM8V63H4rLe2aZyKdoDV1w=
 github.com/magodo/tfmerge v0.0.0-20221214062955-f52e46d03402/go.mod h1:ssV++b4DH33rsD592bvpS4Peng3ZfdGNZbFgCDkCfj8=
 github.com/magodo/tfpluginschema v0.0.0-20240902090353-0525d7d8c1c2 h1:Unxx8WLxzSxINnq7hItp4cXD7drihgfPltTd91efoBo=
