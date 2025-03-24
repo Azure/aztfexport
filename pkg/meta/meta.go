@@ -33,3 +33,7 @@ func NewMeta(cfg config.Config) (Meta, error) {
 		return nil, fmt.Errorf("invalid group config")
 	}
 }
+
+func NewDummyMeta(cfg config.Config) (Meta, error) {
+	return meta.NewGroupMetaDummy(cfg.ResourceGroupName, cfg.ProviderName), nil
+}
