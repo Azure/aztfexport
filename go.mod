@@ -104,7 +104,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/felixge/fgprof v0.9.3 // indirect
-	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
+	github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/pprof v0.0.0-20211214055906-6f57359322fd // indirect
