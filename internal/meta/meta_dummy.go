@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Azure/aztfexport/pkg/config"
+	"github.com/magodo/armid"
 )
 
 type MetaGroupDummy struct {
@@ -46,23 +47,22 @@ func (m MetaGroupDummy) Workspace() string {
 
 func (m MetaGroupDummy) ListResource(_ context.Context) (ImportList, error) {
 	time.Sleep(500 * time.Millisecond)
-	return ImportList{
-		ImportItem{
-			TFResourceId: "/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg/providers/Microsoft.Network/virtualNetworks/example-network",
-		},
-		ImportItem{
-			TFResourceId: "/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg/providers/Microsoft.Compute/virtualMachines/example-machine",
-		},
-		ImportItem{
-			TFResourceId: "/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg/providers/Microsoft.Network/networkInterfaces/example-nic",
-		},
-		ImportItem{
-			TFResourceId: "/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg/providers/Microsoft.Network/virtualNetworks/example-network/subnets/internal",
-		},
-		ImportItem{
-			TFResourceId: "/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg",
-		},
-	}, nil
+	importList := make(ImportList, 0)
+	ids := []string{
+		"/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg/providers/Microsoft.Network/virtualNetworks/example-network",
+		"/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg/providers/Microsoft.Compute/virtualMachines/example-machine",
+		"/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg/providers/Microsoft.Network/networkInterfaces/example-nic",
+		"/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg/providers/Microsoft.Network/virtualNetworks/example-network/subnets/internal",
+		"/subscriptions/0000000-0000-0000-0000-00000000000/resourceGroups/example-rg",
+	}
+	for _, id := range ids {
+		azureResourceID, _ := armid.ParseResourceId(id)
+		importList = append(importList, ImportItem{
+			TFResourceId:    id,
+			AzureResourceID: azureResourceID,
+		})
+	}
+	return importList, nil
 }
 
 func (m MetaGroupDummy) CleanTFState(_ context.Context, _ string) {
