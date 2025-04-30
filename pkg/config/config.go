@@ -96,6 +96,10 @@ type CommonConfig struct {
 	TelemetryClient telemetry.Client
 	// GenerateImportBlock controls whether the export process ends up with a import.tf file that contains the "import" blocks
 	GenerateImportBlock bool
+	// Azure resource ID patterns (regexp, case insensitive) to exclude
+	ExcludeAzureResources []string
+	// Terrraform resource types to exclude
+	ExcludeTerraformResources []string
 }
 
 type Config struct {

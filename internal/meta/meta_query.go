@@ -78,6 +78,9 @@ func (meta *MetaQuery) ListResource(ctx context.Context) (ImportList, error) {
 
 	var l ImportList
 	for i, res := range rl {
+		if stringMatchAnyRegexp(res.AzureId.String(), meta.excludeAzureResources) {
+			continue
+		}
 		item := ImportItem{
 			AzureResourceID: res.AzureId,
 			TFResourceId:    res.TFId,
@@ -91,6 +94,9 @@ func (meta *MetaQuery) ListResource(ctx context.Context) (ImportList, error) {
 			},
 		}
 		if res.TFType != "" {
+			if stringEqualFoldAnyStrings(res.TFType, meta.excludeTerraformResources) {
+				continue
+			}
 			item.Recommendations = []string{res.TFType}
 			item.TFAddr.Type = res.TFType
 			item.TFAddrCache.Type = res.TFType

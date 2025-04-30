@@ -31,7 +31,7 @@ func TestQueryMode(t *testing.T) {
 		t.Log(provisionDir)
 	}
 
-	if err := os.WriteFile(filepath.Join(provisionDir, "main.tf"), []byte(fmt.Sprintf(`
+	if err := os.WriteFile(filepath.Join(provisionDir, "main.tf"), fmt.Appendf([]byte{}, `
 provider "azurerm" {
   features {
     resource_group {
@@ -55,7 +55,7 @@ resource "azurerm_subnet" "test" {
   resource_group_name  = azurerm_virtual_network.test.resource_group_name
   virtual_network_name = azurerm_virtual_network.test.name
 }
-`, d.RandomRgName())), 0644); err != nil {
+`, d.RandomRgName()), 0644); err != nil {
 		t.Fatalf("failed to create the TF config file: %v", err)
 	}
 	tf, err := tfexec.NewTerraform(provisionDir, tfexecPath)
@@ -102,8 +102,9 @@ resource "azurerm_subnet" "test" {
 				Parallelism:          1,
 				ProviderName:         "azurerm",
 			},
-			ResourceNamePattern: "res-",
-			ARGPredicate:        fmt.Sprintf(`resourceGroup =~ "%s" and type =~ "microsoft.network/virtualnetworks"`, d.RandomRgName()),
+			ResourceNamePattern:  "res-",
+			ARGPredicate:         fmt.Sprintf(`resourceGroup =~ "%s" and type =~ "microsoft.network/virtualnetworks"`, d.RandomRgName()),
+			IncludeResourceGroup: true,
 		},
 		PlainUI: true,
 	}
@@ -114,7 +115,7 @@ resource "azurerm_subnet" "test" {
 	if err := internal.BatchImport(ctx, cfg); err != nil {
 		t.Fatalf("failed to run batch import non-recursively: %v", err)
 	}
-	test.Verify(t, ctx, aztfexportDir, tfexecPath, 1)
+	test.Verify(t, ctx, aztfexportDir, tfexecPath, 2)
 
 	// Import in recursive mode
 	t.Log("Importing in recursive mode")
@@ -125,5 +126,17 @@ resource "azurerm_subnet" "test" {
 	if err := internal.BatchImport(ctx, cfg); err != nil {
 		t.Fatalf("failed to run batch import recursively: %v", err)
 	}
-	test.Verify(t, ctx, aztfexportDir, tfexecPath, 2)
+	test.Verify(t, ctx, aztfexportDir, tfexecPath, 3)
+
+	// Import in recusrive mode, but exclude the vnet and subet
+	t.Log("Importing in recursive mode, but exclude the vnet and subnet")
+	cfg.ExcludeAzureResources = []string{"subnets/internal$"}
+	cfg.ExcludeTerraformResources = []string{"azurerm_virtual_network"}
+	if err := utils.RemoveEverythingUnder(cfg.OutputDir); err != nil {
+		t.Fatalf("failed to clean up the output directory: %v", err)
+	}
+	if err := internal.BatchImport(ctx, cfg); err != nil {
+		t.Fatalf("failed to run batch import recursively: %v", err)
+	}
+	test.Verify(t, ctx, aztfexportDir, tfexecPath, 1)
 }

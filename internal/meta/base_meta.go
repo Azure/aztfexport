@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -126,6 +127,11 @@ type baseMeta struct {
 	originBaseState []byte
 	// The current base state, which is mutated during the importing
 	baseState []byte
+
+	// Azure resource ID patterns (regexp, case insensitive) to exclude
+	excludeAzureResources []regexp.Regexp
+	// Terrraform resource types to exclude
+	excludeTerraformResources []string
 
 	tc telemetry.Client
 }
@@ -265,6 +271,16 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		setIfNoExist("skip_provider_registration", cty.BoolVal(true))
 	}
 
+	// Update the exclude pattern of azure resource ids
+	var excludeAzureResources []regexp.Regexp
+	for _, p := range cfg.ExcludeAzureResources {
+		re, err := regexp.Compile(fmt.Sprintf(`(?i)%s`, p))
+		if err != nil {
+			continue
+		}
+		excludeAzureResources = append(excludeAzureResources, *re)
+	}
+
 	meta := &baseMeta{
 		logger:             cfg.Logger,
 		subscriptionId:     cfg.SubscriptionId,
@@ -290,6 +306,9 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 
 		moduleAddr: moduleAddr,
 		moduleDir:  moduleDir,
+
+		excludeAzureResources:     excludeAzureResources,
+		excludeTerraformResources: cfg.ExcludeTerraformResources,
 
 		tc: tc,
 	}
@@ -1175,6 +1194,20 @@ func resourceNamePattern(p string) (prefix, suffix string) {
 	return p, ""
 }
 
-func ptr[T any](v T) *T {
-	return &v
+func stringMatchAnyRegexp(s string, rel []regexp.Regexp) bool {
+	for _, re := range rel {
+		if re.MatchString(s) {
+			return true
+		}
+	}
+	return false
+}
+
+func stringEqualFoldAnyStrings(s string, sl []string) bool {
+	for _, ss := range sl {
+		if strings.EqualFold(s, ss) {
+			return true
+		}
+	}
+	return false
 }

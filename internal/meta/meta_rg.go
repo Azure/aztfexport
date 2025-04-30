@@ -65,6 +65,9 @@ func (meta *MetaResourceGroup) ListResource(ctx context.Context) (ImportList, er
 
 	var l ImportList
 	for i, res := range rl {
+		if stringMatchAnyRegexp(res.AzureId.String(), meta.excludeAzureResources) {
+			continue
+		}
 		tfAddr := tfaddr.TFAddr{
 			Type: "",
 			Name: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, i, meta.resourceNameSuffix),
@@ -76,6 +79,9 @@ func (meta *MetaResourceGroup) ListResource(ctx context.Context) (ImportList, er
 			TFAddrCache:     tfAddr,
 		}
 		if res.TFType != "" {
+			if stringEqualFoldAnyStrings(res.TFType, meta.excludeTerraformResources) {
+				continue
+			}
 			item.Recommendations = []string{res.TFType}
 			item.TFAddr.Type = res.TFType
 			item.TFAddrCache.Type = res.TFType

@@ -234,6 +234,30 @@ func main() {
 			Destination: &flagset.flagLogLevel,
 			Value:       "INFO",
 		},
+		&cli.StringSliceFlag{
+			Name:        "exclude-azure-resource",
+			EnvVars:     []string{"AZTFEXPORT_AZURE_RESOURCE"},
+			Usage:       "Exclude resource from being exported based on the Azure resource ID pattern (case-insensitive regexp)",
+			Destination: &flagset.flagExcludeAzureResource,
+		},
+		&cli.StringFlag{
+			Name:        "exclude-azure-resource-file",
+			EnvVars:     []string{"AZTFEXPORT_AZURE_RESOURCE_FILE"},
+			Usage:       "Path to a file recording the excluded resources from being exported based on the Azure resource ID pattern (case-insensitive regexp), one per line",
+			Destination: &flagset.flagExcludeAzureResourceFile,
+		},
+		&cli.StringSliceFlag{
+			Name:        "exclude-terraform-resource",
+			EnvVars:     []string{"AZTFEXPORT_TERRAFORM_RESOURCE"},
+			Usage:       "Exclude resource from being exported based on the Terraform resource type",
+			Destination: &flagset.flagExcludeTerraformResource,
+		},
+		&cli.StringFlag{
+			Name:        "exclude-terraform-resource-file",
+			EnvVars:     []string{"AZTFEXPORT_TERRAFORM_RESOURCE_FILE"},
+			Usage:       "Path to a file recording the excluded resources from being exported based on the Terraform resource type, one per line",
+			Destination: &flagset.flagExcludeTerraformResourceFile,
+		},
 
 		// Common flags (auth)
 		&cli.StringFlag{
