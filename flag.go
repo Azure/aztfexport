@@ -426,6 +426,7 @@ func (f FlagSet) BuildCommonConfig() (config.CommonConfig, error) {
 
 	excludeAzureResource := f.flagExcludeAzureResource.Value()
 	if p := f.flagExcludeAzureResourceFile; p != "" {
+		// #nosec G304
 		f, err := os.Open(p)
 		if err != nil {
 			return config.CommonConfig{}, fmt.Errorf("opening %s: %v", p, err)
@@ -441,6 +442,7 @@ func (f FlagSet) BuildCommonConfig() (config.CommonConfig, error) {
 
 	excludeTerraformResource := f.flagExcludeTerraformResource.Value()
 	if p := f.flagExcludeTerraformResourceFile; p != "" {
+		// #nosec G304
 		f, err := os.Open(p)
 		if err != nil {
 			return config.CommonConfig{}, fmt.Errorf("opening %s: %v", p, err)
