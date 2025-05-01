@@ -113,10 +113,6 @@ func (meta *MetaResource) ListResource(ctx context.Context) (ImportList, error) 
 			Name: name,
 		}
 
-		if stringEqualFoldAnyStrings(tfid, meta.excludeTerraformResources) || stringMatchAnyRegexp(res.AzureId.String(), meta.excludeAzureResources) {
-			return nil, nil
-		}
-
 		item := ImportItem{
 			AzureResourceID: res.AzureId,
 			TFResourceId:    tfid,
@@ -124,36 +120,31 @@ func (meta *MetaResource) ListResource(ctx context.Context) (ImportList, error) 
 			TFAddrCache:     tfAddr,
 		}
 		l = append(l, item)
-		return l, nil
-	}
-
-	// Multi-resource mode only honors the resourceName[Pre|Suf]fix
-	for i, res := range rl {
-		if stringMatchAnyRegexp(res.AzureId.String(), meta.excludeAzureResources) {
-			continue
-		}
-		tfAddr := tfaddr.TFAddr{
-			Type: "",
-			Name: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, i, meta.resourceNameSuffix),
-		}
-		item := ImportItem{
-			AzureResourceID: res.AzureId,
-			TFResourceId:    res.TFId,
-			TFAddr:          tfAddr,
-			TFAddrCache:     tfAddr,
-		}
-		if res.TFType != "" {
-			if stringEqualFoldAnyStrings(res.TFType, meta.excludeTerraformResources) {
-				continue
+	} else {
+		// Multi-resource mode only honors the resourceName[Pre|Suf]fix
+		for i, res := range rl {
+			tfAddr := tfaddr.TFAddr{
+				Type: "",
+				Name: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, i, meta.resourceNameSuffix),
 			}
-			item.TFAddr.Type = res.TFType
-			item.TFAddrCache.Type = res.TFType
-			item.Recommendations = []string{res.TFType}
-			item.IsRecommended = true
-		}
+			item := ImportItem{
+				AzureResourceID: res.AzureId,
+				TFResourceId:    res.TFId,
+				TFAddr:          tfAddr,
+				TFAddrCache:     tfAddr,
+			}
+			if res.TFType != "" {
+				item.TFAddr.Type = res.TFType
+				item.TFAddrCache.Type = res.TFType
+				item.Recommendations = []string{res.TFType}
+				item.IsRecommended = true
+			}
 
-		l = append(l, item)
+			l = append(l, item)
+		}
 	}
+
+	l = meta.excludeImportList(l)
 
 	return l, nil
 }

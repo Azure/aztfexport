@@ -52,12 +52,6 @@ func (meta *MetaMap) ListResource(_ context.Context) (ImportList, error) {
 
 	var l ImportList
 	for id, res := range m {
-		if stringMatchAnyRegexp(id, meta.excludeAzureResources) {
-			continue
-		}
-		if stringEqualFoldAnyStrings(res.ResourceType, meta.excludeTerraformResources) {
-			continue
-		}
 		azureId, err := armid.ParseResourceId(id)
 		if err != nil {
 			return nil, fmt.Errorf("parsing resource id %q: %v", id, err)
@@ -75,6 +69,8 @@ func (meta *MetaMap) ListResource(_ context.Context) (ImportList, error) {
 		}
 		l = append(l, item)
 	}
+
+	l = meta.excludeImportList(l)
 
 	sort.Slice(l, func(i, j int) bool {
 		return l[i].AzureResourceID.String() < l[j].AzureResourceID.String()

@@ -871,6 +871,32 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 	return nil
 }
 
+func (meta baseMeta) excludeImportList(rl ImportList) ImportList {
+	var nl ImportList
+
+excludeLoop:
+	for _, res := range rl {
+		// Exclude by Azure resource id pattern
+		for _, re := range meta.excludeAzureResources {
+			if re.MatchString(res.AzureResourceID.String()) {
+				continue excludeLoop
+			}
+		}
+
+		// Exclude by Terraform resource type
+		if rt := res.TFAddr.Type; rt != "" {
+			for _, ert := range meta.excludeTerraformResources {
+				if strings.EqualFold(rt, ert) {
+					continue excludeLoop
+				}
+			}
+		}
+
+		nl = append(nl, res)
+	}
+	return nl
+}
+
 func (meta *baseMeta) importItem(ctx context.Context, item *ImportItem, importIdx int) {
 	if item.Skip() {
 		meta.Logger().Info("Skipping resource", "tf_id", item.TFResourceId)
@@ -1192,22 +1218,4 @@ func resourceNamePattern(p string) (prefix, suffix string) {
 		return p[:pos], p[pos+1:]
 	}
 	return p, ""
-}
-
-func stringMatchAnyRegexp(s string, rel []regexp.Regexp) bool {
-	for _, re := range rel {
-		if re.MatchString(s) {
-			return true
-		}
-	}
-	return false
-}
-
-func stringEqualFoldAnyStrings(s string, sl []string) bool {
-	for _, ss := range sl {
-		if strings.EqualFold(s, ss) {
-			return true
-		}
-	}
-	return false
 }
