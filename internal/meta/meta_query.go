@@ -99,6 +99,9 @@ func (meta *MetaQuery) ListResource(ctx context.Context) (ImportList, error) {
 
 		l = append(l, item)
 	}
+
+	l = meta.excludeImportList(l)
+
 	return l, nil
 }
 

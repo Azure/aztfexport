@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -126,6 +127,11 @@ type baseMeta struct {
 	originBaseState []byte
 	// The current base state, which is mutated during the importing
 	baseState []byte
+
+	// Azure resource ID patterns (regexp, case insensitive) to exclude
+	excludeAzureResources []regexp.Regexp
+	// Terrraform resource types to exclude
+	excludeTerraformResources []string
 
 	tc telemetry.Client
 }
@@ -265,6 +271,16 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		setIfNoExist("skip_provider_registration", cty.BoolVal(true))
 	}
 
+	// Update the exclude pattern of azure resource ids
+	var excludeAzureResources []regexp.Regexp
+	for _, p := range cfg.ExcludeAzureResources {
+		re, err := regexp.Compile(fmt.Sprintf(`(?i)%s`, p))
+		if err != nil {
+			continue
+		}
+		excludeAzureResources = append(excludeAzureResources, *re)
+	}
+
 	meta := &baseMeta{
 		logger:             cfg.Logger,
 		subscriptionId:     cfg.SubscriptionId,
@@ -290,6 +306,9 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 
 		moduleAddr: moduleAddr,
 		moduleDir:  moduleDir,
+
+		excludeAzureResources:     excludeAzureResources,
+		excludeTerraformResources: cfg.ExcludeTerraformResources,
 
 		tc: tc,
 	}
@@ -852,6 +871,32 @@ func (meta *baseMeta) initProvider(ctx context.Context) error {
 	return nil
 }
 
+func (meta baseMeta) excludeImportList(rl ImportList) ImportList {
+	var nl ImportList
+
+excludeLoop:
+	for _, res := range rl {
+		// Exclude by Azure resource id pattern
+		for _, re := range meta.excludeAzureResources {
+			if re.MatchString(res.AzureResourceID.String()) {
+				continue excludeLoop
+			}
+		}
+
+		// Exclude by Terraform resource type
+		if rt := res.TFAddr.Type; rt != "" {
+			for _, ert := range meta.excludeTerraformResources {
+				if strings.EqualFold(rt, ert) {
+					continue excludeLoop
+				}
+			}
+		}
+
+		nl = append(nl, res)
+	}
+	return nl
+}
+
 func (meta *baseMeta) importItem(ctx context.Context, item *ImportItem, importIdx int) {
 	if item.Skip() {
 		meta.Logger().Info("Skipping resource", "tf_id", item.TFResourceId)
@@ -1173,8 +1218,4 @@ func resourceNamePattern(p string) (prefix, suffix string) {
 		return p[:pos], p[pos+1:]
 	}
 	return p, ""
-}
-
-func ptr[T any](v T) *T {
-	return &v
 }

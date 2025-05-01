@@ -70,6 +70,8 @@ func (meta *MetaMap) ListResource(_ context.Context) (ImportList, error) {
 		l = append(l, item)
 	}
 
+	l = meta.excludeImportList(l)
+
 	sort.Slice(l, func(i, j int) bool {
 		return l[i].AzureResourceID.String() < l[j].AzureResourceID.String()
 	})

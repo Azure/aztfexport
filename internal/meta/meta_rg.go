@@ -84,6 +84,9 @@ func (meta *MetaResourceGroup) ListResource(ctx context.Context) (ImportList, er
 
 		l = append(l, item)
 	}
+
+	l = meta.excludeImportList(l)
+
 	return l, nil
 }
 

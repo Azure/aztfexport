@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -25,27 +26,31 @@ var flagset FlagSet
 
 type FlagSet struct {
 	// common flags
-	flagSubscriptionId      string
-	flagOutputDir           string
-	flagOverwrite           bool
-	flagAppend              bool
-	flagDevProvider         bool
-	flagProviderVersion     string
-	flagProviderName        string
-	flagBackendType         string
-	flagBackendConfig       cli.StringSlice
-	flagFullConfig          bool
-	flagMaskSensitive       bool
-	flagParallelism         int
-	flagContinue            bool
-	flagNonInteractive      bool
-	flagPlainUI             bool
-	flagGenerateMappingFile bool
-	flagHCLOnly             bool
-	flagModulePath          string
-	flagGenerateImportBlock bool
-	flagLogPath             string
-	flagLogLevel            string
+	flagSubscriptionId               string
+	flagOutputDir                    string
+	flagOverwrite                    bool
+	flagAppend                       bool
+	flagDevProvider                  bool
+	flagProviderVersion              string
+	flagProviderName                 string
+	flagBackendType                  string
+	flagBackendConfig                cli.StringSlice
+	flagFullConfig                   bool
+	flagMaskSensitive                bool
+	flagParallelism                  int
+	flagContinue                     bool
+	flagNonInteractive               bool
+	flagPlainUI                      bool
+	flagGenerateMappingFile          bool
+	flagHCLOnly                      bool
+	flagModulePath                   string
+	flagGenerateImportBlock          bool
+	flagLogPath                      string
+	flagLogLevel                     string
+	flagExcludeAzureResource         cli.StringSlice
+	flagExcludeAzureResourceFile     string
+	flagExcludeTerraformResource     cli.StringSlice
+	flagExcludeTerraformResourceFile string
 
 	// common flags (auth)
 	flagEnv                       string
@@ -419,26 +424,60 @@ func (f FlagSet) BuildCommonConfig() (config.CommonConfig, error) {
 		return config.CommonConfig{}, fmt.Errorf("failed to new credential: %v", err)
 	}
 
+	excludeAzureResource := f.flagExcludeAzureResource.Value()
+	if p := f.flagExcludeAzureResourceFile; p != "" {
+		// #nosec G304
+		f, err := os.Open(p)
+		if err != nil {
+			return config.CommonConfig{}, fmt.Errorf("opening %s: %v", p, err)
+		}
+		defer f.Close()
+
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			v := strings.TrimSpace(scanner.Text())
+			excludeAzureResource = append(excludeAzureResource, v)
+		}
+	}
+
+	excludeTerraformResource := f.flagExcludeTerraformResource.Value()
+	if p := f.flagExcludeTerraformResourceFile; p != "" {
+		// #nosec G304
+		f, err := os.Open(p)
+		if err != nil {
+			return config.CommonConfig{}, fmt.Errorf("opening %s: %v", p, err)
+		}
+		defer f.Close()
+
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			v := strings.TrimSpace(scanner.Text())
+			excludeTerraformResource = append(excludeTerraformResource, v)
+		}
+	}
+
 	cfg := config.CommonConfig{
-		Logger:               logger,
-		AuthConfig:           *authConfig,
-		SubscriptionId:       f.flagSubscriptionId,
-		AzureSDKCredential:   cred,
-		AzureSDKClientOption: clientOpt,
-		OutputDir:            f.flagOutputDir,
-		ProviderVersion:      f.flagProviderVersion,
-		ProviderName:         f.flagProviderName,
-		DevProvider:          f.flagDevProvider,
-		ContinueOnError:      f.flagContinue,
-		BackendType:          f.flagBackendType,
-		BackendConfig:        f.flagBackendConfig.Value(),
-		FullConfig:           f.flagFullConfig,
-		MaskSensitive:        f.flagMaskSensitive,
-		Parallelism:          f.flagParallelism,
-		HCLOnly:              f.flagHCLOnly,
-		ModulePath:           f.flagModulePath,
-		GenerateImportBlock:  f.flagGenerateImportBlock,
-		TelemetryClient:      initTelemetryClient(f.flagSubscriptionId),
+		Logger:                    logger,
+		AuthConfig:                *authConfig,
+		SubscriptionId:            f.flagSubscriptionId,
+		AzureSDKCredential:        cred,
+		AzureSDKClientOption:      clientOpt,
+		OutputDir:                 f.flagOutputDir,
+		ProviderVersion:           f.flagProviderVersion,
+		ProviderName:              f.flagProviderName,
+		DevProvider:               f.flagDevProvider,
+		ContinueOnError:           f.flagContinue,
+		BackendType:               f.flagBackendType,
+		BackendConfig:             f.flagBackendConfig.Value(),
+		FullConfig:                f.flagFullConfig,
+		MaskSensitive:             f.flagMaskSensitive,
+		Parallelism:               f.flagParallelism,
+		HCLOnly:                   f.flagHCLOnly,
+		ModulePath:                f.flagModulePath,
+		GenerateImportBlock:       f.flagGenerateImportBlock,
+		TelemetryClient:           initTelemetryClient(f.flagSubscriptionId),
+		ExcludeAzureResources:     excludeAzureResource,
+		ExcludeTerraformResources: excludeTerraformResource,
 	}
 
 	if f.flagAppend {
