@@ -43,7 +43,7 @@ func TestHclBlockAppendLifecycle(t *testing.T) {
 
 func TestReplaceIdAttrValuesWithTFAddr(t *testing.T) {
 	cases := []struct {
-		caseNo          int
+		description     string
 		depResourceId   string
 		depTfAddr       string
 		inputHclBody    string
@@ -51,7 +51,7 @@ func TestReplaceIdAttrValuesWithTFAddr(t *testing.T) {
 		expectedRetVal  bool
 	}{
 		{
-			caseNo:        1,
+			description:   "single id value should be replaced with tf addr",
 			depResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
 			depTfAddr:     "azurerm_foo_resource.example",
 			inputHclBody: `
@@ -65,7 +65,7 @@ func TestReplaceIdAttrValuesWithTFAddr(t *testing.T) {
 			expectedRetVal: true,
 		},
 		{
-			caseNo:        2,
+			description:   "multiple id values should be replaced with tf addr",
 			depResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
 			depTfAddr:     "azurerm_foo_resource.example",
 			inputHclBody: `
@@ -81,7 +81,7 @@ func TestReplaceIdAttrValuesWithTFAddr(t *testing.T) {
 			expectedRetVal: true,
 		},
 		{
-			caseNo:        3,
+			description:   "no replacement if no id value matches",
 			depResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/123",
 			depTfAddr:     "azurerm_bar_resource.example",
 			inputHclBody: `
@@ -95,21 +95,7 @@ func TestReplaceIdAttrValuesWithTFAddr(t *testing.T) {
 			expectedRetVal: false,
 		},
 		{
-			caseNo:        4,
-			depResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/123",
-			depTfAddr:     "azurerm_bar_resource.example",
-			inputHclBody: `
-  name   = "test"
-  foo_id = "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"
-`,
-			expectedHclBody: `
-  name   = "test"
-  foo_id = "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"
-`,
-			expectedRetVal: false,
-		},
-		{
-			caseNo:          5,
+			description:     "empty hcl body",
 			depResourceId:   "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/123",
 			depTfAddr:       "azurerm_bar_resource.example",
 			inputHclBody:    ``,
@@ -117,7 +103,7 @@ func TestReplaceIdAttrValuesWithTFAddr(t *testing.T) {
 			expectedRetVal:  false,
 		},
 		{
-			caseNo:        6,
+			description:   "id value in a list",
 			depResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
 			depTfAddr:     "azurerm_foo_resource.example",
 			inputHclBody: `
@@ -138,8 +124,8 @@ func TestReplaceIdAttrValuesWithTFAddr(t *testing.T) {
 
 		actualRetVal := replaceIdAttrValuesWithTFAddr(body, cfg)
 
-		require.Equal(t, c.expectedRetVal, actualRetVal, "case %d: expectedRetVal should match actual", c.caseNo)
-		require.Equal(t, c.expectedHclBody, string(body.BuildTokens(nil).Bytes()), "case %d: expectedHclBody should match actual", c.caseNo)
+		require.Equal(t, c.expectedRetVal, actualRetVal, "'%s': expectedRetVal should match actual", c.description)
+		require.Equal(t, c.expectedHclBody, string(body.BuildTokens(nil).Bytes()), "'%s': expectedHclBody should match actual", c.description)
 	}
 
 }
