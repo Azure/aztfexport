@@ -25,7 +25,7 @@ func hclBlockUpdateDependency(body *hclwrite.Body, deps []Dependency, cfgset map
 			continue
 		}
 		cfg := cfgset[dep.Candidates[0]]
-		if !replaceIdAttrValuesWithTFAddr(body, cfg) {
+		if !replaceIdValuedTokensWithTFAddr(body, cfg) {
 			dependsOnMetaArgs = append(dependsOnMetaArgs, cfg.TFAddr.String()+",")
 		}
 	}
@@ -42,30 +42,50 @@ func hclBlockUpdateDependency(body *hclwrite.Body, deps []Dependency, cfgset map
 	return nil
 }
 
-func replaceIdAttrValuesWithTFAddr(body *hclwrite.Body, cfg ConfigInfo) bool {
-	resourceId := cfg.AzureResourceID.String()
+// Traverse the attribute tokens and replace all TFResourceId-valued tokens
+// surrounded with quotes with TFAddr.
+// This function recurse through nested blocks.
+// Returns true if any replacement was made
+func replaceIdValuedTokensWithTFAddr(body *hclwrite.Body, cfg ConfigInfo) bool {
+	resourceId := cfg.TFResourceId
 	ret := false
 
-	for attrName, attrVal := range body.Attributes() {
-		attrVal.Expr().BuildTokens(nil)
-		if attrValue(attrVal) == resourceId {
-			tfAddr := fmt.Sprintf("%s.id", cfg.TFAddr.String())
-			body.SetAttributeRaw(attrName, hclwrite.Tokens{
-				{
+	for name, attr := range body.Attributes() {
+		tokens := attr.Expr().BuildTokens(nil)
+		filteredTokens := hclwrite.Tokens{}
+		resourceIdValuedTokenFound := false
+
+		for i := 0; i < len(tokens); {
+			if i+2 < len(tokens) &&
+				tokens[i].Type == hclsyntax.TokenOQuote &&
+				tokens[i+1].Type == hclsyntax.TokenQuotedLit &&
+				tokens[i+2].Type == hclsyntax.TokenCQuote &&
+				string(tokens[i+1].Bytes) == resourceId {
+				filteredTokens = append(filteredTokens, &hclwrite.Token{
 					Type:         hclsyntax.TokenIdent,
-					Bytes:        []byte(tfAddr),
-					SpacesBefore: 1,
-				},
-			})
+					Bytes:        fmt.Appendf(nil, "%s.id", cfg.TFAddr.String()),
+					SpacesBefore: tokens[i].SpacesBefore,
+				})
+				resourceIdValuedTokenFound = true
+				i += 3
+			} else {
+				filteredTokens = append(filteredTokens, tokens[i])
+				i++
+			}
+		}
+
+		if resourceIdValuedTokenFound {
+			body.SetAttributeRaw(name, filteredTokens)
 			ret = true
 		}
 	}
-	return ret
-}
 
-func attrValue(attrVal *hclwrite.Attribute) string {
-	ret := string(attrVal.Expr().BuildTokens(nil).Bytes())
-	ret = strings.Trim(ret, `'"\ `)
+	for _, block := range body.Blocks() {
+		if replaceIdValuedTokensWithTFAddr(block.Body(), cfg) {
+			ret = true
+		}
+	}
+
 	return ret
 }
 
