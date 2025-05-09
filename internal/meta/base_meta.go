@@ -1149,7 +1149,7 @@ func (meta baseMeta) addDependency(configs ConfigInfos) (ConfigInfos, error) {
 
 	for _, cfg := range configs {
 		if len(cfg.DependsOn) != 0 {
-			if err := hclBlockAppendDependency(cfg.hcl.Body().Blocks()[0].Body(), cfg.DependsOn, configSet); err != nil {
+			if err := hclBlockUpdateDependency(cfg.hcl.Body().Blocks()[0].Body(), cfg.DependsOn, configSet); err != nil {
 				return nil, err
 			}
 		}
