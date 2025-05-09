@@ -42,10 +42,8 @@ func hclBlockUpdateDependency(body *hclwrite.Body, deps []Dependency, cfgset map
 	return nil
 }
 
-// Traverse the attribute tokens and replace all TFResourceId-valued tokens
-// surrounded with quotes with TFAddr.
-// This function recurse through nested blocks.
-// Returns true if any replacement was made
+// Traverse the attribute tokens and replace all TFResourceId-valued token surrounded with quotes with TFAddr.
+// This function recurse through nested blocks. Returns true if any replacement was made
 func replaceIdValuedTokensWithTFAddr(body *hclwrite.Body, cfg ConfigInfo) bool {
 	resourceId := cfg.TFResourceId
 	ret := false
