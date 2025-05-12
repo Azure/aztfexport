@@ -53,22 +53,18 @@ func replaceIdValuedTokensWithTFAddr(body *hclwrite.Body, cfg ConfigInfo) bool {
 		filteredTokens := hclwrite.Tokens{}
 		resourceIdValuedTokenFound := false
 
-		for i := 0; i < len(tokens); {
-			if i+2 < len(tokens) &&
-				tokens[i].Type == hclsyntax.TokenOQuote &&
-				tokens[i+1].Type == hclsyntax.TokenQuotedLit &&
-				tokens[i+2].Type == hclsyntax.TokenCQuote &&
-				string(tokens[i+1].Bytes) == resourceId {
-				filteredTokens = append(filteredTokens, &hclwrite.Token{
+		for i := 0; i < len(tokens); i++ {
+			// Parsing process guaranteed QuotedLit is surrounded by Opening and Closing quote
+			if tokens[i].Type == hclsyntax.TokenQuotedLit && string(tokens[i].Bytes) == resourceId {
+				filteredTokens[len(filteredTokens)-1] = &hclwrite.Token{
 					Type:         hclsyntax.TokenIdent,
 					Bytes:        fmt.Appendf(nil, "%s.id", cfg.TFAddr.String()),
-					SpacesBefore: tokens[i].SpacesBefore,
-				})
+					SpacesBefore: tokens[i-1].SpacesBefore,
+				}
 				resourceIdValuedTokenFound = true
-				i += 3
+				i += 1
 			} else {
 				filteredTokens = append(filteredTokens, tokens[i])
-				i++
 			}
 		}
 
@@ -76,11 +72,11 @@ func replaceIdValuedTokensWithTFAddr(body *hclwrite.Body, cfg ConfigInfo) bool {
 			body.SetAttributeRaw(name, filteredTokens)
 			ret = true
 		}
-	}
 
-	for _, block := range body.Blocks() {
-		if replaceIdValuedTokensWithTFAddr(block.Body(), cfg) {
-			ret = true
+		for _, block := range body.Blocks() {
+			if replaceIdValuedTokensWithTFAddr(block.Body(), cfg) {
+				ret = true
+			}
 		}
 	}
 
