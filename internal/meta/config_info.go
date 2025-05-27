@@ -22,6 +22,8 @@ type ConfigInfo struct {
 }
 
 type Dependency struct {
+	// Azure resource id of the dependency candidates
+	// There could be multiple candidates because 2 or more TF resource types can have the same resource id
 	Candidates []string
 }
 
@@ -51,44 +53,6 @@ func (cfgs ConfigInfos) AddDependency() error {
 			} else {
 				duplicates = append(duplicates, dep)
 			}
-		}
-
-		// Deduplicate dependency that is parent of another dependency
-		var covlist []string
-		for dep := range set {
-			for odep := range set {
-				if dep == odep {
-					continue
-				}
-				if strings.HasPrefix(strings.ToUpper(odep), strings.ToUpper(dep)) {
-					covlist = append(covlist, dep)
-					break
-				}
-			}
-		}
-		for _, dep := range covlist {
-			delete(set, dep)
-		}
-
-		// If all duplicate candidates are child of this dependency, then also remove it.
-		covlist = []string{}
-		for dep := range set {
-			for _, odep := range duplicates {
-				allIsChild := true
-				for _, candidate := range odep.Candidates {
-					if !strings.HasPrefix(strings.ToUpper(candidate), strings.ToUpper(dep)) {
-						allIsChild = false
-						break
-					}
-				}
-				if allIsChild {
-					covlist = append(covlist, dep)
-					break
-				}
-			}
-		}
-		for _, dep := range covlist {
-			delete(set, dep)
 		}
 
 		// Sort the dependencies

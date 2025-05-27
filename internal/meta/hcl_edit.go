@@ -9,11 +9,16 @@ import (
 	"github.com/hashicorp/hcl/v2/hclwrite"
 )
 
-// hclBlockUpdateDependency substitute ids found in values with TF address to introduce implicit dependency, and
-// falls back to the depends_on instructions if none found.
-// cfgset is a map keyed by azure resource id.
+// Performs id --> TF address substitution for all dependency id value found in attributes.
+// Any remaining unsubstituted descendant dependencies will be applied using "depends_on" meta argument.
+// A dependency is descendant of another if the path is its prefix
+// For example: /subscriptions/123/resourceGroups/my-rg/providers/Microsoft.Network/networkInterfaces/my-nic
+// is descendant of /subscriptions/123/resourceGroups/my-rg
 func hclBlockUpdateDependency(body *hclwrite.Body, deps []Dependency, cfgset map[string]ConfigInfo) error {
 	dependsOnMetaArgs := []string{}
+	resourceIdsReplacedWithTFAddr := []string{}
+	leftoverDepsYetToBeApplied := []Dependency{}
+
 	for _, dep := range deps {
 		if len(dep.Candidates) > 1 {
 			var candidateIds []string
@@ -24,11 +29,23 @@ func hclBlockUpdateDependency(body *hclwrite.Body, deps []Dependency, cfgset map
 			dependsOnMetaArgs = append(dependsOnMetaArgs, fmt.Sprintf("# One of %s (can't auto-resolve as their ids are identical)", strings.Join(candidateIds, ",")))
 			continue
 		}
-		cfg := cfgset[dep.Candidates[0]]
-		if !replaceIdValuedTokensWithTFAddr(body, cfg) {
-			dependsOnMetaArgs = append(dependsOnMetaArgs, cfg.TFAddr.String()+",")
+		resourceId := dep.Candidates[0]
+		cfg := cfgset[resourceId]
+		if replaceIdValuedTokensWithTFAddr(body, cfg) {
+			resourceIdsReplacedWithTFAddr = append(resourceIdsReplacedWithTFAddr, resourceId)
+		} else {
+			leftoverDepsYetToBeApplied = append(leftoverDepsYetToBeApplied, dep)
 		}
 	}
+
+	for _, dep := range leftoverDepsYetToBeApplied {
+		resourceId := dep.Candidates[0]
+		if !descendantResourceIdInCollection(resourceId, &resourceIdsReplacedWithTFAddr) {
+			dependsOnMetaArgs = append(dependsOnMetaArgs, cfgset[resourceId].TFAddr.String())
+		}
+	}
+
+	// Add depends_on for remaining deps that couldn't be applied via id
 	if len(dependsOnMetaArgs) > 0 {
 		src := []byte("depends_on = [\n" + strings.Join(dependsOnMetaArgs, "\n") + "\n]")
 		expr, diags := hclwrite.ParseConfig(src, "f", hcl.InitialPos)
@@ -40,6 +57,15 @@ func hclBlockUpdateDependency(body *hclwrite.Body, deps []Dependency, cfgset map
 	}
 
 	return nil
+}
+
+func descendantResourceIdInCollection(resourceIdToCheck string, resourceIds *[]string) bool {
+	for _, rid := range *resourceIds {
+		if strings.HasPrefix(rid, resourceIdToCheck) {
+			return true
+		}
+	}
+	return false
 }
 
 // Traverse the attribute tokens and replace all TFResourceId-valued token surrounded with quotes with TFAddr.
