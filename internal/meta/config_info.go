@@ -36,13 +36,13 @@ func (cfgs ConfigInfos) AddDependency() error {
 		return err
 	}
 
-	// Deduplicate then sort the dependencies
+	// Disduplicate then sort the dependencies
 	for i, cfg := range cfgs {
 		if len(cfg.DependsOn) == 0 {
 			continue
 		}
 
-		// Deduplicate same resource ids that has exact one candidate
+		// Disduplicate same resource ids that has exact one candidate
 		set := map[string]bool{}
 		duplicates := []Dependency{}
 		for _, dep := range cfg.DependsOn {
@@ -53,7 +53,7 @@ func (cfgs ConfigInfos) AddDependency() error {
 			}
 		}
 
-		// Deduplicate dependency that is parent of another dependency
+		// Disduplicate dependency that is parent of another dependency
 		var covlist []string
 		for dep := range set {
 			for odep := range set {

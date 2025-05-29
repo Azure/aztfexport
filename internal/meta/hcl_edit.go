@@ -5,15 +5,13 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 )
 
-// hclBlockUpdateDependency substitute ids found in values with TF address to introduce implicit dependency, and
-// falls back to the depends_on instructions if none found.
+// hclBlockAppendDependency adds the depends_on instructions in the given hcl body.
 // cfgset is a map keyed by azure resource id.
-func hclBlockUpdateDependency(body *hclwrite.Body, deps []Dependency, cfgset map[string]ConfigInfo) error {
-	dependsOnMetaArgs := []string{}
+func hclBlockAppendDependency(body *hclwrite.Body, deps []Dependency, cfgset map[string]ConfigInfo) error {
+	dependencies := []string{}
 	for _, dep := range deps {
 		if len(dep.Candidates) > 1 {
 			var candidateIds []string
@@ -21,16 +19,14 @@ func hclBlockUpdateDependency(body *hclwrite.Body, deps []Dependency, cfgset map
 				cfg := cfgset[id]
 				candidateIds = append(candidateIds, cfg.TFAddr.String())
 			}
-			dependsOnMetaArgs = append(dependsOnMetaArgs, fmt.Sprintf("# One of %s (can't auto-resolve as their ids are identical)", strings.Join(candidateIds, ",")))
+			dependencies = append(dependencies, fmt.Sprintf("# One of %s (can't auto-resolve as their ids are identical)", strings.Join(candidateIds, ",")))
 			continue
 		}
 		cfg := cfgset[dep.Candidates[0]]
-		if !replaceIdValuedTokensWithTFAddr(body, cfg) {
-			dependsOnMetaArgs = append(dependsOnMetaArgs, cfg.TFAddr.String()+",")
-		}
+		dependencies = append(dependencies, cfg.TFAddr.String()+",")
 	}
-	if len(dependsOnMetaArgs) > 0 {
-		src := []byte("depends_on = [\n" + strings.Join(dependsOnMetaArgs, "\n") + "\n]")
+	if len(dependencies) > 0 {
+		src := []byte("depends_on = [\n" + strings.Join(dependencies, "\n") + "\n]")
 		expr, diags := hclwrite.ParseConfig(src, "f", hcl.InitialPos)
 		if diags.HasErrors() {
 			return fmt.Errorf(`building "depends_on" attribute: %s`, diags.Error())
@@ -40,47 +36,6 @@ func hclBlockUpdateDependency(body *hclwrite.Body, deps []Dependency, cfgset map
 	}
 
 	return nil
-}
-
-// Traverse the attribute tokens and replace all TFResourceId-valued token surrounded with quotes with TFAddr.
-// This function recurse through nested blocks. Returns true if any replacement was made
-func replaceIdValuedTokensWithTFAddr(body *hclwrite.Body, cfg ConfigInfo) bool {
-	resourceId := cfg.TFResourceId
-	ret := false
-
-	for name, attr := range body.Attributes() {
-		tokens := attr.Expr().BuildTokens(nil)
-		filteredTokens := hclwrite.Tokens{}
-		resourceIdValuedTokenFound := false
-
-		for i := 0; i < len(tokens); i++ {
-			// Parsing process guaranteed QuotedLit is surrounded by Opening and Closing quote
-			if tokens[i].Type == hclsyntax.TokenQuotedLit && string(tokens[i].Bytes) == resourceId {
-				filteredTokens[len(filteredTokens)-1] = &hclwrite.Token{
-					Type:         hclsyntax.TokenIdent,
-					Bytes:        fmt.Appendf(nil, "%s.id", cfg.TFAddr.String()),
-					SpacesBefore: tokens[i-1].SpacesBefore,
-				}
-				resourceIdValuedTokenFound = true
-				i += 1
-			} else {
-				filteredTokens = append(filteredTokens, tokens[i])
-			}
-		}
-
-		if resourceIdValuedTokenFound {
-			body.SetAttributeRaw(name, filteredTokens)
-			ret = true
-		}
-
-		for _, block := range body.Blocks() {
-			if replaceIdValuedTokensWithTFAddr(block.Body(), cfg) {
-				ret = true
-			}
-		}
-	}
-
-	return ret
 }
 
 func hclBlockAppendLifecycle(body *hclwrite.Body, ignoreChanges []string) error {
