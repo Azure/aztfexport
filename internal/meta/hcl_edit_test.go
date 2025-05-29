@@ -1,353 +1,213 @@
 package meta
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/Azure/aztfexport/internal/tfaddr"
+	"github.com/Azure/aztfexport/internal/tfresourceid"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestHclBlockAppendLifecycle(t *testing.T) {
-	cases := []struct {
-		name          string
-		ignoreChanges []string
-		expect        string
+func TestApplyReferenceDependenciesToHcl(t *testing.T) {
+	testCases := []struct {
+		name                  string
+		inputHcl              string
+		referenceDependencies ReferenceDependencies
+		expectedHcl           string
 	}{
 		{
-			name:          "no lifecycle should be generated",
-			ignoreChanges: nil,
-			expect:        "",
+			name: "no reference dependencies",
+			inputHcl: `
+  name = "test"
+  resource_group_name = "test"
+`,
+			referenceDependencies: ReferenceDependencies{},
+			expectedHcl: `
+  name = "test"
+  resource_group_name = "test"
+`,
 		},
 		{
-			name:          "with ignore_changes",
-			ignoreChanges: []string{"foo", "bar"},
-			expect: `lifecycle {
-  ignore_changes = [
-    foo,
-    bar,
-  ]
-}
+			name: "single reference dependency in top level attribute",
+			inputHcl: `
+  name = "test"
+  foo_id = "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"
+`,
+			referenceDependencies: ReferenceDependencies{
+				internalMap: map[tfresourceid.TFResourceId]tfaddr.TFAddr{
+					tfresourceid.TFResourceId("/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"): tfAddr("azurerm_foo_resource.res-1"),
+				},
+			},
+			expectedHcl: `
+  name = "test"
+  foo_id = azurerm_foo_resource.res-1.id
+`,
+		},
+		{
+			name: "multiple reference dependency in top level and nested block",
+			inputHcl: `
+  name = "test"
+  foo_id = "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"
+
+  some_block {
+    bar_id = "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456"
+  }
+`,
+			referenceDependencies: ReferenceDependencies{
+				internalMap: map[tfresourceid.TFResourceId]tfaddr.TFAddr{
+					tfresourceid.TFResourceId("/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"): tfAddr("azurerm_foo_resource.res-1"),
+					tfresourceid.TFResourceId("/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456"): tfAddr("azurerm_bar_resource.res-2"),
+				},
+			},
+			expectedHcl: `
+  name = "test"
+  foo_id = azurerm_foo_resource.res-1.id
+
+  some_block {
+    bar_id = azurerm_bar_resource.res-2.id
+  }
+`,
+		},
+		{
+			name: "multiple reference dependency in array and maps",
+			inputHcl: `
+  name = "test"
+  foo_ids = ["/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"]
+
+  bar_ids_map = {
+    bar_id = "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456"
+  }
+`,
+			referenceDependencies: ReferenceDependencies{
+				internalMap: map[tfresourceid.TFResourceId]tfaddr.TFAddr{
+					tfresourceid.TFResourceId("/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"): tfAddr("azurerm_foo_resource.res-1"),
+					tfresourceid.TFResourceId("/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456"): tfAddr("azurerm_bar_resource.res-2"),
+				},
+			},
+			expectedHcl: `
+  name = "test"
+  foo_ids = [azurerm_foo_resource.res-1.id]
+
+  bar_ids_map = {
+    bar_id = azurerm_bar_resource.res-2.id
+  }
 `,
 		},
 	}
 
-	for _, c := range cases {
-		b := hclwrite.NewFile().Body()
-		require.NoError(t, hclBlockAppendLifecycle(b, c.ignoreChanges), c.name)
-		require.Equal(t, string(hclwrite.Format(b.BuildTokens(nil).Bytes())), c.expect, c.name)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			body := hclwriteBody(testCase.inputHcl)
+			applyReferenceDependenciesToHcl(body, &testCase.referenceDependencies)
+			assert.Equal(t, testCase.expectedHcl, string(body.BuildTokens(nil).Bytes()))
+		})
 	}
 }
 
-func TestReplaceIdValuedTokensWithTFAddr(t *testing.T) {
-	cases := []struct {
-		description     string
-		depTfResourceId string
-		depTfAddr       string
-		inputHclBody    string
-		expectedHclBody string
-		expectedRetVal  bool
+func TestApplyExplicitAndAmbiguousDependenciesToHclBlock(t *testing.T) {
+	testCases := []struct {
+		name                  string
+		inputHcl              string
+		explicitDependencies  TFAddrSet
+		ambiguousDependencies AmbiguousDependencies
+		expectedHcl           string
 	}{
 		{
-			description:     "single id value should be replaced with tf addr",
-			depTfResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
-			depTfAddr:       "azurerm_foo_resource.example",
-			inputHclBody: `
-  name   = "test"
-  foo_id = "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"
+			name: "no explicit or ambiguous dependencies",
+			inputHcl: `
+  name = "test"
+  foo_id = azurerm_foo_resource.res-1.id
 `,
-			expectedHclBody: `
-  name   = "test"
-  foo_id = azurerm_foo_resource.example.id
+			explicitDependencies:  TFAddrSet{},
+			ambiguousDependencies: AmbiguousDependencies{},
+			expectedHcl: `
+  name = "test"
+  foo_id = azurerm_foo_resource.res-1.id
 `,
-			expectedRetVal: true,
 		},
 		{
-			description:     "multiple id values should be replaced with tf addr",
-			depTfResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
-			depTfAddr:       "azurerm_foo_resource.example",
-			inputHclBody: `
-  name     = "test"
-  foo_x_id = "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"
-  foo_y_id = "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"
+			name: "single explicit dependency",
+			inputHcl: `
+  name = "test"
+  resource_group_name = "test"
 `,
-			expectedHclBody: `
-  name     = "test"
-  foo_x_id = azurerm_foo_resource.example.id
-  foo_y_id = azurerm_foo_resource.example.id
+			explicitDependencies:  *tfAddrSet("azurerm_resource_group.res-0"),
+			ambiguousDependencies: AmbiguousDependencies{},
+			expectedHcl: `
+  name = "test"
+  resource_group_name = "test"
+depends_on= [
+azurerm_resource_group.res-0
+]
 `,
-			expectedRetVal: true,
 		},
 		{
-			description:     "no replacement if no id value matches",
-			depTfResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/123",
-			depTfAddr:       "azurerm_bar_resource.example",
-			inputHclBody: `
-  name   = "test"
-  foo_id = "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"
+			name: "multiple explicit dependencies",
+			inputHcl: `
+  name = "test"
+  resource_group_name = "test"
 `,
-			expectedHclBody: `
-  name   = "test"
-  foo_id = "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"
+			explicitDependencies: *tfAddrSet(
+				"azurerm_resource_group.res-0",
+				"azurerm_resource_group.res-1",
+			),
+			ambiguousDependencies: AmbiguousDependencies{},
+			expectedHcl: `
+  name = "test"
+  resource_group_name = "test"
+depends_on= [
+azurerm_resource_group.res-0,
+azurerm_resource_group.res-1
+]
 `,
-			expectedRetVal: false,
 		},
 		{
-			description:     "empty block",
-			depTfResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/123",
-			depTfAddr:       "azurerm_bar_resource.example",
-			inputHclBody:    ``,
-			expectedHclBody: ``,
-			expectedRetVal:  false,
-		},
-		{
-			description:     "id value in a list",
-			depTfResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
-			depTfAddr:       "azurerm_foo_resource.example",
-			inputHclBody: `
-  name    = "test"
-  foo_ids = [ 
-    "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
-    "/this/should/not/be/changed",
-  ]
+			name: "multiple ambiguous dependencies",
+			inputHcl: `
+  name = "test"
+  resource_group_name = "test"
 `,
-			expectedHclBody: `
-  name    = "test"
-  foo_ids = [ 
-    azurerm_foo_resource.example.id,
-    "/this/should/not/be/changed",
-  ]
+			explicitDependencies: TFAddrSet{},
+			ambiguousDependencies: AmbiguousDependencies{
+				internalMap: map[tfresourceid.TFResourceId]*TFAddrSet{
+					tfresourceid.TFResourceId("/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"): tfAddrSet("azurerm_foo_sub1_resource.res-1", "azurerm_foo_sub2_resource.res-2"),
+					tfresourceid.TFResourceId("/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456"): tfAddrSet("azurerm_bar_sub1_resource.res-3", "azurerm_bar_sub2_resource.res-4"),
+				},
+			},
+			expectedHcl: `
+  name = "test"
+  resource_group_name = "test"
+depends_on= [
+# One of azurerm_foo_sub1_resource.res-1,azurerm_foo_sub2_resource.res-2 (can't auto-resolve as their ids are identical)
+# One of azurerm_bar_sub1_resource.res-3,azurerm_bar_sub2_resource.res-4 (can't auto-resolve as their ids are identical)
+]
 `,
-			expectedRetVal: true,
-		},
-		{
-			description:     "id value in a map",
-			depTfResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
-			depTfAddr:       "azurerm_foo_resource.example",
-			inputHclBody: `
-  name    = "test"
-  foo_ids_map = {
-    fst = "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
-    snd = "/this/should/not/be/changed",
-  }
-`,
-			expectedHclBody: `
-  name    = "test"
-  foo_ids_map = {
-    fst = azurerm_foo_resource.example.id,
-    snd = "/this/should/not/be/changed",
-  }
-`,
-			expectedRetVal: true,
-		},
-		{
-			description:     "id value in a nested block",
-			depTfResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
-			depTfAddr:       "azurerm_foo_resource.example",
-			inputHclBody: `
-  name    = "test"
-  some_block {
-    foo_ids = [
-      "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"
-    ]
-  }
-`,
-			expectedHclBody: `
-  name    = "test"
-  some_block {
-    foo_ids = [
-      azurerm_foo_resource.example.id
-    ]
-  }
-`,
-			expectedRetVal: true,
 		},
 	}
 
-	for _, c := range cases {
-		cfg := configInfo(t, c.depTfResourceId, c.depTfAddr)
-		body := hclwriteBody(t, c.inputHclBody)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			body := hclwriteBody(testCase.inputHcl)
+			err := applyExplicitAndAmbiguousDependenciesToHclBlock(
+				body,
+				&testCase.explicitDependencies,
+				&testCase.ambiguousDependencies,
+			)
+			assert.NoError(t, err)
 
-		actualRetVal := replaceIdValuedTokensWithTFAddr(body, cfg)
-
-		require.Equal(t, c.expectedRetVal, actualRetVal, "'%s': expectedRetVal should match actual", c.description)
-		require.Equal(t, c.expectedHclBody, string(body.BuildTokens(nil).Bytes()), "'%s': expectedHclBody should match actual", c.description)
-	}
-
-}
-
-func configInfo(t *testing.T, tfResourceId string, tfAddr string) ConfigInfo {
-	tfResourceAddr, err := tfaddr.ParseTFResourceAddr(tfAddr)
-	if err != nil {
-		t.Fatalf("failed to parse tfAddr: %v", err)
-	}
-
-	return ConfigInfo{
-		ImportItem: ImportItem{
-			TFAddr:       *tfResourceAddr,
-			TFResourceId: tfResourceId,
-		},
+			actualHcl := string(body.BuildTokens(nil).Bytes())
+			assert.Equal(t, testCase.expectedHcl, actualHcl)
+		})
 	}
 }
 
-func hclwriteBody(t *testing.T, input string) *hclwrite.Body {
+func hclwriteBody(input string) *hclwrite.Body {
 	file, diag := hclwrite.ParseConfig([]byte(input), "input.hcl", hcl.InitialPos)
 	if diag.HasErrors() {
-		t.Fatalf("failed to parse HCL: %v", diag)
+		panic(fmt.Sprintf("failed to parse HCL: %v", diag))
 	}
 	return file.Body()
-}
-
-func TestHclBlockUpdateDependency(t *testing.T) {
-	cases := []struct {
-		description     string
-		deps            []Dependency
-		cfgset          map[string]ConfigInfo
-		inputHclBody    string
-		expectedHclBody string
-	}{
-		{
-			description: "foo_id should be replaced with TF address, no depends_on is added",
-			deps: []Dependency{
-				{[]string{"/subscriptions/123/resourceGroups/123"}},
-				{[]string{"/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"}},
-			},
-			cfgset: map[string]ConfigInfo{
-				"/subscriptions/123/resourceGroups/123": configInfo(
-					t,
-					"/subscriptions/123/resourceGroups/123",
-					"azurerm_resource_group.res-0",
-				),
-				"/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123": configInfo(
-					t,
-					"/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
-					"azurerm_foo_resource.res-1",
-				),
-			},
-			inputHclBody: `
-name                = "test"
-resource_group_name = "test"
-foo_id              = "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"
-`,
-			expectedHclBody: `
-name                = "test"
-resource_group_name = "test"
-foo_id              = azurerm_foo_resource.res-1.id
-`,
-		},
-		{
-			description: `depends on foo by foo_name, 
-			depends on resource group by resource_group_id, 
-			foo also depends on the same resource group: 
-			expected resource_group_id to be replaced with TF address and there is a depends_on on foo`,
-			deps: []Dependency{
-				{[]string{"/subscriptions/123/resourceGroups/123"}},
-				{[]string{"/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"}},
-			},
-			cfgset: map[string]ConfigInfo{
-				"/subscriptions/123/resourceGroups/123": configInfo(
-					t,
-					"/subscriptions/123/resourceGroups/123",
-					"azurerm_resource_group.res-0",
-				),
-				"/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123": configInfo(
-					t,
-					"/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
-					"azurerm_foo_resource.res-1",
-				),
-			},
-			inputHclBody: `
-name              = "test"
-resource_group_id = "/subscriptions/123/resourceGroups/123"
-foo_name          = "test"
-`,
-			expectedHclBody: `
-name              = "test"
-resource_group_id = azurerm_resource_group.res-0.id
-foo_name          = "test"
-depends_on = [
-  azurerm_foo_resource.res-1
-]
-`,
-		},
-		{
-			description: "ambiguous dependency explicitly specified via depends_on",
-			deps: []Dependency{
-				{[]string{"/subscriptions/123/resourceGroups/123"}},
-				{[]string{
-					"/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123/subfoo/1",
-					"/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123/subfoo/2",
-				}},
-			},
-			cfgset: map[string]ConfigInfo{
-				"/subscriptions/123/resourceGroups/123": configInfo(
-					t,
-					"/subscriptions/123/resourceGroups/123",
-					"azurerm_resource_group.res-0",
-				),
-				"/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123/subfoo/1": configInfo(
-					t,
-					"/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
-					"azurerm_subfoo_resource.res-1",
-				),
-				"/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123/subfoo/2": configInfo(
-					t,
-					"/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
-					"azurerm_subfoo_resource.res-2",
-				),
-			},
-			inputHclBody: `
-name                = "test"
-resource_group_name = "test"
-`,
-			expectedHclBody: `
-name                = "test"
-resource_group_name = "test"
-depends_on = [
-  # One of azurerm_subfoo_resource.res-1,azurerm_subfoo_resource.res-2 (can't auto-resolve as their ids are identical)
-  azurerm_resource_group.res-0
-]
-`,
-		},
-	}
-
-	for _, c := range cases {
-		body := hclwriteBody(t, c.inputHclBody)
-		require.NoError(t, hclBlockUpdateDependency(body, c.deps, c.cfgset), c.description)
-		require.Equal(t, string(hclwrite.Format(body.BuildTokens(nil).Bytes())), c.expectedHclBody, c.description)
-	}
-}
-
-func TestDescendantResourceIdInCollection(t *testing.T) {
-	cases := []struct {
-		description     string
-		resourceId      string
-		resourceIdsList []string
-		expectedRetVal  bool
-	}{
-		{
-			description: "descendant resource id not in collection",
-			resourceId:  "/subscriptions/123/resourceGroups/123",
-			resourceIdsList: []string{
-				"/subscriptions/123/resourceGroups/456/providers/Microsoft.Bar/bar/123",
-				"/subscriptions/123/resourceGroups/456/providers/Microsoft.Bar/bar/123/subbar/456",
-			},
-			expectedRetVal: false,
-		},
-		{
-			description: "descendant resource id in collection",
-			resourceId:  "/subscriptions/123/resourceGroups/123",
-			resourceIdsList: []string{
-				"/subscriptions/123/resourceGroups/456/providers/Microsoft.Foo/foo/aaa",
-				"/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/bbb",
-			},
-			expectedRetVal: true,
-		},
-	}
-
-	for _, c := range cases {
-		actualRetVal := descendantResourceIdInCollection(c.resourceId, &c.resourceIdsList)
-		require.Equal(t, c.expectedRetVal, actualRetVal, "'%s': expectedRetVal should match actual", c.description)
-	}
 }

@@ -11,6 +11,7 @@ import (
 
 	"github.com/Azure/aztfexport/internal/resmap"
 	"github.com/Azure/aztfexport/internal/tfaddr"
+	"github.com/Azure/aztfexport/internal/tfresourceid"
 	"github.com/magodo/armid"
 )
 
@@ -62,7 +63,7 @@ func (meta *MetaMap) ListResource(_ context.Context) (ImportList, error) {
 		}
 		item := ImportItem{
 			AzureResourceID: azureId,
-			TFResourceId:    res.ResourceId,
+			TFResourceId:    tfresourceid.TFResourceId(res.ResourceId),
 			TFAddrCache:     tfAddr,
 			TFAddr:          tfAddr,
 			Recommendations: []string{res.ResourceType},

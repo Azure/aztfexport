@@ -6,6 +6,7 @@ import (
 
 	"github.com/Azure/aztfexport/internal/resourceset"
 	"github.com/Azure/aztfexport/internal/tfaddr"
+	"github.com/Azure/aztfexport/internal/tfresourceid"
 	"github.com/Azure/aztfexport/pkg/config"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resourcegraph/armresourcegraph"
 	"github.com/magodo/azlist/azlist"
@@ -80,7 +81,7 @@ func (meta *MetaQuery) ListResource(ctx context.Context) (ImportList, error) {
 	for i, res := range rl {
 		item := ImportItem{
 			AzureResourceID: res.AzureId,
-			TFResourceId:    res.TFId,
+			TFResourceId:    tfresourceid.TFResourceId(res.TFId),
 			TFAddr: tfaddr.TFAddr{
 				Type: "",
 				Name: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, i, meta.resourceNameSuffix),

@@ -15,16 +15,16 @@ type Item struct {
 func (i Item) Title() string {
 	switch {
 	case i.v.ValidateError != nil:
-		return common.WarningEmoji + i.v.TFResourceId
+		return common.WarningEmoji + i.v.TFResourceId.String()
 	case i.v.ImportError != nil:
-		return common.ErrorEmoji + i.v.TFResourceId
+		return common.ErrorEmoji + i.v.TFResourceId.String()
 	case i.v.Imported:
-		return common.OKEmoji + i.v.TFResourceId
+		return common.OKEmoji + i.v.TFResourceId.String()
 	default:
 		if i.v.IsRecommended {
-			return common.BulbEmoji + i.v.TFResourceId
+			return common.BulbEmoji + i.v.TFResourceId.String()
 		}
-		return i.v.TFResourceId
+		return i.v.TFResourceId.String()
 	}
 }
 
@@ -40,7 +40,7 @@ func (i Item) Description() string {
 
 func (i Item) FilterValue() string {
 	if i.v.ValidateError == nil && i.v.ImportError == nil && !i.v.Imported && !i.v.IsRecommended {
-		return i.v.TFResourceId
+		return i.v.TFResourceId.String()
 	}
-	return " " + i.v.TFResourceId
+	return " " + i.v.TFResourceId.String()
 }
