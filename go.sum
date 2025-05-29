@@ -268,8 +268,8 @@ github.com/magodo/terraform-client-go v0.0.0-20240804032252-6d93a97fabb2 h1:X2ph
 github.com/magodo/terraform-client-go v0.0.0-20240804032252-6d93a97fabb2/go.mod h1:dzTs6Qwy8/VUWYMQ+Vo9gMXe5uOVbfCw/1ovE3g5q1E=
 github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0 h1:aNtr4iNv/tex2t8W1u3scAoNHEnFlTKhNNHOpYStqbs=
 github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0/go.mod h1:MqYhNP+PC386Bjsx5piZe7T4vDm5QIPv8b1RU0prVnU=
-github.com/magodo/tfadd v0.10.1-0.20250429010038-dfc35ae7ffb2 h1:NpfpdnVLauR+EZQs3W7OGDdpIs61R2ITb0APjVtiKM4=
-github.com/magodo/tfadd v0.10.1-0.20250429010038-dfc35ae7ffb2/go.mod h1:ruAjiBvU9dzGQDUHxJWxId/l9nmGppJtZ3Tx6nLxa5I=
+github.com/magodo/tfadd v0.10.1-0.20250529000540-d62ece5d26d7 h1:3im9b8kkKCdmfEBxRw6izG+4oNdlmF3SsN3Nj9QSG40=
+github.com/magodo/tfadd v0.10.1-0.20250529000540-d62ece5d26d7/go.mod h1:ruAjiBvU9dzGQDUHxJWxId/l9nmGppJtZ3Tx6nLxa5I=
 github.com/magodo/tfmerge v0.0.0-20221214062955-f52e46d03402 h1:RyaR4VE7hoR9AyoVH414cpM8V63H4rLe2aZyKdoDV1w=
 github.com/magodo/tfmerge v0.0.0-20221214062955-f52e46d03402/go.mod h1:ssV++b4DH33rsD592bvpS4Peng3ZfdGNZbFgCDkCfj8=
 github.com/magodo/tfpluginschema v0.0.0-20240902090353-0525d7d8c1c2 h1:Unxx8WLxzSxINnq7hItp4cXD7drihgfPltTd91efoBo=
