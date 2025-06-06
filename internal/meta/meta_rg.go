@@ -6,6 +6,7 @@ import (
 
 	"github.com/Azure/aztfexport/internal/resourceset"
 	"github.com/Azure/aztfexport/internal/tfaddr"
+	"github.com/Azure/aztfexport/internal/tfresourceid"
 	"github.com/Azure/aztfexport/pkg/config"
 	"github.com/magodo/azlist/azlist"
 )
@@ -71,7 +72,7 @@ func (meta *MetaResourceGroup) ListResource(ctx context.Context) (ImportList, er
 		}
 		item := ImportItem{
 			AzureResourceID: res.AzureId,
-			TFResourceId:    res.TFId,
+			TFResourceId:    tfresourceid.TFResourceId(res.TFId),
 			TFAddr:          tfAddr,
 			TFAddrCache:     tfAddr,
 		}

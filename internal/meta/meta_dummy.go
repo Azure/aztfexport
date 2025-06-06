@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/Azure/aztfexport/internal/tfresourceid"
 	"github.com/Azure/aztfexport/pkg/config"
 	"github.com/magodo/armid"
 )
@@ -58,7 +59,7 @@ func (m MetaGroupDummy) ListResource(_ context.Context) (ImportList, error) {
 	for _, id := range ids {
 		azureResourceID, _ := armid.ParseResourceId(id)
 		importList = append(importList, ImportItem{
-			TFResourceId:    id,
+			TFResourceId:    tfresourceid.TFResourceId(id),
 			AzureResourceID: azureResourceID,
 		})
 	}

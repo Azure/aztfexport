@@ -6,6 +6,7 @@ import (
 
 	"github.com/Azure/aztfexport/internal/resourceset"
 	"github.com/Azure/aztfexport/internal/tfaddr"
+	"github.com/Azure/aztfexport/internal/tfresourceid"
 	"github.com/Azure/aztfexport/pkg/config"
 	"github.com/magodo/armid"
 	"github.com/magodo/aztft/aztft"
@@ -115,7 +116,7 @@ func (meta *MetaResource) ListResource(ctx context.Context) (ImportList, error) 
 
 		item := ImportItem{
 			AzureResourceID: res.AzureId,
-			TFResourceId:    tfid,
+			TFResourceId:    tfresourceid.TFResourceId(tfid),
 			TFAddr:          tfAddr,
 			TFAddrCache:     tfAddr,
 		}
@@ -129,7 +130,7 @@ func (meta *MetaResource) ListResource(ctx context.Context) (ImportList, error) 
 			}
 			item := ImportItem{
 				AzureResourceID: res.AzureId,
-				TFResourceId:    res.TFId,
+				TFResourceId:    tfresourceid.TFResourceId(res.TFId),
 				TFAddr:          tfAddr,
 				TFAddrCache:     tfAddr,
 			}
