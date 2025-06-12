@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Azure/aztfexport/internal/tfaddr"
-	"github.com/Azure/aztfexport/internal/tfresourceid"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/stretchr/testify/assert"
@@ -13,10 +11,10 @@ import (
 
 func TestApplyReferenceDependenciesToHcl(t *testing.T) {
 	testCases := []struct {
-		name                  string
-		inputHcl              string
-		referenceDependencies ReferenceDependencies
-		expectedHcl           string
+		name        string
+		inputHcl    string
+		refDeps     map[string]Dependency // key: TFResourceId
+		expectedHcl string
 	}{
 		{
 			name: "no reference dependencies",
@@ -24,7 +22,7 @@ func TestApplyReferenceDependenciesToHcl(t *testing.T) {
   name = "test"
   resource_group_name = "test"
 `,
-			referenceDependencies: ReferenceDependencies{},
+			refDeps: make(map[string]Dependency),
 			expectedHcl: `
   name = "test"
   resource_group_name = "test"
@@ -36,9 +34,11 @@ func TestApplyReferenceDependenciesToHcl(t *testing.T) {
   name = "test"
   foo_id = "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"
 `,
-			referenceDependencies: ReferenceDependencies{
-				internalMap: map[tfresourceid.TFResourceId]tfaddr.TFAddr{
-					tfresourceid.TFResourceId("/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"): tfAddr("azurerm_foo_resource.res-1"),
+			refDeps: map[string]Dependency{
+				"/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123": {
+					TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
+					AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
+					TFAddr:          tfAddr("azurerm_foo_resource.res-1"),
 				},
 			},
 			expectedHcl: `
@@ -56,10 +56,16 @@ func TestApplyReferenceDependenciesToHcl(t *testing.T) {
     bar_id = "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456"
   }
 `,
-			referenceDependencies: ReferenceDependencies{
-				internalMap: map[tfresourceid.TFResourceId]tfaddr.TFAddr{
-					tfresourceid.TFResourceId("/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"): tfAddr("azurerm_foo_resource.res-1"),
-					tfresourceid.TFResourceId("/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456"): tfAddr("azurerm_bar_resource.res-2"),
+			refDeps: map[string]Dependency{
+				"/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123": {
+					TFAddr:          tfAddr("azurerm_foo_resource.res-1"),
+					AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
+					TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
+				},
+				"/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456": {
+					TFAddr:          tfAddr("azurerm_bar_resource.res-2"),
+					AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456",
+					TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456",
 				},
 			},
 			expectedHcl: `
@@ -81,10 +87,16 @@ func TestApplyReferenceDependenciesToHcl(t *testing.T) {
     bar_id = "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456"
   }
 `,
-			referenceDependencies: ReferenceDependencies{
-				internalMap: map[tfresourceid.TFResourceId]tfaddr.TFAddr{
-					tfresourceid.TFResourceId("/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"): tfAddr("azurerm_foo_resource.res-1"),
-					tfresourceid.TFResourceId("/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456"): tfAddr("azurerm_bar_resource.res-2"),
+			refDeps: map[string]Dependency{
+				"/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123": {
+					TFAddr:          tfAddr("azurerm_foo_resource.res-1"),
+					AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
+					TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
+				},
+				"/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456": {
+					TFAddr:          tfAddr("azurerm_bar_resource.res-2"),
+					AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456",
+					TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456",
 				},
 			},
 			expectedHcl: `
@@ -101,19 +113,19 @@ func TestApplyReferenceDependenciesToHcl(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			body := hclwriteBody(testCase.inputHcl)
-			applyReferenceDependenciesToHcl(body, &testCase.referenceDependencies)
+			applyReferenceDependenciesToHcl(body, testCase.refDeps)
 			assert.Equal(t, testCase.expectedHcl, string(body.BuildTokens(nil).Bytes()))
 		})
 	}
 }
 
-func TestApplyExplicitAndAmbiguousDependenciesToHclBlock(t *testing.T) {
+func TestApplyParentChildAndAmbiguousDepsToHclBlock(t *testing.T) {
 	testCases := []struct {
-		name                  string
-		inputHcl              string
-		explicitDependencies  TFAddrSet
-		ambiguousDependencies AmbiguousDependencies
-		expectedHcl           string
+		name            string
+		inputHcl        string
+		parentChildDeps map[Dependency]bool
+		ambiguousDeps   map[string][]Dependency // key: TFResourceId
+		expectedHcl     string
 	}{
 		{
 			name: "no explicit or ambiguous dependencies",
@@ -121,21 +133,27 @@ func TestApplyExplicitAndAmbiguousDependenciesToHclBlock(t *testing.T) {
   name = "test"
   foo_id = azurerm_foo_resource.res-1.id
 `,
-			explicitDependencies:  TFAddrSet{},
-			ambiguousDependencies: AmbiguousDependencies{},
+			parentChildDeps: make(map[Dependency]bool),
+			ambiguousDeps:   make(map[string][]Dependency),
 			expectedHcl: `
   name = "test"
   foo_id = azurerm_foo_resource.res-1.id
 `,
 		},
 		{
-			name: "single explicit dependency",
+			name: "single parent child dependency",
 			inputHcl: `
   name = "test"
   resource_group_name = "test"
 `,
-			explicitDependencies:  *tfAddrSet("azurerm_resource_group.res-0"),
-			ambiguousDependencies: AmbiguousDependencies{},
+			parentChildDeps: map[Dependency]bool{
+				{
+					TFAddr:          tfAddr("azurerm_resource_group.res-0"),
+					AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.ResourceGroup/resourceGroup/123",
+					TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.ResourceGroup/resourceGroup/123",
+				}: true,
+			},
+			ambiguousDeps: make(map[string][]Dependency),
 			expectedHcl: `
   name = "test"
   resource_group_name = "test"
@@ -145,16 +163,24 @@ azurerm_resource_group.res-0
 `,
 		},
 		{
-			name: "multiple explicit dependencies",
+			name: "multiple parent child dependencies",
 			inputHcl: `
   name = "test"
   resource_group_name = "test"
 `,
-			explicitDependencies: *tfAddrSet(
-				"azurerm_resource_group.res-0",
-				"azurerm_resource_group.res-1",
-			),
-			ambiguousDependencies: AmbiguousDependencies{},
+			parentChildDeps: map[Dependency]bool{
+				{
+					TFAddr:          tfAddr("azurerm_resource_group.res-0"),
+					AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.ResourceGroup/resourceGroup/123",
+					TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.ResourceGroup/resourceGroup/123",
+				}: true,
+				{
+					TFAddr:          tfAddr("azurerm_resource_group.res-1"),
+					AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.ResourceGroup/resourceGroup/124",
+					TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.ResourceGroup/resourceGroup/124",
+				}: true,
+			},
+			ambiguousDeps: make(map[string][]Dependency),
 			expectedHcl: `
   name = "test"
   resource_group_name = "test"
@@ -170,19 +196,39 @@ azurerm_resource_group.res-1
   name = "test"
   resource_group_name = "test"
 `,
-			explicitDependencies: TFAddrSet{},
-			ambiguousDependencies: AmbiguousDependencies{
-				internalMap: map[tfresourceid.TFResourceId]*TFAddrSet{
-					tfresourceid.TFResourceId("/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123"): tfAddrSet("azurerm_foo_sub1_resource.res-1", "azurerm_foo_sub2_resource.res-2"),
-					tfresourceid.TFResourceId("/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456"): tfAddrSet("azurerm_bar_sub1_resource.res-3", "azurerm_bar_sub2_resource.res-4"),
+			parentChildDeps: make(map[Dependency]bool),
+			ambiguousDeps: map[string][]Dependency{
+				"/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123": {
+					{
+						TFAddr:          tfAddr("azurerm_foo_sub1_resource.res-1"),
+						AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123/sub1/sub1",
+						TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
+					},
+					{
+						TFAddr:          tfAddr("azurerm_foo_sub2_resource.res-2"),
+						AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123/sub2/sub2",
+						TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
+					},
+				},
+				"/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456": {
+					{
+						TFAddr:          tfAddr("azurerm_bar_sub1_resource.res-3"),
+						AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456/sub1/sub1",
+						TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456",
+					},
+					{
+						TFAddr:          tfAddr("azurerm_bar_sub2_resource.res-4"),
+						AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456/sub2/sub2",
+						TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456",
+					},
 				},
 			},
 			expectedHcl: `
   name = "test"
   resource_group_name = "test"
 depends_on= [
-# One of azurerm_foo_sub1_resource.res-1,azurerm_foo_sub2_resource.res-2 (can't auto-resolve as their ids are identical)
 # One of azurerm_bar_sub1_resource.res-3,azurerm_bar_sub2_resource.res-4 (can't auto-resolve as their ids are identical)
+# One of azurerm_foo_sub1_resource.res-1,azurerm_foo_sub2_resource.res-2 (can't auto-resolve as their ids are identical)
 ]
 `,
 		},
@@ -191,10 +237,10 @@ depends_on= [
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			body := hclwriteBody(testCase.inputHcl)
-			err := applyExplicitAndAmbiguousDependenciesToHclBlock(
+			err := applyParentChildAndAmbiguousDepsToHclBlock(
 				body,
-				&testCase.explicitDependencies,
-				&testCase.ambiguousDependencies,
+				testCase.parentChildDeps,
+				testCase.ambiguousDeps,
 			)
 			assert.NoError(t, err)
 

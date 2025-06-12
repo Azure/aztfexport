@@ -1,5 +1,11 @@
 package meta
 
+import (
+	"strings"
+
+	"github.com/magodo/armid"
+)
+
 // Look at the resource id and determine if parent dependency exist.
 // For example, /subscriptions/123/resourceGroups/rg1/providers/Microsoft.Compute/virtualMachines/vm1
 // has a parent /subscriptions/123/resourceGroups/rg1, which is the resource group.
@@ -30,12 +36,36 @@ func (cfgs ConfigInfos) populateParentChildDependency() {
 			if parentId.Equal(ocfg.AzureResourceID) &&
 				// Only add parent as explicit dependency if it is not already (maybe transitively)
 				// a reference or ambiguous dependency.
-				!cfg.referenceDependencies.HasDependencyWithPrefix(ocfg.AzureResourceID.String()) &&
-				!cfg.ambiguousDependencies.HasDependencyWithPrefix(ocfg.AzureResourceID.String()) {
-				cfg.explicitDependencies.Add(ocfg.TFAddr)
+				!hasReferenceDepWithPrefix(cfg.dependencies.referenceDeps, ocfg.AzureResourceID) &&
+				!hasAmbiguousDepWithPrefix(cfg.dependencies.ambiguousDeps, ocfg.AzureResourceID) {
+				cfg.dependencies.parentChildDeps[Dependency{
+					TFResourceId:    ocfg.TFResourceId,
+					AzureResourceId: ocfg.AzureResourceID.String(),
+					TFAddr:          ocfg.TFAddr,
+				}] = true
 				break
 			}
 		}
 		cfgs[i] = cfg
 	}
+}
+
+func hasReferenceDepWithPrefix(refDeps map[string]Dependency, prefix armid.ResourceId) bool {
+	for _, dep := range refDeps {
+		if strings.HasPrefix(dep.AzureResourceId, prefix.String()) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasAmbiguousDepWithPrefix(ambiguousDeps map[string][]Dependency, prefix armid.ResourceId) bool {
+	for _, deps := range ambiguousDeps {
+		for _, dep := range deps {
+			if strings.HasPrefix(dep.AzureResourceId, prefix.String()) {
+				return true
+			}
+		}
+	}
+	return false
 }

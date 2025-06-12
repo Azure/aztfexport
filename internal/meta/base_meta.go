@@ -406,7 +406,7 @@ func (meta *baseMeta) ParallelImport(ctx context.Context, items []*ImportItem) e
 			for item := range itemsCh {
 				iitem := config.ImportItem{
 					AzureResourceID: item.AzureResourceID,
-					TFResourceId:    item.TFResourceId.String(),
+					TFResourceId:    item.TFResourceId,
 					ImportError:     item.ImportError,
 					TFAddr:          item.TFAddr,
 				}
@@ -493,7 +493,7 @@ func (meta baseMeta) ExportResourceMapping(ctx context.Context, l ImportList) er
 
 		// The JSON mapping record
 		m[item.AzureResourceID.String()] = resmap.ResourceMapEntity{
-			ResourceId:   item.TFResourceId.String(),
+			ResourceId:   item.TFResourceId,
 			ResourceType: item.TFAddr.Type,
 			ResourceName: item.TFAddr.Name,
 		}
@@ -518,7 +518,7 @@ func (meta baseMeta) ExportResourceMapping(ctx context.Context, l ImportList) er
 
 			// The import block
 			blk := hclwrite.NewBlock("import", nil)
-			blk.Body().SetAttributeValue("id", cty.StringVal(item.TFResourceId.String()))
+			blk.Body().SetAttributeValue("id", cty.StringVal(item.TFResourceId))
 			blk.Body().SetAttributeTraversal("to", hcl.Traversal{hcl.TraverseRoot{Name: item.TFAddr.Type}, hcl.TraverseAttr{Name: item.TFAddr.Name}})
 			body.AppendBlock(blk)
 		}
@@ -937,7 +937,7 @@ func (meta *baseMeta) importItem_tf(ctx context.Context, item *ImportItem, impor
 	// The actual resource type names in telemetry is redacted
 	meta.tc.Trace(telemetry.Info, fmt.Sprintf("Importing %s as %s", item.AzureResourceID.TypeString(), addr))
 
-	err := tf.Import(ctx, addr, item.TFResourceId.String())
+	err := tf.Import(ctx, addr, item.TFResourceId)
 	if err != nil {
 		meta.Logger().Error("Terraform import failed", "tf_addr", item.TFAddr, "error", err)
 		meta.tc.Trace(telemetry.Error, fmt.Sprintf("Importing %s failed", item.AzureResourceID.TypeString()))
@@ -958,7 +958,7 @@ func (meta *baseMeta) importItem_notf(ctx context.Context, item *ImportItem, imp
 
 	importResp, diags := meta.tfclient.ImportResourceState(ctx, typ.ImportResourceStateRequest{
 		TypeName: item.TFAddr.Type,
-		ID:       item.TFResourceId.String(),
+		ID:       item.TFResourceId,
 	})
 	if diags.HasErrors() {
 		meta.Logger().Error("Terraform import failed", "tf_addr", item.TFAddr, "error", diags.Err())
@@ -1071,6 +1071,11 @@ func (meta baseMeta) stateToConfig(ctx context.Context, list ImportList) (Config
 		out = append(out, ConfigInfo{
 			ImportItem: importedList[i],
 			hcl:        f,
+			dependencies: Dependencies{
+				referenceDeps:   make(map[string]Dependency),
+				parentChildDeps: make(map[Dependency]bool),
+				ambiguousDeps:   make(map[string][]Dependency),
+			},
 		})
 	}
 

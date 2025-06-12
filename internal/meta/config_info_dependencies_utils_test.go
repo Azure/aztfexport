@@ -4,23 +4,10 @@ import (
 	"fmt"
 
 	"github.com/Azure/aztfexport/internal/tfaddr"
-	"github.com/Azure/aztfexport/internal/tfresourceid"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/magodo/armid"
 )
-
-type AzureResourceId string
-
-func tfAddrSet(tfAddrStrs ...string) *TFAddrSet {
-	tfAddrSet := TFAddrSet{
-		internalMap: make(map[tfaddr.TFAddr]bool),
-	}
-	for _, tfAddrStr := range tfAddrStrs {
-		tfAddrSet.internalMap[tfAddr(tfAddrStr)] = true
-	}
-	return &tfAddrSet
-}
 
 func tfAddr(s string) tfaddr.TFAddr {
 	tfAddr, err := tfaddr.ParseTFResourceAddr(s)
@@ -30,13 +17,13 @@ func tfAddr(s string) tfaddr.TFAddr {
 	return *tfAddr
 }
 
-func configInfo(
-	azureResourceIdStr AzureResourceId,
-	tFResourceId tfresourceid.TFResourceId,
+func configInfoWithDeps(
+	azureResourceIdStr string,
+	tFResourceId string,
 	tfAddr tfaddr.TFAddr,
 	hclStr string,
-	ReferenceDependencies ReferenceDependencies,
-	AmbiguousDependencies AmbiguousDependencies,
+	refDeps map[string]Dependency,
+	ambiguousDeps map[string][]Dependency,
 ) ConfigInfo {
 	azureResourceId, err := armid.ParseResourceId(string(azureResourceIdStr))
 	if err != nil {
@@ -52,8 +39,27 @@ func configInfo(
 			TFResourceId:    tFResourceId,
 			TFAddr:          tfAddr,
 		},
-		referenceDependencies: ReferenceDependencies,
-		ambiguousDependencies: AmbiguousDependencies,
-		hcl:                   hcl,
+		dependencies: Dependencies{
+			referenceDeps:   refDeps,
+			parentChildDeps: make(map[Dependency]bool),
+			ambiguousDeps:   ambiguousDeps,
+		},
+		hcl: hcl,
 	}
+}
+
+func configInfo(
+	azureResourceIdStr string,
+	tFResourceId string,
+	tfAddr tfaddr.TFAddr,
+	hclStr string,
+) ConfigInfo {
+	return configInfoWithDeps(
+		azureResourceIdStr,
+		tFResourceId,
+		tfAddr,
+		hclStr,
+		make(map[string]Dependency),
+		make(map[string][]Dependency),
+	)
 }

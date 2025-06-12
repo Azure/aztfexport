@@ -2,7 +2,6 @@ package meta
 
 import (
 	"github.com/Azure/aztfexport/internal/tfaddr"
-	"github.com/Azure/aztfexport/internal/tfresourceid"
 	"github.com/magodo/armid"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -11,7 +10,7 @@ type ImportItem struct {
 	AzureResourceID armid.ResourceId
 
 	// The TF resource id
-	TFResourceId tfresourceid.TFResourceId
+	TFResourceId string
 
 	// Whether this azure resource failed to import into terraform (this might due to the TFResourceType doesn't match the resource)
 	ImportError error

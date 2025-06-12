@@ -3,7 +3,6 @@ package meta
 import (
 	"fmt"
 
-	"github.com/Azure/aztfexport/internal/tfresourceid"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
@@ -15,7 +14,8 @@ import (
 // Note that the a single TF resource id can map to multiple resources -- in which case the dependencies will be categorised
 // as ambiguous.
 func (cfgs ConfigInfos) PopulateReferenceDependencies() error {
-	m := map[tfresourceid.TFResourceId][]*ConfigInfo{}
+	// key: TFResourceId
+	m := map[string][]*ConfigInfo{}
 	for _, cfg := range cfgs {
 		m[cfg.TFResourceId] = append(m[cfg.TFResourceId], &cfg)
 	}
@@ -34,7 +34,7 @@ func (cfgs ConfigInfos) PopulateReferenceDependencies() error {
 			if !expr.Val.IsKnown() || !val.Type().Equals(cty.String) {
 				return nil
 			}
-			maybeTFId := tfresourceid.TFResourceId(val.AsString())
+			maybeTFId := val.AsString()
 
 			// This is safe to match case sensitively given the TF id are consistent across the provider. Otherwise, it is a provider bug.
 			dependingConfigs, ok := m[maybeTFId]
@@ -42,7 +42,7 @@ func (cfgs ConfigInfos) PopulateReferenceDependencies() error {
 				return nil
 			}
 
-			depTFId := maybeTFId
+			depTFResId := maybeTFId
 
 			var dependingConfigsWithoutSelf []*ConfigInfo
 			for _, depCfg := range dependingConfigs[:] {
@@ -57,11 +57,21 @@ func (cfgs ConfigInfos) PopulateReferenceDependencies() error {
 			}
 
 			if len(dependingConfigsWithoutSelf) == 1 {
-				cfg.referenceDependencies.Add(depTFId, dependingConfigsWithoutSelf[0].TFAddr)
-			} else if len(dependingConfigsWithoutSelf) > 1 {
-				for _, depCfg := range dependingConfigsWithoutSelf {
-					cfg.ambiguousDependencies.Add(depTFId, depCfg.TFAddr)
+				cfg.dependencies.referenceDeps[depTFResId] = Dependency{
+					TFResourceId:    depTFResId,
+					AzureResourceId: dependingConfigsWithoutSelf[0].AzureResourceID.String(),
+					TFAddr:          dependingConfigsWithoutSelf[0].TFAddr,
 				}
+			} else if len(dependingConfigsWithoutSelf) > 1 {
+				deps := make([]Dependency, 0, len(dependingConfigsWithoutSelf))
+				for _, depCfg := range dependingConfigsWithoutSelf {
+					deps = append(deps, Dependency{
+						TFResourceId:    depTFResId,
+						AzureResourceId: depCfg.AzureResourceID.String(),
+						TFAddr:          depCfg.TFAddr,
+					})
+				}
+				cfg.dependencies.ambiguousDeps[depTFResId] = deps
 			}
 
 			return nil
