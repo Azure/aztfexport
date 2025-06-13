@@ -7,7 +7,6 @@ import (
 )
 
 type ImportItem struct {
-	// Azure resource Id
 	AzureResourceID armid.ResourceId
 
 	// The TF resource id

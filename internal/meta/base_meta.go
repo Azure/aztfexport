@@ -1071,6 +1071,11 @@ func (meta baseMeta) stateToConfig(ctx context.Context, list ImportList) (Config
 		out = append(out, ConfigInfo{
 			ImportItem: importedList[i],
 			hcl:        f,
+			dependencies: Dependencies{
+				refDeps:          make(map[string]Dependency),
+				parentChildDeps:  make(map[Dependency]bool),
+				ambiguousRefDeps: make(map[string][]Dependency),
+			},
 		})
 	}
 
@@ -1136,27 +1141,16 @@ func (meta baseMeta) lifecycleAddon(configs ConfigInfos) (ConfigInfos, error) {
 }
 
 func (meta baseMeta) addDependency(configs ConfigInfos) (ConfigInfos, error) {
-	if err := configs.AddDependency(); err != nil {
-		return nil, err
+	if err := configs.PopulateReferenceDependencies(); err != nil {
+		return nil, fmt.Errorf("populating reference dependencies: %v", err)
+	}
+	configs.populateParentChildDependency()
+
+	if err := configs.applyDependenciesToHclBlock(); err != nil {
+		return nil, fmt.Errorf("applying dependencies to HCL blocks: %v", err)
 	}
 
-	var out ConfigInfos
-
-	configSet := map[string]ConfigInfo{}
-	for _, cfg := range configs {
-		configSet[cfg.AzureResourceID.String()] = cfg
-	}
-
-	for _, cfg := range configs {
-		if len(cfg.DependsOn) != 0 {
-			if err := hclBlockAppendDependency(cfg.hcl.Body().Blocks()[0].Body(), cfg.DependsOn, configSet); err != nil {
-				return nil, err
-			}
-		}
-		out = append(out, cfg)
-	}
-
-	return out, nil
+	return configs, nil
 }
 
 func (meta *baseMeta) deinit_notf(ctx context.Context) error {
