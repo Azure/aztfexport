@@ -156,10 +156,10 @@ resource "azurerm_bar_resource" "res-2" {
 			}
 
 			for _, cfg := range testCase.inputConfigs {
-				expectedReferenceDeps := testCase.expectedReferenceDeps[cfg.AzureResourceID.String()]
-				assert.Equal(t, cfg.dependencies.refDeps, expectedReferenceDeps, "referenceDeps matches expectation, azureResourceId: %s", cfg.AzureResourceID.String())
-				expectedAmbiguousDeps := testCase.expectedAmbiguousDeps[cfg.AzureResourceID.String()]
-				assert.Equal(t, cfg.dependencies.ambiguousRefDeps, expectedAmbiguousDeps, "ambiguousDeps matches expectation, azureResourceId: %s", cfg.AzureResourceID.String())
+				expectedRefDeps := testCase.expectedReferenceDeps[cfg.AzureResourceID.String()]
+				assert.Equal(t, expectedRefDeps, cfg.dependencies.refDeps, "referenceDeps matches expectation, azureResourceId: %s", cfg.AzureResourceID.String())
+				expectedAmbiguousRefDeps := testCase.expectedAmbiguousDeps[cfg.AzureResourceID.String()]
+				assert.Equal(t, expectedAmbiguousRefDeps, cfg.dependencies.ambiguousRefDeps, "ambiguousDeps matches expectation, azureResourceId: %s", cfg.AzureResourceID.String())
 			}
 		})
 	}

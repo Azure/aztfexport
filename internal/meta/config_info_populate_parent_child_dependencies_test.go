@@ -137,6 +137,70 @@ resource "azurerm_bar_resource" "res-2" {
 				"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Bar/bar/bar1": {},
 			},
 		},
+		{
+			name: "res-0 and res-1 are ambiguous (different azureResourceId, same tfResourceId), res-2 is child of res-0, res-2 has ambiguous refDep to res-0 and res-1: expect parentChildDep to be added to res-2",
+			inputConfigs: []ConfigInfo{
+				configInfo(
+					"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1/sub1/sub1",
+					"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1",
+					mustParseTFAddr("azurerm_foo_sub1_resource.res-0"),
+					`
+resource "azurerm_foo_sub1_resource" "res-0" {
+  name     = "res0"
+  location = "West Europe"
+}
+`,
+				),
+				configInfo(
+					"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1/sub2/sub2",
+					"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1",
+					mustParseTFAddr("azurerm_foo_sub2_resource.res-1"),
+					`
+resource "azurerm_foo_sub2_resource" "res-1" {
+  name     = "res1"
+  location = "West Europe"
+}
+`,
+				),
+				configInfoWithDeps(
+					"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1/sub1/sub1/deep1/deep1",
+					"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1/sub1/sub1/deep1/deep1",
+					mustParseTFAddr("azurerm_foo_sub1_deep1_resource.res-2"),
+					`
+resource "azurerm_foo_sub1_deep1_resource" "res-2" {
+  name   = "res2"
+	foo_id = "/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1"
+}
+`,
+					map[string]Dependency{},
+					map[string][]Dependency{
+						"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1": {
+							{
+								TFAddr:          mustParseTFAddr("azurerm_foo_sub1_resource.res-0"),
+								AzureResourceId: "/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1/sub1/sub1",
+								TFResourceId:    "/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1",
+							},
+							{
+								TFAddr:          mustParseTFAddr("azurerm_foo_sub1_resource.res-1"),
+								AzureResourceId: "/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1/sub2/sub2",
+								TFResourceId:    "/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1",
+							},
+						},
+					},
+				),
+			},
+			expectedParentChildDeps: map[string]map[Dependency]bool{
+				"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1/sub1/sub1": {},
+				"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1/sub2/sub2": {},
+				"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1/sub1/sub1/deep1/deep1": {
+					{
+						TFAddr:          mustParseTFAddr("azurerm_foo_sub1_resource.res-0"),
+						AzureResourceId: "/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1/sub1/sub1",
+						TFResourceId:    "/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1",
+					}: true,
+				},
+			},
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -145,7 +209,7 @@ resource "azurerm_bar_resource" "res-2" {
 			for _, cfg := range testCase.inputConfigs {
 				azureResourceId := cfg.AzureResourceID.String()
 				expectedExplicitDeps := testCase.expectedParentChildDeps[azureResourceId]
-				assert.Equal(t, cfg.dependencies.parentChildDeps, expectedExplicitDeps, "parentChildDeps matches expectation, azureResourceId: %s", azureResourceId)
+				assert.Equal(t, expectedExplicitDeps, cfg.dependencies.parentChildDeps, "parentChildDeps matches expectation, azureResourceId: %s", azureResourceId)
 			}
 		})
 	}

@@ -34,10 +34,8 @@ func (cfgs ConfigInfos) populateParentChildDependency() {
 				continue
 			}
 			if parentId.Equal(ocfg.AzureResourceID) &&
-				// Only add parent as explicit dependency if it is not already (maybe transitively)
-				// a reference or ambiguous dependency.
-				!hasReferenceDepWithPrefix(cfg.dependencies.refDeps, ocfg.AzureResourceID) &&
-				!hasAmbiguousDepWithPrefix(cfg.dependencies.ambiguousRefDeps, ocfg.AzureResourceID) {
+				// Only add parent dependency if it is not already (maybe transitively) a reference dependency.
+				!hasReferenceDepWithPrefix(cfg.dependencies.refDeps, ocfg.AzureResourceID) {
 				cfg.dependencies.parentChildDeps[Dependency{
 					TFResourceId:    ocfg.TFResourceId,
 					AzureResourceId: ocfg.AzureResourceID.String(),
@@ -54,17 +52,6 @@ func hasReferenceDepWithPrefix(refDeps map[string]Dependency, prefix armid.Resou
 	for _, dep := range refDeps {
 		if strings.HasPrefix(dep.AzureResourceId, prefix.String()) {
 			return true
-		}
-	}
-	return false
-}
-
-func hasAmbiguousDepWithPrefix(ambiguousDeps map[string][]Dependency, prefix armid.ResourceId) bool {
-	for _, deps := range ambiguousDeps {
-		for _, dep := range deps {
-			if strings.HasPrefix(dep.AzureResourceId, prefix.String()) {
-				return true
-			}
 		}
 	}
 	return false
