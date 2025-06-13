@@ -18,7 +18,7 @@ func TestPopulateParentChildDependencies(t *testing.T) {
 				configInfo(
 					"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1",
 					"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1",
-					tfAddr("azurerm_foo_resource.res-0"),
+					mustParseTFAddr("azurerm_foo_resource.res-0"),
 					`
 resource "azurerm_foo_resource" "res-0" {
   name = "foo1"
@@ -28,7 +28,7 @@ resource "azurerm_foo_resource" "res-0" {
 				configInfo(
 					"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Bar/bar/bar1",
 					"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Bar/bar/bar1",
-					tfAddr("azurerm_bar_resource.res-1"),
+					mustParseTFAddr("azurerm_bar_resource.res-1"),
 					`
 resource "azurerm_bar_resource" "res-1" {
   name = "bar1"
@@ -47,7 +47,7 @@ resource "azurerm_bar_resource" "res-1" {
 				configInfo(
 					"/subscriptions/123/resourceGroups/rg1",
 					"/subscriptions/123/resourceGroups/rg1",
-					tfAddr("azurerm_resource_group.res-0"),
+					mustParseTFAddr("azurerm_resource_group.res-0"),
 					`
 resource "azurerm_resource_group" "res-0" {
   name     = "rg1"
@@ -58,7 +58,7 @@ resource "azurerm_resource_group" "res-0" {
 				configInfo(
 					"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1",
 					"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1",
-					tfAddr("azurerm_foo_resource.res-1"),
+					mustParseTFAddr("azurerm_foo_resource.res-1"),
 					`
 resource "azurerm_foo_resource" "res-1" {
   name                = "foo1"
@@ -70,7 +70,7 @@ resource "azurerm_foo_resource" "res-1" {
 			expectedParentChildDeps: map[string]map[Dependency]bool{
 				"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1": {
 					{
-						TFAddr:          tfAddr("azurerm_resource_group.res-0"),
+						TFAddr:          mustParseTFAddr("azurerm_resource_group.res-0"),
 						AzureResourceId: "/subscriptions/123/resourceGroups/rg1",
 						TFResourceId:    "/subscriptions/123/resourceGroups/rg1",
 					}: true,
@@ -84,7 +84,7 @@ resource "azurerm_foo_resource" "res-1" {
 				configInfo(
 					"/subscriptions/123/resourceGroups/rg1",
 					"/subscriptions/123/resourceGroups/rg1",
-					tfAddr("azurerm_resource_group.res-0"),
+					mustParseTFAddr("azurerm_resource_group.res-0"),
 					`
 resource "azurerm_resource_group" "res-0" {
   name     = "rg1"
@@ -95,7 +95,7 @@ resource "azurerm_resource_group" "res-0" {
 				configInfoWithDeps(
 					"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1",
 					"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1",
-					tfAddr("azurerm_foo_resource.res-1"),
+					mustParseTFAddr("azurerm_foo_resource.res-1"),
 					`
 resource "azurerm_foo_resource" "res-1" {
   name              = "foo1"
@@ -104,7 +104,7 @@ resource "azurerm_foo_resource" "res-1" {
 `,
 					map[string]Dependency{
 						"/subscriptions/123/resourceGroups/rg1": {
-							TFAddr:          tfAddr("azurerm_resource_group.res-0"),
+							TFAddr:          mustParseTFAddr("azurerm_resource_group.res-0"),
 							AzureResourceId: "/subscriptions/123/resourceGroups/rg1",
 							TFResourceId:    "/subscriptions/123/resourceGroups/rg1",
 						},
@@ -114,7 +114,7 @@ resource "azurerm_foo_resource" "res-1" {
 				configInfoWithDeps(
 					"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Bar/bar/bar1",
 					"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Bar/bar/bar1",
-					tfAddr("azurerm_bar_resource.res-2"),
+					mustParseTFAddr("azurerm_bar_resource.res-2"),
 					`
 resource "azurerm_bar_resource" "res-2" {
   name   = "bar1"
@@ -123,7 +123,7 @@ resource "azurerm_bar_resource" "res-2" {
 `,
 					map[string]Dependency{
 						"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Bar/bar/bar1": {
-							TFAddr:          tfAddr("azurerm_resource_group.res-1"),
+							TFAddr:          mustParseTFAddr("azurerm_resource_group.res-1"),
 							AzureResourceId: "/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1",
 							TFResourceId:    "/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1",
 						},

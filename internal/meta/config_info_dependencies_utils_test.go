@@ -9,7 +9,7 @@ import (
 	"github.com/magodo/armid"
 )
 
-func tfAddr(s string) tfaddr.TFAddr {
+func mustParseTFAddr(s string) tfaddr.TFAddr {
 	tfAddr, err := tfaddr.ParseTFResourceAddr(s)
 	if err != nil {
 		panic(fmt.Sprintf("failed to parse TF resource address %s: %v", s, err))
@@ -40,9 +40,9 @@ func configInfoWithDeps(
 			TFAddr:          tfAddr,
 		},
 		dependencies: Dependencies{
-			referenceDeps:   refDeps,
-			parentChildDeps: make(map[Dependency]bool),
-			ambiguousDeps:   ambiguousDeps,
+			refDeps:          refDeps,
+			parentChildDeps:  make(map[Dependency]bool),
+			ambiguousRefDeps: ambiguousDeps,
 		},
 		hcl: hcl,
 	}

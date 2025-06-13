@@ -25,15 +25,16 @@ func (cfg ConfigInfo) DumpHCL(w io.Writer) (int, error) {
 type Dependencies struct {
 	// Dependencies inferred by scanning for resource id values, will be applied by substituting with TF address
 	// Key is TFResourceId
-	referenceDeps map[string]Dependency
+	refDeps map[string]Dependency
 
-	// Dependencies inferred via resource id parent lookup. If not yet (transitively) present
-	// in referenceDependencies, will be applied as depends_on meta argument
+	// Similar to refDeps, but due to multiple Azure resources can map to a same TF resource id, we can't decide which Azure resource
+	// is depended on. Hence these will end up as comments inside "depends_on" block for the user to manually resolve.
+	// The key is TFResourceId.
+	ambiguousRefDeps map[string][]Dependency
+
+	// Dependencies inferred via Azure resource id parent lookup, and will be applied in the "depends_on" block.
+	// Especially, any dependency that is (transitively) present via refDepds will be filtered.
 	parentChildDeps map[Dependency]bool
-
-	// Multiple TF address for a TF resource id can exist, these will be appended as a comment inside depends_on block for
-	// user to manually resolve. The key is TFResourceId.
-	ambiguousDeps map[string][]Dependency
 }
 
 type Dependency struct {

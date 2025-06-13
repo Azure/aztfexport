@@ -38,7 +38,7 @@ func TestApplyReferenceDependenciesToHcl(t *testing.T) {
 				"/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123": {
 					TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
 					AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
-					TFAddr:          tfAddr("azurerm_foo_resource.res-1"),
+					TFAddr:          mustParseTFAddr("azurerm_foo_resource.res-1"),
 				},
 			},
 			expectedHcl: `
@@ -58,12 +58,12 @@ func TestApplyReferenceDependenciesToHcl(t *testing.T) {
 `,
 			refDeps: map[string]Dependency{
 				"/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123": {
-					TFAddr:          tfAddr("azurerm_foo_resource.res-1"),
+					TFAddr:          mustParseTFAddr("azurerm_foo_resource.res-1"),
 					AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
 					TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
 				},
 				"/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456": {
-					TFAddr:          tfAddr("azurerm_bar_resource.res-2"),
+					TFAddr:          mustParseTFAddr("azurerm_bar_resource.res-2"),
 					AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456",
 					TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456",
 				},
@@ -89,12 +89,12 @@ func TestApplyReferenceDependenciesToHcl(t *testing.T) {
 `,
 			refDeps: map[string]Dependency{
 				"/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123": {
-					TFAddr:          tfAddr("azurerm_foo_resource.res-1"),
+					TFAddr:          mustParseTFAddr("azurerm_foo_resource.res-1"),
 					AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
 					TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
 				},
 				"/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456": {
-					TFAddr:          tfAddr("azurerm_bar_resource.res-2"),
+					TFAddr:          mustParseTFAddr("azurerm_bar_resource.res-2"),
 					AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456",
 					TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456",
 				},
@@ -112,7 +112,7 @@ func TestApplyReferenceDependenciesToHcl(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			body := hclwriteBody(testCase.inputHcl)
+			body := mustHclWriteParse(testCase.inputHcl)
 			applyReferenceDependenciesToHcl(body, testCase.refDeps)
 			assert.Equal(t, testCase.expectedHcl, string(body.BuildTokens(nil).Bytes()))
 		})
@@ -148,7 +148,7 @@ func TestApplyParentChildAndAmbiguousDepsToHclBlock(t *testing.T) {
 `,
 			parentChildDeps: map[Dependency]bool{
 				{
-					TFAddr:          tfAddr("azurerm_resource_group.res-0"),
+					TFAddr:          mustParseTFAddr("azurerm_resource_group.res-0"),
 					AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.ResourceGroup/resourceGroup/123",
 					TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.ResourceGroup/resourceGroup/123",
 				}: true,
@@ -170,12 +170,12 @@ azurerm_resource_group.res-0
 `,
 			parentChildDeps: map[Dependency]bool{
 				{
-					TFAddr:          tfAddr("azurerm_resource_group.res-0"),
+					TFAddr:          mustParseTFAddr("azurerm_resource_group.res-0"),
 					AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.ResourceGroup/resourceGroup/123",
 					TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.ResourceGroup/resourceGroup/123",
 				}: true,
 				{
-					TFAddr:          tfAddr("azurerm_resource_group.res-1"),
+					TFAddr:          mustParseTFAddr("azurerm_resource_group.res-1"),
 					AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.ResourceGroup/resourceGroup/124",
 					TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.ResourceGroup/resourceGroup/124",
 				}: true,
@@ -200,24 +200,24 @@ azurerm_resource_group.res-1
 			ambiguousDeps: map[string][]Dependency{
 				"/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123": {
 					{
-						TFAddr:          tfAddr("azurerm_foo_sub1_resource.res-1"),
+						TFAddr:          mustParseTFAddr("azurerm_foo_sub1_resource.res-1"),
 						AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123/sub1/sub1",
 						TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
 					},
 					{
-						TFAddr:          tfAddr("azurerm_foo_sub2_resource.res-2"),
+						TFAddr:          mustParseTFAddr("azurerm_foo_sub2_resource.res-2"),
 						AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123/sub2/sub2",
 						TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.Foo/foo/123",
 					},
 				},
 				"/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456": {
 					{
-						TFAddr:          tfAddr("azurerm_bar_sub1_resource.res-3"),
+						TFAddr:          mustParseTFAddr("azurerm_bar_sub1_resource.res-3"),
 						AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456/sub1/sub1",
 						TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456",
 					},
 					{
-						TFAddr:          tfAddr("azurerm_bar_sub2_resource.res-4"),
+						TFAddr:          mustParseTFAddr("azurerm_bar_sub2_resource.res-4"),
 						AzureResourceId: "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456/sub2/sub2",
 						TFResourceId:    "/subscriptions/123/resourceGroups/123/providers/Microsoft.Bar/bar/456",
 					},
@@ -236,7 +236,7 @@ depends_on= [
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			body := hclwriteBody(testCase.inputHcl)
+			body := mustHclWriteParse(testCase.inputHcl)
 			err := applyParentChildAndAmbiguousDepsToHclBlock(
 				body,
 				testCase.parentChildDeps,
@@ -250,7 +250,7 @@ depends_on= [
 	}
 }
 
-func hclwriteBody(input string) *hclwrite.Body {
+func mustHclWriteParse(input string) *hclwrite.Body {
 	file, diag := hclwrite.ParseConfig([]byte(input), "input.hcl", hcl.InitialPos)
 	if diag.HasErrors() {
 		panic(fmt.Sprintf("failed to parse HCL: %v", diag))

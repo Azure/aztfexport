@@ -1072,9 +1072,9 @@ func (meta baseMeta) stateToConfig(ctx context.Context, list ImportList) (Config
 			ImportItem: importedList[i],
 			hcl:        f,
 			dependencies: Dependencies{
-				referenceDeps:   make(map[string]Dependency),
-				parentChildDeps: make(map[Dependency]bool),
-				ambiguousDeps:   make(map[string][]Dependency),
+				refDeps:          make(map[string]Dependency),
+				parentChildDeps:  make(map[Dependency]bool),
+				ambiguousRefDeps: make(map[string][]Dependency),
 			},
 		})
 	}
