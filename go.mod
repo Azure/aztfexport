@@ -25,12 +25,12 @@ require (
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/magodo/armid v0.0.0-20240524082432-7ce06ae46c33
 	github.com/magodo/azlist v0.0.0-20250429005249-2b51aca0f1e1
-	github.com/magodo/aztft v0.3.1-0.20250429031349-753141d53de2
+	github.com/magodo/aztft v0.3.1-0.20250606003245-7222b835cdcc
 	github.com/magodo/slog2hclog v0.0.0-20240614031327-090ebd72a033
 	github.com/magodo/spinner v0.0.0-20240524082745-3a2305db1bdc
 	github.com/magodo/terraform-client-go v0.0.0-20240804032252-6d93a97fabb2
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
-	github.com/magodo/tfadd v0.10.1-0.20250529000540-d62ece5d26d7
+	github.com/magodo/tfadd v0.10.1-0.20250616031648-03c49529cf39
 	github.com/magodo/tfmerge v0.0.0-20221214062955-f52e46d03402
 	github.com/magodo/tfstate v0.0.0-20241016043929-2c95177bf0e6
 	github.com/magodo/workerpool v0.0.0-20240524082508-11838001bc35
