@@ -225,10 +225,13 @@ func (flag FlagSet) DescribeCLI(mode Mode) string {
 	if flag.flagUseOIDCCred {
 		args = append(args, "--use-oidc-cred=true")
 	}
-
 	if flag.hflagTFClientPluginPath != "" {
 		args = append(args, "--tfclient-plugin-path="+flag.hflagTFClientPluginPath)
 	}
+	if flag.flagIncludeRoleAssignment {
+		args = append(args, "--include-role-assignment=true")
+	}
+
 	switch mode {
 	case ModeResource:
 		if flag.flagResName != "" {
@@ -244,18 +247,12 @@ func (flag FlagSet) DescribeCLI(mode Mode) string {
 		if flag.flagPattern != "" {
 			args = append(args, "--name-pattern="+flag.flagPattern)
 		}
-		if flag.flagIncludeRoleAssignment {
-			args = append(args, "--include-role-assignment=true")
-		}
 	case ModeQuery:
 		if flag.flagPattern != "" {
 			args = append(args, "--name-pattern="+flag.flagPattern)
 		}
 		if flag.flagRecursive {
 			args = append(args, "--recursive=true")
-		}
-		if flag.flagIncludeRoleAssignment {
-			args = append(args, "--include-role-assignment=true")
 		}
 		if flag.flagIncludeResourceGroup {
 			args = append(args, "--include-resource-group=true")
