@@ -67,9 +67,15 @@ func (meta *MetaResource) ListResource(ctx context.Context) (ImportList, error) 
 		resources = append(resources, resourceset.AzureResource{Id: id})
 	}
 
-	rset, err := meta.queryResourceSet(ctx, resources)
-	if err != nil {
-		return nil, fmt.Errorf("querying resource set: %v", err)
+	rset := &resourceset.AzureResourceSet{
+		Resources: resources,
+	}
+	if meta.includeRoleAssignment {
+		var err error
+		rset, err = meta.queryResourceSet(ctx, resources)
+		if err != nil {
+			return nil, fmt.Errorf("querying resource set: %v", err)
+		}
 	}
 
 	meta.Logger().Debug("Azure Resource set map to TF resource set")
@@ -163,11 +169,7 @@ func (meta MetaResource) appendRlToImportList(rl []resourceset.TFResource, l *Im
 
 func (meta MetaResource) queryResourceSet(ctx context.Context, resources []resourceset.AzureResource) (*resourceset.AzureResourceSet, error) {
 	var rl []resourceset.AzureResource
-
-	var ids []string
-	for _, res := range resources {
-		ids = append(ids, res.Id.String())
-	}
+	var quotedIds []string
 
 	opt := azlist.Option{
 		Logger:                 meta.logger.WithGroup("azlist"),
@@ -177,18 +179,21 @@ func (meta MetaResource) queryResourceSet(ctx context.Context, resources []resou
 		Parallelism:            meta.parallelism,
 		ExtensionResourceTypes: extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
 	}
+
 	lister, err := azlist.NewLister(opt)
 	if err != nil {
 		return nil, fmt.Errorf("building azlister for listing resources: %v", err)
 	}
-	var quotedIds []string
-	for _, id := range ids {
-		quotedIds = append(quotedIds, fmt.Sprintf("%q", id))
+
+	for _, res := range resources {
+		quotedIds = append(quotedIds, fmt.Sprintf("%q", res.Id.String()))
 	}
+
 	result, err := lister.List(ctx, fmt.Sprintf("id in (%s)", strings.Join(quotedIds, ", ")))
 	if err != nil {
 		return nil, fmt.Errorf("listing resources: %w", err)
 	}
+
 	for _, res := range result.Resources {
 		res := resourceset.AzureResource{
 			Id:         res.Id,
@@ -202,13 +207,13 @@ func (meta MetaResource) queryResourceSet(ctx context.Context, resources []resou
 	}, nil
 }
 
-func splitOriginalAndExtension(queried []resourceset.TFResource, requested []resourceset.AzureResource) (original []resourceset.TFResource, extension []resourceset.TFResource) {
+func splitOriginalAndExtension(combined []resourceset.TFResource, requested []resourceset.AzureResource) (original []resourceset.TFResource, extension []resourceset.TFResource) {
 	idRequested := make(map[string]bool, len(requested))
 	for _, res := range requested {
 		idRequested[res.Id.String()] = true
 	}
 
-	for _, res := range queried {
+	for _, res := range combined {
 		if idRequested[res.AzureId.String()] {
 			original = append(original, res)
 		} else {
