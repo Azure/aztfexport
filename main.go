@@ -258,6 +258,12 @@ func main() {
 			Usage:       "Path to a file recording the excluded resources from being exported based on the Terraform resource type, one per line",
 			Destination: &flagset.flagExcludeTerraformResourceFile,
 		},
+		&cli.BoolFlag{
+			Name:        "include-role-assignment",
+			EnvVars:     []string{"AZTFEXPORT_INCLUDE_ROLE_ASSIGNMENT"},
+			Usage:       `Whether to include role assignments assigned to the resources exported`,
+			Destination: &flagset.flagIncludeRoleAssignment,
+		},
 
 		// Common flags (auth)
 		&cli.StringFlag{
@@ -423,12 +429,6 @@ func main() {
 			Value:       "res-",
 			Destination: &flagset.flagPattern,
 		},
-		&cli.BoolFlag{
-			Name:        "include-role-assignment",
-			EnvVars:     []string{"AZTFEXPORT_INCLUDE_ROLE_ASSIGNMENT"},
-			Usage:       `Whether to include role assignemnts assigned to the resources exported`,
-			Destination: &flagset.flagIncludeRoleAssignment,
-		},
 	}, commonFlags...)
 
 	queryFlags := append([]cli.Flag{
@@ -577,11 +577,12 @@ func main() {
 
 					// Initialize the config
 					cfg := config.Config{
-						CommonConfig:        commonConfig,
-						ResourceIds:         resIds,
-						TFResourceName:      flagset.flagResName,
-						TFResourceType:      flagset.flagResType,
-						ResourceNamePattern: flagset.flagPattern,
+						CommonConfig:          commonConfig,
+						ResourceIds:           resIds,
+						TFResourceName:        flagset.flagResName,
+						TFResourceType:        flagset.flagResType,
+						ResourceNamePattern:   flagset.flagPattern,
+						IncludeRoleAssignment: flagset.flagIncludeRoleAssignment,
 					}
 
 					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResource), flagset.hflagTFClientPluginPath)

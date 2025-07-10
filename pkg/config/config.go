@@ -116,17 +116,14 @@ type Config struct {
 	// MappingFile specifies the path of mapping file, this indicates the map file mode.
 	MappingFile string
 
+	// IncludeRoleAssignment specifies whether to include the role assignments assigned to the exported resources
+	IncludeRoleAssignment bool
+
 	/////////////////////////
 	// Scope: rg, res (multi), query
 
 	// ResourceNamePattern specifies the resource name pattern
 	ResourceNamePattern string
-
-	/////////////////////////
-	// Scope: rg, query
-
-	// IncludeRoleAssignment specifies whether to include the role assginments assigned to the exported resources
-	IncludeRoleAssignment bool
 
 	/////////////////////////
 	// Scope: res (single)
