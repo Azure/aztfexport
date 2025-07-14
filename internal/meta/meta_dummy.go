@@ -81,7 +81,11 @@ func (m MetaGroupDummy) PushState(_ context.Context) error {
 	return nil
 }
 
-func (m MetaGroupDummy) GenerateCfg(_ context.Context, l ImportList) error {
+func (m *MetaGroupDummy) GetTerraformCfg(ctx context.Context, l ImportList) ([]byte, error) {
+	return nil, nil
+}
+
+func (m MetaGroupDummy) WriteTerraformCfg(_ context.Context, l ImportList) error {
 	time.Sleep(500 * time.Millisecond)
 	return nil
 }

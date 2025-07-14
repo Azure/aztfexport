@@ -66,8 +66,10 @@ type BaseMeta interface {
 	PushState(ctx context.Context) error
 	// CleanTFState clean up the specified TF resource from the workspace's state file.
 	CleanTFState(ctx context.Context, addr string)
-	// GenerateCfg generates the TF configuration of the import list. Only resources successfully imported will be processed.
-	GenerateCfg(ctx context.Context, l ImportList) error
+	// GetTerraformCfg generates the TF configuration from the import list. Only resources successfully imported will be processed.
+	GetTerraformCfg(ctx context.Context, l ImportList) ([]byte, error)
+	// WriteTerraformCfg writes the TF configuration generated from the import list. Only resources successfully imported will be processed.
+	WriteTerraformCfg(ctx context.Context, l ImportList) error
 	// GetSkippedResources get list of resources that are skipped to be imported.
 	GetSkippedResources(ctx context.Context, l ImportList) []string
 	// WriteSkippedResources writes a file listing record resources that are skipped to be imported to the output directory.
@@ -482,10 +484,20 @@ func (meta baseMeta) PushState(ctx context.Context) error {
 	return nil
 }
 
-func (meta baseMeta) GenerateCfg(ctx context.Context, l ImportList) error {
-	meta.tc.Trace(telemetry.Info, "GenerateCfg Enter")
-	defer meta.tc.Trace(telemetry.Info, "GenerateCfg Leave")
+func (meta baseMeta) GetTerraformCfg(ctx context.Context, l ImportList) ([]byte, error) {
 	return meta.generateCfg(ctx, l, meta.lifecycleAddon, meta.addDependency)
+}
+
+func (meta baseMeta) WriteTerraformCfg(ctx context.Context, l ImportList) error {
+	b, err := meta.GetTerraformCfg(ctx, l)
+	if err != nil {
+		return fmt.Errorf("genering terraform config: %v", err)
+	}
+	cfgFile := filepath.Join(meta.moduleDir, meta.outputFileNames.MainFileName)
+	if err := appendToFile(cfgFile, string(b)); err != nil {
+		return fmt.Errorf("generating main configuration file: %w", err)
+	}
+	return nil
 }
 
 func (meta baseMeta) GetImportBlocks(_ context.Context, l ImportList) []byte {
@@ -590,14 +602,14 @@ func (meta *baseMeta) SetPostImportHook(cb config.ImportCallback) {
 	meta.postImportHook = cb
 }
 
-func (meta baseMeta) generateCfg(ctx context.Context, l ImportList, cfgTrans ...TFConfigTransformer) error {
+func (meta baseMeta) generateCfg(ctx context.Context, l ImportList, cfgTrans ...TFConfigTransformer) ([]byte, error) {
 	cfginfos, err := meta.stateToConfig(ctx, l)
 	if err != nil {
-		return fmt.Errorf("converting from state to configurations: %w", err)
+		return nil, fmt.Errorf("converting from state to configurations: %w", err)
 	}
 	cfginfos, err = meta.terraformMetaHook(cfginfos, cfgTrans...)
 	if err != nil {
-		return fmt.Errorf("Terraform HCL meta hook: %w", err)
+		return nil, fmt.Errorf("Terraform HCL meta hook: %w", err)
 	}
 
 	return meta.generateConfig(cfginfos)
@@ -1103,20 +1115,15 @@ func (meta baseMeta) terraformMetaHook(configs ConfigInfos, cfgTrans ...TFConfig
 	return configs, nil
 }
 
-func (meta baseMeta) generateConfig(cfgs ConfigInfos) error {
-	cfgFile := filepath.Join(meta.moduleDir, meta.outputFileNames.MainFileName)
+func (meta baseMeta) generateConfig(cfgs ConfigInfos) ([]byte, error) {
 	buf := bytes.NewBuffer([]byte{})
 	for _, cfg := range cfgs {
 		if _, err := cfg.DumpHCL(buf); err != nil {
-			return err
+			return nil, err
 		}
 		buf.Write([]byte("\n"))
 	}
-	if err := appendToFile(cfgFile, buf.String()); err != nil {
-		return fmt.Errorf("generating main configuration file: %w", err)
-	}
-
-	return nil
+	return buf.Bytes(), nil
 }
 
 func (meta baseMeta) cleanupTerraformAdd(tpl string) string {

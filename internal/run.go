@@ -111,7 +111,7 @@ func BatchImport(ctx context.Context, cfg config.NonInteractiveModeConfig) error
 		}
 
 		msg.SetStatus("Generating Terraform configurations...")
-		if err := c.GenerateCfg(ctx, list); err != nil {
+		if err := c.WriteTerraformCfg(ctx, list); err != nil {
 			return fmt.Errorf("generating Terraform configuration: %v", err)
 		}
 

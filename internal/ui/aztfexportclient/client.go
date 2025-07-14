@@ -120,7 +120,7 @@ func FinishImport(l meta.ImportList) tea.Cmd {
 
 func GenerateCfg(ctx context.Context, c meta.Meta, l meta.ImportList) tea.Cmd {
 	return func() tea.Msg {
-		if err := c.GenerateCfg(ctx, l); err != nil {
+		if err := c.WriteTerraformCfg(ctx, l); err != nil {
 			return ErrMsg(err)
 		}
 		return GenerateCfgDoneMsg{}
