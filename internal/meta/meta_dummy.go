@@ -10,6 +10,8 @@ import (
 	"github.com/magodo/armid"
 )
 
+var _ BaseMeta = &MetaGroupDummy{}
+
 type MetaGroupDummy struct {
 	rg           string
 	providerName string
@@ -84,12 +86,20 @@ func (m MetaGroupDummy) GenerateCfg(_ context.Context, l ImportList) error {
 	return nil
 }
 
-func (m MetaGroupDummy) ExportResourceMapping(_ context.Context, l ImportList) error {
+func (m *MetaGroupDummy) GetImportBlocks(ctx context.Context, l ImportList) []byte {
+	return nil
+}
+
+func (m MetaGroupDummy) WriteResourceMapping(_ context.Context, l ImportList) error {
 	time.Sleep(500 * time.Millisecond)
 	return nil
 }
 
-func (m MetaGroupDummy) ExportSkippedResources(_ context.Context, l ImportList) error {
+func (m *MetaGroupDummy) GetSkippedResources(ctx context.Context, l ImportList) []string {
+	return nil
+}
+
+func (m MetaGroupDummy) WriteSkippedResources(_ context.Context, l ImportList) error {
 	time.Sleep(500 * time.Millisecond)
 	return nil
 }
