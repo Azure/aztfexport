@@ -177,7 +177,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			return m, m.list.NewStatusMessage(common.InfoStyle.Render(fmt.Sprintf("Possible resource type(s): %s", strings.Join(selItem.v.Recommendations, ","))))
 		case key.Matches(msg, m.listkeys.save):
 			m.list.NewStatusMessage(common.InfoStyle.Render("Saving the resouce mapping..."))
-			err := m.c.ExportResourceMapping(m.ctx, m.importList(false))
+			err := m.c.WriteResourceMapping(m.ctx, m.importList(false))
 			if err == nil {
 				m.list.NewStatusMessage(common.InfoStyle.Render("Resource mapping saved"))
 			} else {

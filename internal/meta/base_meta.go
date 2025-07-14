@@ -68,10 +68,14 @@ type BaseMeta interface {
 	CleanTFState(ctx context.Context, addr string)
 	// GenerateCfg generates the TF configuration of the import list. Only resources successfully imported will be processed.
 	GenerateCfg(ctx context.Context, l ImportList) error
-	// ExportSkippedResources writes a file listing record resources that are skipped to be imported to the output directory.
-	ExportSkippedResources(ctx context.Context, l ImportList) error
-	// ExportResourceMapping writes a resource mapping file to the output directory.
-	ExportResourceMapping(ctx context.Context, l ImportList) error
+	// GetSkippedResources get list of resources that are skipped to be imported.
+	GetSkippedResources(ctx context.Context, l ImportList) []string
+	// WriteSkippedResources writes a file listing record resources that are skipped to be imported to the output directory.
+	WriteSkippedResources(ctx context.Context, l ImportList) error
+	// GetImportBlocks get a list of TF import blocks of the importing resources.
+	GetImportBlocks(ctx context.Context, l ImportList) []byte
+	// WriteResourceMapping writes a resource mapping file to the output directory. In case import block generation is specified, a TF import block file will also be generated.
+	WriteResourceMapping(ctx context.Context, l ImportList) error
 	// CleanUpWorkspace is a weired method that is only meant to be used internally by aztfexport, which under the hood will remove everything in the output directory, except the generated TF config.
 	// This method does nothing if HCLOnly in the Config is not set.
 	CleanUpWorkspace(ctx context.Context) error
@@ -484,7 +488,24 @@ func (meta baseMeta) GenerateCfg(ctx context.Context, l ImportList) error {
 	return meta.generateCfg(ctx, l, meta.lifecycleAddon, meta.addDependency)
 }
 
-func (meta baseMeta) ExportResourceMapping(ctx context.Context, l ImportList) error {
+func (meta baseMeta) GetImportBlocks(_ context.Context, l ImportList) []byte {
+	f := hclwrite.NewFile()
+	body := f.Body()
+	for _, item := range l {
+		if item.Skip() {
+			continue
+		}
+
+		// The import block
+		blk := hclwrite.NewBlock("import", nil)
+		blk.Body().SetAttributeValue("id", cty.StringVal(item.TFResourceId))
+		blk.Body().SetAttributeTraversal("to", hcl.Traversal{hcl.TraverseRoot{Name: item.TFAddr.Type}, hcl.TraverseAttr{Name: item.TFAddr.Name}})
+		body.AppendBlock(blk)
+	}
+	return f.Bytes()
+}
+
+func (meta baseMeta) WriteResourceMapping(ctx context.Context, l ImportList) error {
 	m := resmap.ResourceMapping{}
 	for _, item := range l {
 		if item.Skip() {
@@ -509,22 +530,10 @@ func (meta baseMeta) ExportResourceMapping(ctx context.Context, l ImportList) er
 	}
 
 	if meta.generateImportFile {
-		f := hclwrite.NewFile()
-		body := f.Body()
-		for _, item := range l {
-			if item.Skip() {
-				continue
-			}
-
-			// The import block
-			blk := hclwrite.NewBlock("import", nil)
-			blk.Body().SetAttributeValue("id", cty.StringVal(item.TFResourceId))
-			blk.Body().SetAttributeTraversal("to", hcl.Traversal{hcl.TraverseRoot{Name: item.TFAddr.Type}, hcl.TraverseAttr{Name: item.TFAddr.Name}})
-			body.AppendBlock(blk)
-		}
+		b := meta.GetImportBlocks(ctx, l)
 		oImportFile := filepath.Join(meta.moduleDir, meta.outputFileNames.ImportBlockFileName)
 		// #nosec G306
-		if err := os.WriteFile(oImportFile, f.Bytes(), 0644); err != nil {
+		if err := os.WriteFile(oImportFile, b, 0644); err != nil {
 			return fmt.Errorf("writing the import block to %s: %v", oImportFile, err)
 		}
 	}
@@ -532,17 +541,18 @@ func (meta baseMeta) ExportResourceMapping(ctx context.Context, l ImportList) er
 	return nil
 }
 
-func (meta baseMeta) ExportSkippedResources(_ context.Context, l ImportList) error {
+func (meta baseMeta) GetSkippedResources(_ context.Context, l ImportList) []string {
 	var sl []string
 	for _, item := range l {
 		if item.Skip() {
 			sl = append(sl, "- "+item.AzureResourceID.String())
 		}
 	}
-	if len(sl) == 0 {
-		return nil
-	}
+	return sl
+}
 
+func (meta baseMeta) WriteSkippedResources(ctx context.Context, l ImportList) error {
+	sl := meta.GetSkippedResources(ctx, l)
 	output := filepath.Join(meta.outdir, SkippedResourcesFileName)
 	// #nosec G306
 	if err := os.WriteFile(output, []byte(fmt.Sprintf(`Following resources are marked to be skipped:

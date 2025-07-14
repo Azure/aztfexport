@@ -147,7 +147,7 @@ func PushState(ctx context.Context, c meta.Meta, l meta.ImportList) tea.Cmd {
 
 func ExportResourceMapping(ctx context.Context, c meta.Meta, l meta.ImportList) tea.Cmd {
 	return func() tea.Msg {
-		if err := c.ExportResourceMapping(ctx, l); err != nil {
+		if err := c.WriteResourceMapping(ctx, l); err != nil {
 			return ErrMsg(err)
 		}
 		return ExportResourceMappingDoneMsg{List: l}
@@ -156,7 +156,7 @@ func ExportResourceMapping(ctx context.Context, c meta.Meta, l meta.ImportList) 
 
 func ExportSkippedResources(ctx context.Context, c meta.Meta, l meta.ImportList) tea.Cmd {
 	return func() tea.Msg {
-		if err := c.ExportSkippedResources(ctx, l); err != nil {
+		if err := c.WriteSkippedResources(ctx, l); err != nil {
 			return ErrMsg(err)
 		}
 		return ExportSkippedResourcesDoneMsg{List: l}

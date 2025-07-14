@@ -47,12 +47,12 @@ func BatchImport(ctx context.Context, cfg config.NonInteractiveModeConfig) error
 		}
 
 		msg.SetStatus("Exporting Skipped Resource file...")
-		if err := c.ExportSkippedResources(ctx, list); err != nil {
+		if err := c.WriteSkippedResources(ctx, list); err != nil {
 			return fmt.Errorf("exporting Skipped Resource file: %v", err)
 		}
 
 		msg.SetStatus("Exporting Resource Mapping file...")
-		if err := c.ExportResourceMapping(ctx, list); err != nil {
+		if err := c.WriteResourceMapping(ctx, list); err != nil {
 			return fmt.Errorf("exporting Resource Mapping file: %v", err)
 		}
 
