@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
+	"github.com/magodo/armid"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -23,62 +24,99 @@ type ConfigInfo struct {
 	HCL *hclwrite.File
 }
 
+type Dependencies struct {
+	// Dependencies inferred by scanning for resource id values
+	// The key is TFResourceId.
+	ByIdRef map[string]Dependency
+
+	// Similar to ByIdRef, but due to multiple Azure resources can map to a same TF resource id (being referenced),
+	// this is regarded as ambiguous references.
+	// The key is TFResourceId.
+	ByIdRefAmbiguous map[string][]Dependency
+
+	// Dependencies inferred by resource group name reference.
+	// NOTE: This holds since the azurerm/azapi provider is guaranteed to work for a single subscription.
+	ByRgNameRef *Dependency
+
+	// Dependencies inferred via Azure resource id parent lookup.
+	// At most one such dependency can exist.
+	ByRelation *Dependency
+}
+
+type Dependency struct {
+	TFResourceId    string
+	AzureResourceId string
+	TFAddr          tfaddr.TFAddr
+}
+
 func (cfg ConfigInfo) DumpHCL(w io.Writer) (int, error) {
 	out := hclwrite.Format(cfg.HCL.Bytes())
 	return w.Write(out)
 }
 
 func (cfg *ConfigInfo) applyRefDepsToHCL() {
-	var applyF func(*hclwrite.Body, map[string]Dependency)
-	applyF = func(body *hclwrite.Body, deps map[string]Dependency) {
-		if len(deps) == 0 {
-			return
+	var applyF func(*hclwrite.Body, map[string]Dependency, *Dependency)
+	applyF = func(body *hclwrite.Body, idDeps map[string]Dependency, rgDep *Dependency) {
+		// Apply the rg name reference
+		if rgDep != nil {
+			if _, ok := body.Attributes()["resource_group_name"]; ok {
+				body.SetAttributeTraversal("resource_group_name", hcl.Traversal{
+					hcl.TraverseRoot{Name: rgDep.TFAddr.Type},
+					hcl.TraverseAttr{Name: rgDep.TFAddr.Name},
+					hcl.TraverseAttr{Name: "name"},
+				})
+			}
 		}
-		for name, attr := range body.Attributes() {
-			tokens := attr.Expr().BuildTokens(nil)
-			newTokens := hclwrite.Tokens{}
-			tokensModified := false
 
-			for i := 0; i < len(tokens); i++ {
-				refDep, refDepExists := deps[string(tokens[i].Bytes)]
-				// Parsing process guaranteed QuotedLit is surrounded by Opening and Closing quote
-				if tokens[i].Type == hclsyntax.TokenQuotedLit && refDepExists {
-					newTokens[len(newTokens)-1] = &hclwrite.Token{
-						Type:         hclsyntax.TokenIdent,
-						Bytes:        fmt.Appendf(nil, "%s.id", refDep.TFAddr),
-						SpacesBefore: tokens[i-1].SpacesBefore,
+		// Apply the id reference
+		if len(idDeps) != 0 {
+			for name, attr := range body.Attributes() {
+				tokens := attr.Expr().BuildTokens(nil)
+				newTokens := hclwrite.Tokens{}
+				toApply := false
+				for i := 0; i < len(tokens); i++ {
+					refDep, refDepExists := idDeps[string(tokens[i].Bytes)]
+					// Parsing process guaranteed QuotedLit is surrounded by Opening and Closing quote
+					if tokens[i].Type == hclsyntax.TokenQuotedLit && refDepExists {
+						newTokens[len(newTokens)-1] = &hclwrite.Token{
+							Type:         hclsyntax.TokenIdent,
+							Bytes:        fmt.Appendf(nil, "%s.id", refDep.TFAddr),
+							SpacesBefore: tokens[i-1].SpacesBefore,
+						}
+						toApply = true
+						i += 1 // Skip the next token as it was already processed
+					} else {
+						newTokens = append(newTokens, tokens[i])
 					}
-					tokensModified = true
-					i += 1 // Skip the next token as it was already processed
-				} else {
-					newTokens = append(newTokens, tokens[i])
 				}
-			}
-
-			if tokensModified {
-				body.SetAttributeRaw(name, newTokens)
-			}
-			for _, nestedBlock := range body.Blocks() {
-				applyF(nestedBlock.Body(), deps)
+				if toApply {
+					body.SetAttributeRaw(name, newTokens)
+				}
+				for _, nestedBlock := range body.Blocks() {
+					applyF(nestedBlock.Body(), idDeps, nil)
+				}
 			}
 		}
 	}
-	applyF(cfg.HCL.Body(), cfg.Dependencies.ByRef)
+	applyF(cfg.HCL.Body().Blocks()[0].Body(), cfg.Dependencies.ByIdRef, cfg.Dependencies.ByRgNameRef)
 }
 
 func (cfg *ConfigInfo) applyExplicitDepsToHCL() error {
-	body := cfg.HCL.Body()
+	body := cfg.HCL.Body().Blocks()[0].Body()
 
 	relationDep := cfg.Dependencies.ByRelation
 	if relationDep != nil {
 		// Skip this relation dependency if it's already covered by any of the other applied dependencies.
-		var otherDepAzureIds []string
-		for _, dep := range cfg.Dependencies.ByRef {
-			otherDepAzureIds = append(otherDepAzureIds, dep.AzureResourceId)
+		var appliedDepIds []string
+		for _, dep := range cfg.Dependencies.ByIdRef {
+			appliedDepIds = append(appliedDepIds, dep.AzureResourceId)
+		}
+		if dep := cfg.Dependencies.ByRgNameRef; dep != nil {
+			appliedDepIds = append(appliedDepIds, dep.AzureResourceId)
 		}
 		var covered bool
-		for _, dep := range otherDepAzureIds {
-			if strings.HasPrefix(dep, relationDep.AzureResourceId) {
+		for _, id := range appliedDepIds {
+			if strings.HasPrefix(id, relationDep.AzureResourceId) {
 				covered = true
 				break
 			}
@@ -88,8 +126,10 @@ func (cfg *ConfigInfo) applyExplicitDepsToHCL() error {
 		}
 	}
 
-	ambiguousDeps := cfg.Dependencies.ByRefAmbiguous
-	// TODO: Skip the ambiguous depedencies that are covered by any of the other applied Dependencies.
+	// There isn't a case that other applied dependencies will cover all the possible ambiguous dependencies.
+	// Whilst if in the future, there are more dependencies being added that can cover the ambiguous deps,
+	// we shall do the same skip check as above for the relation dependencies.
+	ambiguousDeps := cfg.Dependencies.ByIdRefAmbiguous
 
 	if len(ambiguousDeps) == 0 && relationDep == nil {
 		return nil
@@ -120,27 +160,6 @@ func (cfg *ConfigInfo) applyExplicitDepsToHCL() error {
 	body.SetAttributeRaw("depends_on", expr.Body().GetAttribute("depends_on").Expr().BuildTokens(nil))
 
 	return nil
-}
-
-type Dependencies struct {
-	// Dependencies inferred by scanning for resource id values
-	// The key is TFResourceId.
-	ByRef map[string]Dependency
-
-	// Similar to ByRef, but due to multiple Azure resources can map to a same TF resource id (being referenced),
-	// this is regarded as ambiguous references.
-	// The key is TFResourceId.
-	ByRefAmbiguous map[string][]Dependency
-
-	// Dependencies inferred via Azure resource id parent lookup.
-	// At most one such dependency can exist.
-	ByRelation *Dependency
-}
-
-type Dependency struct {
-	TFResourceId    string
-	AzureResourceId string
-	TFAddr          tfaddr.TFAddr
 }
 
 // Look at the Azure resource id and determine if parent dependency exist.
@@ -179,22 +198,41 @@ func (cfgs ConfigInfos) PopulateRelationDeps() {
 	}
 }
 
-// Scan the HCL files for references to other resources.
-// For example the HCL attribute `foo_id = "/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foos/foo1"`
-// will yield a dependency to that foo TF resource address.
-// Note that a single TF resource id can map to multiple resources, in which case the dependencies is regarded as ambiguous.
+// Scan the HCL files for references to other resources. There are two references will be detected:
+//  1. Reference by (TF) resource id. This can be detected any where in the expression.
+//     Especially, a single TF resource id can map to multiple resources, in which case the dependencies is regarded as ambiguous.
+//  2. Refernece by resoruce group name. This only applies to the top level attribute named `resource_group_name`.
 func (cfgs ConfigInfos) PopulateReferenceDeps() error {
 	// key: TFResourceId
-	m := map[string][]*ConfigInfo{}
+	allResMap := map[string][]*ConfigInfo{}
+	// key: resource group name
+	allRgMap := map[string]*ConfigInfo{}
 	for _, cfg := range cfgs {
-		m[cfg.TFResourceId] = append(m[cfg.TFResourceId], &cfg)
+		allResMap[cfg.TFResourceId] = append(allResMap[cfg.TFResourceId], &cfg)
+		if id, ok := cfg.AzureResourceID.(*armid.ResourceGroup); ok && len(id.AttrTypes) == 0 {
+			allRgMap[id.Name] = &cfg
+		}
 	}
-
 	for i, cfg := range cfgs {
 		file, err := hclsyntax.ParseConfig(cfg.HCL.Bytes(), "main.tf", hcl.InitialPos)
 		if err != nil {
 			return fmt.Errorf("parsing hcl for %s: %v", cfg.AzureResourceID, err)
 		}
+		// Scan for the top level resource group name reference
+		if attr, ok := file.Body.(*hclsyntax.Body).Blocks[0].Body.Attributes["resource_group_name"]; ok {
+			if tplExpr, ok := attr.Expr.(*hclsyntax.TemplateExpr); ok && tplExpr.IsStringLiteral() {
+				val, _ := tplExpr.Value(nil)
+				if rgCfg, ok := allRgMap[val.AsString()]; ok {
+					cfg.Dependencies.ByRgNameRef = &Dependency{
+						AzureResourceId: rgCfg.ImportItem.AzureResourceID.String(),
+						TFResourceId:    rgCfg.ImportItem.TFResourceId,
+						TFAddr:          rgCfg.ImportItem.TFAddr,
+					}
+				}
+			}
+		}
+
+		// Scan for resource id reference
 		hclsyntax.VisitAll(file.Body.(*hclsyntax.Body), func(node hclsyntax.Node) hcl.Diagnostics {
 			expr, ok := node.(*hclsyntax.LiteralValueExpr)
 			if !ok {
@@ -208,7 +246,7 @@ func (cfgs ConfigInfos) PopulateReferenceDeps() error {
 
 			// Try to look up this string attribute from the TF id map. If there is a match, we regard it as a valid TF resource id.
 			// This is safe to match case sensitively given the TF id are consistent across the provider. Otherwise, it is a provider bug.
-			dependingConfigsRaw, ok := m[maybeTFId]
+			dependingConfigsRaw, ok := allResMap[maybeTFId]
 			if !ok {
 				return nil
 			}
@@ -228,7 +266,7 @@ func (cfgs ConfigInfos) PopulateReferenceDeps() error {
 			}
 
 			if len(dependingConfigs) == 1 {
-				cfg.Dependencies.ByRef[depTFResId] = Dependency{
+				cfg.Dependencies.ByIdRef[depTFResId] = Dependency{
 					TFResourceId:    depTFResId,
 					AzureResourceId: dependingConfigs[0].AzureResourceID.String(),
 					TFAddr:          dependingConfigs[0].TFAddr,
@@ -242,7 +280,7 @@ func (cfgs ConfigInfos) PopulateReferenceDeps() error {
 						TFAddr:          depCfg.TFAddr,
 					})
 				}
-				cfg.Dependencies.ByRefAmbiguous[depTFResId] = deps
+				cfg.Dependencies.ByIdRefAmbiguous[depTFResId] = deps
 			}
 
 			return nil
