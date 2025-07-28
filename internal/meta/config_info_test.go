@@ -191,8 +191,8 @@ resource "azurerm_resource_group" "res-0" {
 					nil,
 				),
 				newConfigInfo(
-					"/providers/Microsoft.Foo/foo/foo1",
-					"/providers/Microsoft.Foo/foo/foo1",
+					"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1",
+					"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1",
 					"azurerm_foo_resource.res-1",
 					`
 resource "azurerm_foo_resource" "res-1" {
@@ -204,7 +204,7 @@ resource "azurerm_foo_resource" "res-1" {
 				),
 			},
 			expectedRgNameReferenceDeps: map[string]*Dependency{
-				"/providers/Microsoft.Foo/foo/foo1": {
+				"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1": {
 					AzureResourceId: "/subscriptions/123/resourceGroups/rg1",
 					TFResourceId:    "/subscriptions/123/resourceGroups/rg1",
 					TFAddr:          mustParseTFAddr("azurerm_resource_group.res-0"),
@@ -212,12 +212,53 @@ resource "azurerm_foo_resource" "res-1" {
 				"/subscriptions/123/resourceGroups/rg1": nil,
 			},
 			expectedIdReferenceDeps: map[string]map[string]Dependency{
-				"/providers/Microsoft.Foo/foo/foo1":     {},
-				"/subscriptions/123/resourceGroups/rg1": {},
+				"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1": {},
+				"/subscriptions/123/resourceGroups/rg1":                                  {},
 			},
 			expectedIdReferenceAmbiguousDeps: map[string]map[string][]Dependency{
-				"/providers/Microsoft.Foo/foo/foo1":     {},
-				"/subscriptions/123/resourceGroups/rg1": {},
+				"/subscriptions/123/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1": {},
+				"/subscriptions/123/resourceGroups/rg1":                                  {},
+			},
+		},
+		{
+			name: "res-1 reference resource group by `resource_group_name`, but in a different subscription",
+			inputConfigs: []ConfigInfo{
+				newConfigInfo(
+					"/subscriptions/123/resourceGroups/rg1",
+					"/subscriptions/123/resourceGroups/rg1",
+					"azurerm_resource_group.res-0",
+					`
+resource "azurerm_resource_group" "res-0" {
+  name     = "rg1"
+  location = "West Europe"
+}
+`,
+					nil,
+				),
+				newConfigInfo(
+					"/subscriptions/456/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1",
+					"/subscriptions/456/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1",
+					"azurerm_foo_resource.res-1",
+					`
+resource "azurerm_foo_resource" "res-1" {
+  name                = "foo1"
+  resource_group_name = "rg1"
+}
+`,
+					nil,
+				),
+			},
+			expectedRgNameReferenceDeps: map[string]*Dependency{
+				"/subscriptions/456/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1": nil,
+				"/subscriptions/123/resourceGroups/rg1":                                  nil,
+			},
+			expectedIdReferenceDeps: map[string]map[string]Dependency{
+				"/subscriptions/456/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1": {},
+				"/subscriptions/123/resourceGroups/rg1":                                  {},
+			},
+			expectedIdReferenceAmbiguousDeps: map[string]map[string][]Dependency{
+				"/subscriptions/456/resourceGroups/rg1/providers/Microsoft.Foo/foo/foo1": {},
+				"/subscriptions/123/resourceGroups/rg1":                                  {},
 			},
 		},
 	}

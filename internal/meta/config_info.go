@@ -116,7 +116,7 @@ func (cfg *ConfigInfo) applyExplicitDepsToHCL() error {
 		}
 		var covered bool
 		for _, id := range appliedDepIds {
-			if strings.HasPrefix(id, relationDep.AzureResourceId) {
+			if isParentOf(relationDep.AzureResourceId, id) {
 				covered = true
 				break
 			}
@@ -222,11 +222,17 @@ func (cfgs ConfigInfos) PopulateReferenceDeps() error {
 		if attr, ok := file.Body.(*hclsyntax.Body).Blocks[0].Body.Attributes["resource_group_name"]; ok {
 			if tplExpr, ok := attr.Expr.(*hclsyntax.TemplateExpr); ok && tplExpr.IsStringLiteral() {
 				val, _ := tplExpr.Value(nil)
-				if rgCfg, ok := allRgMap[val.AsString()]; ok {
-					cfg.Dependencies.ByRgNameRef = &Dependency{
-						AzureResourceId: rgCfg.ImportItem.AzureResourceID.String(),
-						TFResourceId:    rgCfg.ImportItem.TFResourceId,
-						TFAddr:          rgCfg.ImportItem.TFAddr,
+				rgName := val.AsString()
+				if rgCfg, ok := allRgMap[rgName]; ok {
+					// Ensure the referenced resource group is really the parent resource group of the current resource.
+					// This is to avoid the case that the referenced resource group is from another subscription.
+					// Sicne the resource group name is equal, we only need to further check its subscription id.
+					if isParentOf(rgCfg.AzureResourceID.String(), cfg.AzureResourceID.String()) {
+						cfg.Dependencies.ByRgNameRef = &Dependency{
+							AzureResourceId: rgCfg.ImportItem.AzureResourceID.String(),
+							TFResourceId:    rgCfg.ImportItem.TFResourceId,
+							TFAddr:          rgCfg.ImportItem.TFAddr,
+						}
 					}
 				}
 			}
@@ -299,4 +305,10 @@ func (configs ConfigInfos) ApplyDepsToHCL() error {
 		configs[i] = cfg
 	}
 	return nil
+}
+
+// isParentOf is a utility to tell whether the "pid" is a top level of the "id".
+// Given both "pid" and "id" are Azure resource ids.
+func isParentOf(pid, id string) bool {
+	return strings.HasPrefix(strings.ToLower(id), strings.ToLower(pid))
 }
