@@ -1092,11 +1092,10 @@ func (meta baseMeta) stateToConfig(ctx context.Context, list ImportList) (Config
 		}
 		out = append(out, ConfigInfo{
 			ImportItem: importedList[i],
-			hcl:        f,
-			dependencies: Dependencies{
-				refDeps:          make(map[string]Dependency),
-				parentChildDeps:  make(map[Dependency]bool),
-				ambiguousRefDeps: make(map[string][]Dependency),
+			HCL:        f,
+			Dependencies: Dependencies{
+				ByIdRef:          make(map[string]Dependency),
+				ByIdRefAmbiguous: make(map[string][]Dependency),
 			},
 		})
 	}
@@ -1148,7 +1147,7 @@ func (meta baseMeta) lifecycleAddon(configs ConfigInfos) (ConfigInfos, error) {
 	for i, cfg := range configs {
 		switch cfg.TFAddr.Type {
 		case "azurerm_application_insights_web_test":
-			if err := hclBlockAppendLifecycle(cfg.hcl.Body().Blocks()[0].Body(), []string{"tags"}); err != nil {
+			if err := hclBlockAppendLifecycle(cfg.HCL.Body().Blocks()[0].Body(), []string{"tags"}); err != nil {
 				return nil, fmt.Errorf("azurerm_application_insights_web_test: %v", err)
 			}
 		}
@@ -1158,12 +1157,12 @@ func (meta baseMeta) lifecycleAddon(configs ConfigInfos) (ConfigInfos, error) {
 }
 
 func (meta baseMeta) addDependency(configs ConfigInfos) (ConfigInfos, error) {
-	if err := configs.PopulateReferenceDependencies(); err != nil {
+	if err := configs.PopulateReferenceDeps(); err != nil {
 		return nil, fmt.Errorf("populating reference dependencies: %v", err)
 	}
-	configs.populateParentChildDependency()
+	configs.PopulateRelationDeps()
 
-	if err := configs.applyDependenciesToHclBlock(); err != nil {
+	if err := configs.ApplyDepsToHCL(); err != nil {
 		return nil, fmt.Errorf("applying dependencies to HCL blocks: %v", err)
 	}
 
