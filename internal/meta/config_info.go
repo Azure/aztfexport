@@ -201,7 +201,7 @@ func (cfgs ConfigInfos) PopulateRelationDeps() {
 // Scan the HCL files for references to other resources. There are two references will be detected:
 //  1. Reference by (TF) resource id. This can be detected any where in the expression.
 //     Especially, a single TF resource id can map to multiple resources, in which case the dependencies is regarded as ambiguous.
-//  2. Refernece by resoruce group name. This only applies to the top level attribute named `resource_group_name`.
+//  2. Reference by resoruce group name. This only applies to the top level attribute named `resource_group_name`.
 func (cfgs ConfigInfos) PopulateReferenceDeps() error {
 	// key: TFResourceId
 	allResMap := map[string][]*ConfigInfo{}
@@ -226,7 +226,7 @@ func (cfgs ConfigInfos) PopulateReferenceDeps() error {
 				if rgCfg, ok := allRgMap[rgName]; ok {
 					// Ensure the referenced resource group is really the parent resource group of the current resource.
 					// This is to avoid the case that the referenced resource group is from another subscription.
-					// Sicne the resource group name is equal, we only need to further check its subscription id.
+					// Since the resource group name is equal, we only need to further check its subscription id.
 					if isParentOf(rgCfg.AzureResourceID.String(), cfg.AzureResourceID.String()) {
 						cfg.Dependencies.ByRgNameRef = &Dependency{
 							AzureResourceId: rgCfg.ImportItem.AzureResourceID.String(),
