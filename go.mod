@@ -24,7 +24,7 @@ require (
 	github.com/hashicorp/terraform-json v0.24.0
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/magodo/armid v0.0.0-20240524082432-7ce06ae46c33
-	github.com/magodo/azlist v0.0.0-20250429005249-2b51aca0f1e1
+	github.com/magodo/azlist v0.0.0-20250807062828-b842fde1b538
 	github.com/magodo/aztft v0.3.1-0.20250606003245-7222b835cdcc
 	github.com/magodo/slog2hclog v0.0.0-20240614031327-090ebd72a033
 	github.com/magodo/spinner v0.0.0-20240524082745-3a2305db1bdc

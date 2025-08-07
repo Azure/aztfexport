@@ -3,7 +3,6 @@ package meta
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/Azure/aztfexport/internal/resourceset"
 	"github.com/Azure/aztfexport/internal/tfaddr"
@@ -62,38 +61,47 @@ func (meta MetaResource) ScopeName() string {
 }
 
 func (meta *MetaResource) ListResource(ctx context.Context) (ImportList, error) {
-	var resources []resourceset.AzureResource
+	var rl []resourceset.AzureResource
 	for _, id := range meta.AzureIds {
-		resources = append(resources, resourceset.AzureResource{Id: id})
+		rl = append(rl, resourceset.AzureResource{Id: id})
 	}
 
-	rset := &resourceset.AzureResourceSet{
-		Resources: resources,
-	}
 	if meta.includeRoleAssignment {
 		var err error
-		rset, err = meta.queryResourceSet(ctx, resources)
+		rl, err = meta.listByIds(ctx, rl)
 		if err != nil {
-			return nil, fmt.Errorf("querying resource set: %v", err)
+			return nil, fmt.Errorf("querying extension resources: %v", err)
 		}
 	}
 
 	meta.Logger().Debug("Azure Resource set map to TF resource set")
-
-	var rl []resourceset.TFResource
+	rset := &resourceset.AzureResourceSet{Resources: rl}
+	var tfl []resourceset.TFResource
 	if meta.useAzAPI() {
-		rl = rset.ToTFAzAPIResources()
+		tfl = rset.ToTFAzAPIResources()
 	} else {
-		rl = rset.ToTFAzureRMResources(meta.Logger(), meta.parallelism, meta.azureSDKCred, meta.azureSDKClientOpt)
+		tfl = rset.ToTFAzureRMResources(meta.Logger(), meta.parallelism, meta.azureSDKCred, meta.azureSDKClientOpt)
+	}
+
+	// Split the specified resources and the extension resources
+	var tfrl, tfel []resourceset.TFResource
+	for _, tfres := range tfl {
+		rmap := map[string]bool{}
+		for _, r := range rl {
+			rmap[r.Id.String()] = true
+		}
+		if rmap[tfres.AzureId.String()] {
+			tfrl = append(tfrl, tfres)
+		} else {
+			tfel = append(tfel, tfres)
+		}
 	}
 
 	var l ImportList
 
-	originalRl, extensionRl := splitOriginalAndExtension(rl, resources)
-
 	// The ResourceName and ResourceType are only honored for single non-role-assignment-resource
-	if len(originalRl) == 1 {
-		res := originalRl[0]
+	if len(tfrl) == 1 {
+		res := tfrl[0]
 
 		// Honor the ResourceName
 		name := meta.ResourceName
@@ -134,21 +142,20 @@ func (meta *MetaResource) ListResource(ctx context.Context) (ImportList, error) 
 		}
 		l = append(l, item)
 	} else {
-		meta.appendRlToImportList(originalRl, &l)
+		l = append(l, meta.toImportList(tfrl, 0)...)
 	}
-
-	meta.appendRlToImportList(extensionRl, &l)
+	l = append(l, meta.toImportList(tfel, len(tfrl))...)
 
 	l = meta.excludeImportList(l)
-
 	return l, nil
 }
 
-func (meta MetaResource) appendRlToImportList(rl []resourceset.TFResource, l *ImportList) {
-	for _, res := range rl {
+func (meta MetaResource) toImportList(rl []resourceset.TFResource, fromIdx int) ImportList {
+	var l ImportList
+	for idx, res := range rl {
 		tfAddr := tfaddr.TFAddr{
 			Type: "",
-			Name: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, len(*l), meta.resourceNameSuffix),
+			Name: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, idx+fromIdx, meta.resourceNameSuffix),
 		}
 		item := ImportItem{
 			AzureResourceID: res.AzureId,
@@ -163,14 +170,12 @@ func (meta MetaResource) appendRlToImportList(rl []resourceset.TFResource, l *Im
 			item.IsRecommended = true
 		}
 
-		*l = append(*l, item)
+		l = append(l, item)
 	}
+	return l
 }
 
-func (meta MetaResource) queryResourceSet(ctx context.Context, resources []resourceset.AzureResource) (*resourceset.AzureResourceSet, error) {
-	var rl []resourceset.AzureResource
-	var quotedIds []string
-
+func (meta MetaResource) listByIds(ctx context.Context, resources []resourceset.AzureResource) ([]resourceset.AzureResource, error) {
 	opt := azlist.Option{
 		Logger:                 meta.logger.WithGroup("azlist"),
 		SubscriptionId:         meta.subscriptionId,
@@ -185,15 +190,17 @@ func (meta MetaResource) queryResourceSet(ctx context.Context, resources []resou
 		return nil, fmt.Errorf("building azlister for listing resources: %v", err)
 	}
 
-	for _, res := range resources {
-		quotedIds = append(quotedIds, fmt.Sprintf("%q", res.Id.String()))
+	var ids []string
+	for _, r := range resources {
+		ids = append(ids, r.Id.String())
 	}
 
-	result, err := lister.List(ctx, fmt.Sprintf("id in (%s)", strings.Join(quotedIds, ", ")))
+	result, err := lister.ListByIds(ctx, ids)
 	if err != nil {
-		return nil, fmt.Errorf("listing resources: %w", err)
+		return nil, fmt.Errorf("listing extension resources: %w", err)
 	}
 
+	var rl []resourceset.AzureResource
 	for _, res := range result.Resources {
 		res := resourceset.AzureResource{
 			Id:         res.Id,
@@ -202,24 +209,5 @@ func (meta MetaResource) queryResourceSet(ctx context.Context, resources []resou
 		rl = append(rl, res)
 	}
 
-	return &resourceset.AzureResourceSet{
-		Resources: rl,
-	}, nil
-}
-
-func splitOriginalAndExtension(combined []resourceset.TFResource, requested []resourceset.AzureResource) (original []resourceset.TFResource, extension []resourceset.TFResource) {
-	idRequested := make(map[string]bool, len(requested))
-	for _, res := range requested {
-		idRequested[res.Id.String()] = true
-	}
-
-	for _, res := range combined {
-		if idRequested[res.AzureId.String()] {
-			original = append(original, res)
-		} else {
-			extension = append(extension, res)
-		}
-	}
-
-	return
+	return rl, nil
 }
