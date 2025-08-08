@@ -15,12 +15,13 @@ import (
 
 type MetaResource struct {
 	baseMeta
-	AzureIds              []armid.ResourceId
-	ResourceName          string
-	ResourceType          string
-	resourceNamePrefix    string
-	resourceNameSuffix    string
-	includeRoleAssignment bool
+	AzureIds               []armid.ResourceId
+	ResourceName           string
+	ResourceType           string
+	resourceNamePrefix     string
+	resourceNameSuffix     string
+	includeRoleAssignment  bool
+	includeManagedResource bool
 }
 
 func NewMetaResource(cfg config.Config) (*MetaResource, error) {
@@ -41,11 +42,12 @@ func NewMetaResource(cfg config.Config) (*MetaResource, error) {
 	}
 
 	meta := &MetaResource{
-		baseMeta:              *baseMeta,
-		AzureIds:              ids,
-		ResourceName:          cfg.TFResourceName,
-		ResourceType:          cfg.TFResourceType,
-		includeRoleAssignment: cfg.IncludeRoleAssignment,
+		baseMeta:               *baseMeta,
+		AzureIds:               ids,
+		ResourceName:           cfg.TFResourceName,
+		ResourceType:           cfg.TFResourceType,
+		includeRoleAssignment:  cfg.IncludeRoleAssignment,
+		includeManagedResource: cfg.IncludeManagedResource,
 	}
 
 	meta.resourceNamePrefix, meta.resourceNameSuffix = resourceNamePattern(cfg.ResourceNamePattern)
@@ -178,6 +180,7 @@ func (meta MetaResource) queryResourceSet(ctx context.Context, resources []resou
 		ClientOpt:              meta.azureSDKClientOpt,
 		Parallelism:            meta.parallelism,
 		ExtensionResourceTypes: extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
+		IncludeManaged:         meta.includeManagedResource,
 	}
 
 	lister, err := azlist.NewLister(opt)

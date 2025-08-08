@@ -119,6 +119,9 @@ type Config struct {
 	// IncludeRoleAssignment specifies whether to include the role assignments assigned to the exported resources
 	IncludeRoleAssignment bool
 
+	// IncludeManagedResource specifies whether to allow service team/3rd party managed resources to be exported
+	IncludeManagedResource bool
+
 	/////////////////////////
 	// Scope: rg, res (multi), query
 

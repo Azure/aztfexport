@@ -12,10 +12,11 @@ import (
 
 type MetaResourceGroup struct {
 	baseMeta
-	resourceGroup         string
-	resourceNamePrefix    string
-	resourceNameSuffix    string
-	includeRoleAssignment bool
+	resourceGroup          string
+	resourceNamePrefix     string
+	resourceNameSuffix     string
+	includeRoleAssignment  bool
+	includeManagedResource bool
 }
 
 func NewMetaResourceGroup(cfg config.Config) (*MetaResourceGroup, error) {
@@ -26,9 +27,10 @@ func NewMetaResourceGroup(cfg config.Config) (*MetaResourceGroup, error) {
 	}
 
 	meta := &MetaResourceGroup{
-		baseMeta:              *baseMeta,
-		resourceGroup:         cfg.ResourceGroupName,
-		includeRoleAssignment: cfg.IncludeRoleAssignment,
+		baseMeta:               *baseMeta,
+		resourceGroup:          cfg.ResourceGroupName,
+		includeRoleAssignment:  cfg.IncludeRoleAssignment,
+		includeManagedResource: cfg.IncludeManagedResource,
 	}
 	meta.resourceNamePrefix, meta.resourceNameSuffix = resourceNamePattern(cfg.ResourceNamePattern)
 
@@ -101,6 +103,7 @@ func (meta MetaResourceGroup) queryResourceSet(ctx context.Context, rg string) (
 		ClientOpt:              meta.azureSDKClientOpt,
 		Parallelism:            meta.parallelism,
 		ExtensionResourceTypes: extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
+		IncludeManaged:         meta.includeManagedResource,
 		ARGTable:               "ResourceContainers",
 	}
 	lister, err := azlist.NewLister(opt)
@@ -132,6 +135,7 @@ func (meta MetaResourceGroup) queryResourceSet(ctx context.Context, rg string) (
 		ClientOpt:              meta.azureSDKClientOpt,
 		Parallelism:            meta.parallelism,
 		ExtensionResourceTypes: extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
+		IncludeManaged:         meta.includeManagedResource,
 		Recursive:              true,
 	}
 	lister, err = azlist.NewLister(opt)
