@@ -7,8 +7,17 @@ import (
 	"github.com/Azure/aztfexport/internal/tfaddr"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
+	"github.com/magodo/armid"
 	"github.com/stretchr/testify/assert"
 )
+
+func mustParseResourceId(id string) armid.ResourceId {
+	parsed, err := armid.ParseResourceId(id)
+	if err != nil {
+		panic(err)
+	}
+	return parsed
+}
 
 func newConfigInfo(azid, tfid, tfaddr, hcl string, deps *Dependencies) ConfigInfo {
 	cinfo := ConfigInfo{

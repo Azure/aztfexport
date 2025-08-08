@@ -122,7 +122,7 @@ func (meta MetaQuery) queryResourceSet(ctx context.Context, predicate string, re
 	if err != nil {
 		return nil, fmt.Errorf("building azlister: %v", err)
 	}
-	result, err := lister.List(ctx, predicate)
+	result, err := lister.ListByQuery(ctx, predicate)
 	if err != nil {
 		return nil, fmt.Errorf("listing resource set: %w", err)
 	}
