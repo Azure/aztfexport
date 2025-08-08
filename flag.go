@@ -82,8 +82,10 @@ type FlagSet struct {
 	// flagResName (for single resource)
 	// flagResType (for single resource)
 	// flagPattern (for multi resources)
+	// flagRecursive
 	// flagIncludeRoleAssignment
 	// flagIncludeManagedResource
+	// flagIncludeResourceGroup
 	//
 	// rg:
 	// flagPattern
@@ -239,38 +241,26 @@ func (flag FlagSet) DescribeCLI(mode Mode) string {
 	if flag.flagIncludeManagedResource {
 		args = append(args, "--include-managed-resource=true")
 	}
-
-	switch mode {
-	case ModeResource:
-		if flag.flagResName != "" {
-			args = append(args, "--name="+flag.flagResName)
-		}
-		if flag.flagResType != "" {
-			args = append(args, "--type="+flag.flagResType)
-		}
-		if flag.flagPattern != "" {
-			args = append(args, "--name-pattern="+flag.flagPattern)
-		}
-	case ModeResourceGroup:
-		if flag.flagPattern != "" {
-			args = append(args, "--name-pattern="+flag.flagPattern)
-		}
-	case ModeQuery:
-		if flag.flagPattern != "" {
-			args = append(args, "--name-pattern="+flag.flagPattern)
-		}
-		if flag.flagRecursive {
-			args = append(args, "--recursive=true")
-		}
-		if flag.flagIncludeResourceGroup {
-			args = append(args, "--include-resource-group=true")
-		}
-		if flag.flagARGTable != "" {
-			args = append(args, "--arg-table="+flag.flagARGTable)
-		}
-		if flag.flagARGAuthorizationScopeFilter != "" {
-			args = append(args, "--arg-authorization-scope-filter="+flag.flagARGAuthorizationScopeFilter)
-		}
+	if flag.flagIncludeResourceGroup {
+		args = append(args, "--include-resource-group=true")
+	}
+	if flag.flagResName != "" {
+		args = append(args, "--name="+flag.flagResName)
+	}
+	if flag.flagResType != "" {
+		args = append(args, "--type="+flag.flagResType)
+	}
+	if flag.flagPattern != "" {
+		args = append(args, "--name-pattern="+flag.flagPattern)
+	}
+	if flag.flagRecursive {
+		args = append(args, "--recursive=true")
+	}
+	if flag.flagARGTable != "" {
+		args = append(args, "--arg-table="+flag.flagARGTable)
+	}
+	if flag.flagARGAuthorizationScopeFilter != "" {
+		args = append(args, "--arg-authorization-scope-filter="+flag.flagARGAuthorizationScopeFilter)
 	}
 	return "aztfexport " + strings.Join(args, " ")
 }

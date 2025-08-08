@@ -424,6 +424,19 @@ func main() {
 			Value:       "res-",
 			Destination: &flagset.flagPattern,
 		},
+		&cli.BoolFlag{
+			Name:        "recursive",
+			EnvVars:     []string{"AZTFEXPORT_RECURSIVE"},
+			Aliases:     []string{"r"},
+			Usage:       "Recursively lists child resources of the resulting query resources",
+			Destination: &flagset.flagRecursive,
+		},
+		&cli.BoolFlag{
+			Name:        "include-resource-group",
+			EnvVars:     []string{"AZTFEXPORT_INCLUDE_RESOURCE_GROUP"},
+			Usage:       "Include the resource groups that the exported resources belong to",
+			Destination: &flagset.flagIncludeResourceGroup,
+		},
 	}, commonFlags...)
 
 	resourceGroupFlags := append([]cli.Flag{
@@ -438,6 +451,14 @@ func main() {
 	}, commonFlags...)
 
 	queryFlags := append([]cli.Flag{
+		&cli.StringFlag{
+			Name:        "name-pattern",
+			EnvVars:     []string{"AZTFEXPORT_NAME_PATTERN"},
+			Aliases:     []string{"p"},
+			Usage:       `The pattern of the resource name. The semantic of a pattern is the same as Go's os.CreateTemp()`,
+			Value:       "res-",
+			Destination: &flagset.flagPattern,
+		},
 		&cli.BoolFlag{
 			Name:        "recursive",
 			EnvVars:     []string{"AZTFEXPORT_RECURSIVE"},
@@ -463,7 +484,7 @@ func main() {
 			Usage:       `The Azure Resource Graph Authorization Scope Filter parameter. Possible values are: "AtScopeAndBelow", "AtScopeAndAbove", "AtScopeAboveAndBelow" and "AtScopeExact"`,
 			Destination: &flagset.flagARGAuthorizationScopeFilter,
 		},
-	}, resourceGroupFlags...)
+	}, commonFlags...)
 
 	mappingFileFlags := append([]cli.Flag{}, commonFlags...)
 
@@ -588,6 +609,8 @@ func main() {
 						TFResourceName:         flagset.flagResName,
 						TFResourceType:         flagset.flagResType,
 						ResourceNamePattern:    flagset.flagPattern,
+						RecursiveQuery:         flagset.flagRecursive,
+						IncludeResourceGroup:   flagset.flagIncludeResourceGroup,
 						IncludeRoleAssignment:  flagset.flagIncludeRoleAssignment,
 						IncludeManagedResource: flagset.flagIncludeManagedResource,
 					}
