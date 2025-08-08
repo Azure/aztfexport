@@ -110,7 +110,7 @@ func (meta MetaResourceGroup) queryResourceSet(ctx context.Context, rg string) (
 	if err != nil {
 		return nil, fmt.Errorf("building azlister for listing resource group only: %v", err)
 	}
-	result, err := lister.List(ctx, fmt.Sprintf("name == %q", rg))
+	result, err := lister.ListByQuery(ctx, fmt.Sprintf("name == %q", rg))
 	if err != nil {
 		return nil, fmt.Errorf("listing resource group only: %w", err)
 	}
@@ -142,7 +142,7 @@ func (meta MetaResourceGroup) queryResourceSet(ctx context.Context, rg string) (
 	if err != nil {
 		return nil, fmt.Errorf("building azlister for listing resource group: %v", err)
 	}
-	result, err = lister.List(ctx, fmt.Sprintf("resourceGroup =~ %q", rg))
+	result, err = lister.ListByQuery(ctx, fmt.Sprintf("resourceGroup =~ %q", rg))
 	if err != nil {
 		return nil, fmt.Errorf("listing resource group: %w", err)
 	}
