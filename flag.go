@@ -82,15 +82,19 @@ type FlagSet struct {
 	// flagResName (for single resource)
 	// flagResType (for single resource)
 	// flagPattern (for multi resources)
+	// flagIncludeRoleAssignment
+	// flagIncludeManagedResource
 	//
 	// rg:
 	// flagPattern
 	// flagIncludeRoleAssignment
+	// flagIncludeManagedResource
 	//
 	// query:
 	// flagPattern
 	// flagRecursive
 	// flagIncludeRoleAssignment
+	// flagIncludeManagedResource
 	// flagIncludeResourceGroup
 	// flagARGTable
 	// flagARGAuthorizationScopeFilter
