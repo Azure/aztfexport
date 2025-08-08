@@ -116,17 +116,17 @@ type Config struct {
 	// MappingFile specifies the path of mapping file, this indicates the map file mode.
 	MappingFile string
 
-	// IncludeRoleAssignment specifies whether to include the role assignments assigned to the exported resources
-	IncludeRoleAssignment bool
-
-	// IncludeManagedResource specifies Whether to include internal resources managed by Azure in the exported configuration
-	IncludeManagedResource bool
-
 	/////////////////////////
 	// Scope: rg, res (multi), query
 
 	// ResourceNamePattern specifies the resource name pattern
 	ResourceNamePattern string
+
+	// IncludeRoleAssignment specifies whether to include the role assignments assigned to the exported resources
+	IncludeRoleAssignment bool
+
+	// IncludeManagedResource specifies whether to allow service team/3rd party managed resources to be exported
+	IncludeManagedResource bool
 
 	/////////////////////////
 	// Scope: res (single)
@@ -137,12 +137,17 @@ type Config struct {
 	TFResourceType string
 
 	/////////////////////////
-	// Scope: query
+	// Scope: res, query
 
-	// RecursiveQuery specifies whether to recursively list the child/proxy resources of the ARG resulted resource list
+	// RecursiveQuery specifies whether to recursively list the child/proxy resources of the ARG resulted or user specified resource list
 	RecursiveQuery bool
+
 	// IncludeResourceGroup specifies whether to include the resource groups that the exported resources belong to
 	IncludeResourceGroup bool
+
+	/////////////////////////
+	// Scope: query
+
 	// ARGTable specifies the ARG table name, which defaults to the "Resources" table
 	ARGTable string
 	//  ARGAuthorizationScopeFilter specifies the AuthorizationScopeFilter parameter. Possible values are: "AtScopeAndBelow", "AtScopeAndAbove", "AtScopeAboveAndBelow" and "AtScopeExact"

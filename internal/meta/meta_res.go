@@ -21,6 +21,8 @@ type MetaResource struct {
 	resourceNameSuffix     string
 	includeRoleAssignment  bool
 	includeManagedResource bool
+	includeResourceGroup   bool
+	recursive              bool
 }
 
 func NewMetaResource(cfg config.Config) (*MetaResource, error) {
@@ -45,8 +47,10 @@ func NewMetaResource(cfg config.Config) (*MetaResource, error) {
 		AzureIds:               ids,
 		ResourceName:           cfg.TFResourceName,
 		ResourceType:           cfg.TFResourceType,
+		recursive:              cfg.RecursiveQuery,
 		includeRoleAssignment:  cfg.IncludeRoleAssignment,
 		includeManagedResource: cfg.IncludeManagedResource,
+		includeResourceGroup:   cfg.IncludeResourceGroup,
 	}
 
 	meta.resourceNamePrefix, meta.resourceNameSuffix = resourceNamePattern(cfg.ResourceNamePattern)
@@ -68,12 +72,9 @@ func (meta *MetaResource) ListResource(ctx context.Context) (ImportList, error) 
 		rl = append(rl, resourceset.AzureResource{Id: id})
 	}
 
-	if meta.includeRoleAssignment {
-		var err error
-		rl, err = meta.listByIds(ctx, rl)
-		if err != nil {
-			return nil, fmt.Errorf("querying extension resources: %v", err)
-		}
+	rl, err := meta.listByIds(ctx, rl)
+	if err != nil {
+		return nil, fmt.Errorf("querying extension resources: %v", err)
 	}
 
 	meta.Logger().Debug("Azure Resource set map to TF resource set")
@@ -186,6 +187,8 @@ func (meta MetaResource) listByIds(ctx context.Context, resources []resourceset.
 		Parallelism:            meta.parallelism,
 		ExtensionResourceTypes: extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
 		IncludeManaged:         meta.includeManagedResource,
+		IncludeResourceGroup:   meta.includeResourceGroup,
+		Recursive:              meta.recursive,
 	}
 
 	lister, err := azlist.NewLister(opt)
