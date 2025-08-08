@@ -267,7 +267,7 @@ func main() {
 		&cli.BoolFlag{
 			Name:        "include-managed-resource",
 			EnvVars:     []string{"AZTFEXPORT_INCLUDE_MANAGED_RESOURCE"},
-			Usage:       `Whether to allow resources managed by service team/3rd party to be exported`,
+			Usage:       `Whether to include internal resources managed by Azure in the exported configuration`,
 			Destination: &flagset.flagIncludeManagedResource,
 		},
 
