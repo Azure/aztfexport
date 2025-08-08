@@ -82,15 +82,19 @@ type FlagSet struct {
 	// flagResName (for single resource)
 	// flagResType (for single resource)
 	// flagPattern (for multi resources)
+	// flagIncludeRoleAssignment
+	// flagIncludeManagedResource
 	//
 	// rg:
 	// flagPattern
 	// flagIncludeRoleAssignment
+	// flagIncludeManagedResource
 	//
 	// query:
 	// flagPattern
 	// flagRecursive
 	// flagIncludeRoleAssignment
+	// flagIncludeManagedResource
 	// flagIncludeResourceGroup
 	// flagARGTable
 	// flagARGAuthorizationScopeFilter
@@ -99,6 +103,7 @@ type FlagSet struct {
 	flagResName                     string
 	flagResType                     string
 	flagIncludeRoleAssignment       bool
+	flagIncludeManagedResource      bool
 	flagIncludeResourceGroup        bool
 	flagARGTable                    string
 	flagARGAuthorizationScopeFilter string
@@ -230,6 +235,9 @@ func (flag FlagSet) DescribeCLI(mode Mode) string {
 	}
 	if flag.flagIncludeRoleAssignment {
 		args = append(args, "--include-role-assignment=true")
+	}
+	if flag.flagIncludeManagedResource {
+		args = append(args, "--include-managed-resource=true")
 	}
 
 	switch mode {

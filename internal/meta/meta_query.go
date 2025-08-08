@@ -18,6 +18,7 @@ type MetaQuery struct {
 	resourceNamePrefix           string
 	resourceNameSuffix           string
 	includeRoleAssignment        bool
+	includeManagedResource       bool
 	includeResourceGroup         bool
 	argTable                     string
 	argAuthenticationScopeFilter armresourcegraph.AuthorizationScopeFilter
@@ -35,6 +36,7 @@ func NewMetaQuery(cfg config.Config) (*MetaQuery, error) {
 		argPredicate:                 cfg.ARGPredicate,
 		recursiveQuery:               cfg.RecursiveQuery,
 		includeRoleAssignment:        cfg.IncludeRoleAssignment,
+		includeManagedResource:       cfg.IncludeManagedResource,
 		includeResourceGroup:         cfg.IncludeResourceGroup,
 		argTable:                     cfg.ARGTable,
 		argAuthenticationScopeFilter: armresourcegraph.AuthorizationScopeFilter(cfg.ARGAuthorizationScopeFilter),
@@ -115,6 +117,7 @@ func (meta MetaQuery) queryResourceSet(ctx context.Context, predicate string, re
 		Recursive:                   recursive,
 		IncludeResourceGroup:        meta.includeResourceGroup,
 		ExtensionResourceTypes:      extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
+		IncludeManaged:              meta.includeManagedResource,
 		ARGTable:                    meta.argTable,
 		ARGAuthorizationScopeFilter: meta.argAuthenticationScopeFilter,
 	}

@@ -264,6 +264,12 @@ func main() {
 			Usage:       `Whether to include role assignments assigned to the resources exported`,
 			Destination: &flagset.flagIncludeRoleAssignment,
 		},
+		&cli.BoolFlag{
+			Name:        "include-managed-resource",
+			EnvVars:     []string{"AZTFEXPORT_INCLUDE_MANAGED_RESOURCE"},
+			Usage:       `Whether to include internal resources managed by Azure in the exported configuration`,
+			Destination: &flagset.flagIncludeManagedResource,
+		},
 
 		// Common flags (auth)
 		&cli.StringFlag{
@@ -577,12 +583,13 @@ func main() {
 
 					// Initialize the config
 					cfg := config.Config{
-						CommonConfig:          commonConfig,
-						ResourceIds:           resIds,
-						TFResourceName:        flagset.flagResName,
-						TFResourceType:        flagset.flagResType,
-						ResourceNamePattern:   flagset.flagPattern,
-						IncludeRoleAssignment: flagset.flagIncludeRoleAssignment,
+						CommonConfig:           commonConfig,
+						ResourceIds:            resIds,
+						TFResourceName:         flagset.flagResName,
+						TFResourceType:         flagset.flagResType,
+						ResourceNamePattern:    flagset.flagPattern,
+						IncludeRoleAssignment:  flagset.flagIncludeRoleAssignment,
+						IncludeManagedResource: flagset.flagIncludeManagedResource,
 					}
 
 					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResource), flagset.hflagTFClientPluginPath)
@@ -612,11 +619,12 @@ func main() {
 
 					// Initialize the config
 					cfg := config.Config{
-						CommonConfig:          commonConfig,
-						ResourceGroupName:     rg,
-						ResourceNamePattern:   flagset.flagPattern,
-						RecursiveQuery:        true,
-						IncludeRoleAssignment: flagset.flagIncludeRoleAssignment,
+						CommonConfig:           commonConfig,
+						ResourceGroupName:      rg,
+						ResourceNamePattern:    flagset.flagPattern,
+						RecursiveQuery:         true,
+						IncludeRoleAssignment:  flagset.flagIncludeRoleAssignment,
+						IncludeManagedResource: flagset.flagIncludeManagedResource,
 					}
 
 					return realMain(c.Context, cfg, flagset.flagNonInteractive, flagset.hflagMockClient, flagset.flagPlainUI, flagset.flagGenerateMappingFile, flagset.hflagProfile, flagset.DescribeCLI(ModeResourceGroup), flagset.hflagTFClientPluginPath)
@@ -650,6 +658,7 @@ func main() {
 						ResourceNamePattern:         flagset.flagPattern,
 						RecursiveQuery:              flagset.flagRecursive,
 						IncludeRoleAssignment:       flagset.flagIncludeRoleAssignment,
+						IncludeManagedResource:      flagset.flagIncludeManagedResource,
 						IncludeResourceGroup:        flagset.flagIncludeResourceGroup,
 						ARGTable:                    flagset.flagARGTable,
 						ARGAuthorizationScopeFilter: flagset.flagARGAuthorizationScopeFilter,

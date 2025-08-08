@@ -119,6 +119,9 @@ type Config struct {
 	// IncludeRoleAssignment specifies whether to include the role assignments assigned to the exported resources
 	IncludeRoleAssignment bool
 
+	// IncludeManagedResource specifies Whether to include internal resources managed by Azure in the exported configuration
+	IncludeManagedResource bool
+
 	/////////////////////////
 	// Scope: rg, res (multi), query
 
