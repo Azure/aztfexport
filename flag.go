@@ -51,6 +51,8 @@ type FlagSet struct {
 	flagExcludeAzureResourceFile     string
 	flagExcludeTerraformResource     cli.StringSlice
 	flagExcludeTerraformResourceFile string
+	flagIncludeManagedResource       bool
+	flagIncludeRoleAssignment        bool
 
 	// common flags (auth)
 	flagEnv                       string
@@ -83,20 +85,14 @@ type FlagSet struct {
 	// flagResType (for single resource)
 	// flagPattern (for multi resources)
 	// flagRecursive
-	// flagIncludeRoleAssignment
-	// flagIncludeManagedResource
 	// flagIncludeResourceGroup
 	//
 	// rg:
 	// flagPattern
-	// flagIncludeRoleAssignment
-	// flagIncludeManagedResource
 	//
 	// query:
 	// flagPattern
 	// flagRecursive
-	// flagIncludeRoleAssignment
-	// flagIncludeManagedResource
 	// flagIncludeResourceGroup
 	// flagARGTable
 	// flagARGAuthorizationScopeFilter
@@ -104,8 +100,6 @@ type FlagSet struct {
 	flagRecursive                   bool
 	flagResName                     string
 	flagResType                     string
-	flagIncludeRoleAssignment       bool
-	flagIncludeManagedResource      bool
 	flagIncludeResourceGroup        bool
 	flagARGTable                    string
 	flagARGAuthorizationScopeFilter string
