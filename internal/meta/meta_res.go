@@ -74,7 +74,7 @@ func (meta *MetaResource) ListResource(ctx context.Context) (ImportList, error) 
 
 	rl, err := meta.listByIds(ctx, rl)
 	if err != nil {
-		return nil, fmt.Errorf("querying extension resources: %v", err)
+		return nil, fmt.Errorf("listing resources: %v", err)
 	}
 
 	meta.Logger().Debug("Azure Resource set map to TF resource set")
@@ -203,7 +203,7 @@ func (meta MetaResource) listByIds(ctx context.Context, resources []resourceset.
 
 	result, err := lister.ListByIds(ctx, ids)
 	if err != nil {
-		return nil, fmt.Errorf("listing extension resources: %w", err)
+		return nil, fmt.Errorf("azlist listing resources by ids: %w", err)
 	}
 
 	var rl []resourceset.AzureResource
