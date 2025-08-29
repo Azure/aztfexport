@@ -17,8 +17,7 @@ type AzureResourceSet struct {
 }
 
 type AzureResource struct {
-	Id         armid.ResourceId
-	Properties map[string]interface{}
+	Id armid.ResourceId
 }
 
 type PesudoResourceInfo struct {

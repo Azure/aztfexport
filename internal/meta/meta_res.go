@@ -14,11 +14,12 @@ import (
 
 type MetaResource struct {
 	baseMeta
-	AzureIds               []armid.ResourceId
-	ResourceName           string
-	ResourceType           string
-	resourceNamePrefix     string
-	resourceNameSuffix     string
+	AzureIds           []armid.ResourceId
+	ResourceName       string
+	ResourceType       string
+	resourceNamePrefix string
+	resourceNameSuffix string
+
 	includeRoleAssignment  bool
 	includeManagedResource bool
 	includeResourceGroup   bool
@@ -179,6 +180,19 @@ func (meta MetaResource) toImportList(rl []resourceset.TFResource, fromIdx int) 
 }
 
 func (meta MetaResource) listByIds(ctx context.Context, resources []resourceset.AzureResource) ([]resourceset.AzureResource, error) {
+	// In case only the specified resource ids are to list, no need to call azlist as the resource ids are already provided.
+	// This avoids the case that the schema in azlist is a bit behind, causing failed to find the API version for reading each resource.
+	if !meta.recursive && !meta.includeRoleAssignment && !meta.includeManagedResource && !meta.includeResourceGroup {
+		var rl []resourceset.AzureResource
+		for _, r := range resources {
+			res := resourceset.AzureResource{
+				Id: r.Id,
+			}
+			rl = append(rl, res)
+		}
+		return rl, nil
+	}
+
 	opt := azlist.Option{
 		Logger:                 meta.logger.WithGroup("azlist"),
 		SubscriptionId:         meta.subscriptionId,
@@ -200,7 +214,6 @@ func (meta MetaResource) listByIds(ctx context.Context, resources []resourceset.
 	for _, r := range resources {
 		ids = append(ids, r.Id.String())
 	}
-
 	result, err := lister.ListByIds(ctx, ids)
 	if err != nil {
 		return nil, fmt.Errorf("azlist listing resources by ids: %w", err)
@@ -209,8 +222,7 @@ func (meta MetaResource) listByIds(ctx context.Context, resources []resourceset.
 	var rl []resourceset.AzureResource
 	for _, res := range result.Resources {
 		res := resourceset.AzureResource{
-			Id:         res.Id,
-			Properties: res.Properties,
+			Id: res.Id,
 		}
 		rl = append(rl, res)
 	}

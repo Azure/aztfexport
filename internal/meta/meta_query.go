@@ -65,10 +65,6 @@ func (meta *MetaQuery) ListResource(ctx context.Context) (ImportList, error) {
 		meta.Logger().Debug("Azure Resource set map to TF resource set")
 		rl = rset.ToTFAzAPIResources()
 	} else {
-		meta.Logger().Debug("Populate resource set")
-		if err := rset.PopulateResource(); err != nil {
-			return nil, fmt.Errorf("tweaking single resources in the azure resource set: %v", err)
-		}
 		meta.Logger().Debug("Reduce resource set")
 		if err := rset.ReduceResource(); err != nil {
 			return nil, fmt.Errorf("tweaking across resources in the azure resource set: %v", err)
@@ -133,8 +129,7 @@ func (meta MetaQuery) queryResourceSet(ctx context.Context, predicate string, re
 	var rl []resourceset.AzureResource
 	for _, res := range result.Resources {
 		res := resourceset.AzureResource{
-			Id:         res.Id,
-			Properties: res.Properties,
+			Id: res.Id,
 		}
 		rl = append(rl, res)
 	}
