@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GOFLAGS: '-buildvcs=false'
-      GOSECGOVERSION: 'go1.25'
+      GOTOOLCHAIN: 'auto'
     steps:
       - name: Checkout Source
         uses: actions/checkout@v3
