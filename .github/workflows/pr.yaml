@@ -25,8 +25,13 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v3
 
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+
       - name: Run Gosec Security Scanner
-        uses: securego/gosec@v2.25
+        uses: securego/gosec@v2.21.1
         with:
           args: './...'
 
