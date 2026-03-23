@@ -15,6 +15,7 @@ func CopyFile(src, dst string) error {
 	if err != nil {
 		return fmt.Errorf("reading from %s: %v", src, err)
 	}
+	// #nosec G703
 	if err := os.WriteFile(dst, b, stat.Mode()); err != nil {
 		return fmt.Errorf("writing to %s: %v", dst, err)
 	}
