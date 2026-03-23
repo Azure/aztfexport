@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -26,7 +27,7 @@ func BatchImport(ctx context.Context, cfg config.NonInteractiveModeConfig) error
 		}
 	}
 
-	var errors []string
+	var errs []string
 
 	f := func(msg Messager) error {
 		msg.SetStatus("Initializing...")
@@ -99,9 +100,9 @@ func BatchImport(ctx context.Context, cfg config.NonInteractiveModeConfig) error
 				}
 			}
 			if len(thisErrors) != 0 {
-				errors = append(errors, thisErrors...)
+				errs = append(errs, thisErrors...)
 				if !cfg.ContinueOnError {
-					return fmt.Errorf(strings.Join(thisErrors, "\n"))
+					return errors.New(strings.Join(thisErrors, "\n"))
 				}
 			}
 		}
@@ -140,8 +141,8 @@ func BatchImport(ctx context.Context, cfg config.NonInteractiveModeConfig) error
 	}
 
 	// Print out the errors, if any
-	if len(errors) != 0 {
-		fmt.Fprintln(os.Stderr, "Errors:\n"+strings.Join(errors, "\n"))
+	if len(errs) != 0 {
+		fmt.Fprintln(os.Stderr, "Errors:\n"+strings.Join(errs, "\n"))
 	}
 
 	return nil
