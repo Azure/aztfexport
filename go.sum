@@ -262,8 +262,8 @@ github.com/magodo/armid v0.0.0-20240524082432-7ce06ae46c33 h1:KmQ16pNsI7DaELU+Cb
 github.com/magodo/armid v0.0.0-20240524082432-7ce06ae46c33/go.mod h1:rR8E7zfGMbmfnSQvrkFiWYdhrfTqsVSltelnZB09BwA=
 github.com/magodo/azlist v0.0.0-20250827005956-f76aa26d5fe5 h1:nqT0Mj2H9GokP+6dJCwewlK5NqN/vN+egX4/JiXEMMg=
 github.com/magodo/azlist v0.0.0-20250827005956-f76aa26d5fe5/go.mod h1:uRr4kq5cpk4NIUuT1q6ZYYfYSIHO5Z7XlHeN9c2mlKs=
-github.com/magodo/aztft v0.3.1-0.20260122233051-b7b90c56493b h1:Cg261mZy9NZCpXfNPBwdGtzXHOksWu3Fe8PSerVbu3s=
-github.com/magodo/aztft v0.3.1-0.20260122233051-b7b90c56493b/go.mod h1:UzAqtQ+ruBldesaODTTNBBibZXxco4uXH1ZxWElssm0=
+github.com/magodo/aztft v0.3.1-0.20260402010004-4c2d2cacebe8 h1:sAtYK0e1TGzvLaJ5KqLj2PrN6nXbsqTqiIEB887twDQ=
+github.com/magodo/aztft v0.3.1-0.20260402010004-4c2d2cacebe8/go.mod h1:UzAqtQ+ruBldesaODTTNBBibZXxco4uXH1ZxWElssm0=
 github.com/magodo/slog2hclog v0.0.0-20240614031327-090ebd72a033 h1:K2seYsMAzoICCLdDe7uU2WyaACLW+tvdTWG3QB+pyec=
 github.com/magodo/slog2hclog v0.0.0-20240614031327-090ebd72a033/go.mod h1:8PvdX1kpjMEmR7LTNZ0QulFpD9j3E/eJijru+4nHY7M=
 github.com/magodo/spinner v0.0.0-20240524082745-3a2305db1bdc h1:I/jBt/0pVX7/Z08qj7ZSzZjTFBvvDchIX2p9lFjKqs0=
@@ -272,8 +272,8 @@ github.com/magodo/terraform-client-go v0.0.0-20240804032252-6d93a97fabb2 h1:X2ph
 github.com/magodo/terraform-client-go v0.0.0-20240804032252-6d93a97fabb2/go.mod h1:dzTs6Qwy8/VUWYMQ+Vo9gMXe5uOVbfCw/1ovE3g5q1E=
 github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0 h1:aNtr4iNv/tex2t8W1u3scAoNHEnFlTKhNNHOpYStqbs=
 github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0/go.mod h1:MqYhNP+PC386Bjsx5piZe7T4vDm5QIPv8b1RU0prVnU=
-github.com/magodo/tfadd v0.10.1-0.20260123054644-fff448657f13 h1:6RNrqFovoemr4r1e8H27ib7pDtI7DNDNT2MkRENiNfE=
-github.com/magodo/tfadd v0.10.1-0.20260123054644-fff448657f13/go.mod h1:Ul9tfUbNokUeWnT/xzwvqxxma7mJRMG5pUjz2H/cY1w=
+github.com/magodo/tfadd v0.10.1-0.20260402010906-8f7ab2866ec6 h1:aD83e/Lol5MVEE3PosjacwADZjc1kBDD4YPzUut2UxE=
+github.com/magodo/tfadd v0.10.1-0.20260402010906-8f7ab2866ec6/go.mod h1:Ul9tfUbNokUeWnT/xzwvqxxma7mJRMG5pUjz2H/cY1w=
 github.com/magodo/tfmerge v0.0.0-20221214062955-f52e46d03402 h1:RyaR4VE7hoR9AyoVH414cpM8V63H4rLe2aZyKdoDV1w=
 github.com/magodo/tfmerge v0.0.0-20221214062955-f52e46d03402/go.mod h1:ssV++b4DH33rsD592bvpS4Peng3ZfdGNZbFgCDkCfj8=
 github.com/magodo/tfpluginschema v0.0.0-20240902090353-0525d7d8c1c2 h1:Unxx8WLxzSxINnq7hItp4cXD7drihgfPltTd91efoBo=
