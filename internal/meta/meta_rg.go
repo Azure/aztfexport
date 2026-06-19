@@ -13,8 +13,7 @@ import (
 type MetaResourceGroup struct {
 	baseMeta
 	resourceGroup          string
-	resourceNamePrefix     string
-	resourceNameSuffix     string
+	resourceNameExpander   *nameExpander
 	includeRoleAssignment  bool
 	includeManagedResource bool
 }
@@ -32,7 +31,7 @@ func NewMetaResourceGroup(cfg config.Config) (*MetaResourceGroup, error) {
 		includeRoleAssignment:  cfg.IncludeRoleAssignment,
 		includeManagedResource: cfg.IncludeManagedResource,
 	}
-	meta.resourceNamePrefix, meta.resourceNameSuffix = resourceNamePattern(cfg.ResourceNamePattern)
+	meta.resourceNameExpander = newNameExpander(cfg.ResourceNamePattern)
 
 	return meta, nil
 }
@@ -62,10 +61,10 @@ func (meta *MetaResourceGroup) ListResource(ctx context.Context) (ImportList, er
 	}
 
 	var l ImportList
-	for i, res := range rl {
+	for _, res := range rl {
 		tfAddr := tfaddr.TFAddr{
 			Type: "",
-			Name: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, i, meta.resourceNameSuffix),
+			Name: meta.resourceNameExpander.Expand(res),
 		}
 		item := ImportItem{
 			AzureResourceID: res.AzureId,

@@ -1223,9 +1223,3 @@ func appendToFile(path, content string) error {
 	return err
 }
 
-func resourceNamePattern(p string) (prefix, suffix string) {
-	if pos := strings.LastIndex(p, "*"); pos != -1 {
-		return p[:pos], p[pos+1:]
-	}
-	return p, ""
-}

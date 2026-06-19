@@ -119,7 +119,18 @@ type Config struct {
 	/////////////////////////
 	// Scope: rg, res (multi), query
 
-	// ResourceNamePattern specifies the resource name pattern
+	// ResourceNamePattern specifies the resource name pattern.
+	//
+	// The pattern supports an incremental index via the '*' character (same
+	// semantic as Go's os.CreateTemp()), as well as the following per-resource
+	// placeholders, expanded based on the parsed Azure resource id and the
+	// recommended TF resource type:
+	//   {type}         - last Azure resource type segment, snake_cased (e.g. "virtual_machines")
+	//   {rp}           - Azure resource provider namespace, snake_cased (e.g. "microsoft_compute")
+	//   {name}         - last name segment of the Azure resource id
+	//   {root_scope}   - the root scope of the resource (e.g. resource group name)
+	//
+	// Each expanded value is sanitized to be a valid Terraform identifier.
 	ResourceNamePattern string
 
 	// IncludeRoleAssignment specifies whether to include the role assignments assigned to the exported resources
