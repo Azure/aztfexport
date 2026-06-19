@@ -86,8 +86,8 @@ func (meta *MetaResource) ListResource(ctx context.Context) (ImportList, error) 
 		tfl = rset.ToTFAzureRMResources(meta.Logger(), meta.parallelism, meta.azureSDKCred, meta.azureSDKClientOpt)
 	}
 
-	// Split the specified resources and the extension resources
-	var tfrl, tfel []resourceset.TFResource
+	// Split the specified resources and the property-liked/associated resources
+	var tfrl, tfpl []resourceset.TFResource
 	for _, tfres := range tfl {
 		rmap := map[string]bool{}
 		for _, r := range rl {
@@ -96,7 +96,7 @@ func (meta *MetaResource) ListResource(ctx context.Context) (ImportList, error) 
 		if rmap[tfres.AzureId.String()] {
 			tfrl = append(tfrl, tfres)
 		} else {
-			tfel = append(tfel, tfres)
+			tfpl = append(tfpl, tfres)
 		}
 	}
 
@@ -147,7 +147,7 @@ func (meta *MetaResource) ListResource(ctx context.Context) (ImportList, error) 
 	} else {
 		l = append(l, meta.toImportList(tfrl)...)
 	}
-	l = append(l, meta.toImportList(tfel)...)
+	l = append(l, meta.toImportList(tfpl)...)
 
 	l = meta.excludeImportList(l)
 	return l, nil
