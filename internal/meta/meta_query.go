@@ -15,8 +15,7 @@ type MetaQuery struct {
 	baseMeta
 	argPredicate                 string
 	recursiveQuery               bool
-	resourceNamePrefix           string
-	resourceNameSuffix           string
+	resourceNameExpander         *nameExpander
 	includeRoleAssignment        bool
 	includeManagedResource       bool
 	includeResourceGroup         bool
@@ -41,7 +40,7 @@ func NewMetaQuery(cfg config.Config) (*MetaQuery, error) {
 		argTable:                     cfg.ARGTable,
 		argAuthenticationScopeFilter: armresourcegraph.AuthorizationScopeFilter(cfg.ARGAuthorizationScopeFilter),
 	}
-	meta.resourceNamePrefix, meta.resourceNameSuffix = resourceNamePattern(cfg.ResourceNamePattern)
+	meta.resourceNameExpander = newNameExpander(cfg.ResourceNamePattern)
 
 	return meta, nil
 }
@@ -75,17 +74,18 @@ func (meta *MetaQuery) ListResource(ctx context.Context) (ImportList, error) {
 	}
 
 	var l ImportList
-	for i, res := range rl {
+	for _, res := range rl {
+		name := meta.resourceNameExpander.Expand(res)
 		item := ImportItem{
 			AzureResourceID: res.AzureId,
 			TFResourceId:    res.TFId,
 			TFAddr: tfaddr.TFAddr{
 				Type: "",
-				Name: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, i, meta.resourceNameSuffix),
+				Name: name,
 			},
 			TFAddrCache: tfaddr.TFAddr{
 				Type: "",
-				Name: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, i, meta.resourceNameSuffix),
+				Name: name,
 			},
 		}
 		if res.TFType != "" {

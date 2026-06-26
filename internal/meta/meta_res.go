@@ -14,11 +14,10 @@ import (
 
 type MetaResource struct {
 	baseMeta
-	AzureIds           []armid.ResourceId
-	ResourceName       string
-	ResourceType       string
-	resourceNamePrefix string
-	resourceNameSuffix string
+	AzureIds             []armid.ResourceId
+	ResourceName         string
+	ResourceType         string
+	resourceNameExpander *nameExpander
 
 	includeRoleAssignment  bool
 	includeManagedResource bool
@@ -54,7 +53,7 @@ func NewMetaResource(cfg config.Config) (*MetaResource, error) {
 		includeResourceGroup:   cfg.IncludeResourceGroup,
 	}
 
-	meta.resourceNamePrefix, meta.resourceNameSuffix = resourceNamePattern(cfg.ResourceNamePattern)
+	meta.resourceNameExpander = newNameExpander(cfg.ResourceNamePattern)
 
 	return meta, nil
 }
@@ -87,8 +86,8 @@ func (meta *MetaResource) ListResource(ctx context.Context) (ImportList, error) 
 		tfl = rset.ToTFAzureRMResources(meta.Logger(), meta.parallelism, meta.azureSDKCred, meta.azureSDKClientOpt)
 	}
 
-	// Split the specified resources and the extension resources
-	var tfrl, tfel []resourceset.TFResource
+	// Split the specified resources and the property-liked/associated resources
+	var tfrl, tfpl []resourceset.TFResource
 	for _, tfres := range tfl {
 		rmap := map[string]bool{}
 		for _, r := range rl {
@@ -97,7 +96,7 @@ func (meta *MetaResource) ListResource(ctx context.Context) (ImportList, error) 
 		if rmap[tfres.AzureId.String()] {
 			tfrl = append(tfrl, tfres)
 		} else {
-			tfel = append(tfel, tfres)
+			tfpl = append(tfpl, tfres)
 		}
 	}
 
@@ -110,7 +109,7 @@ func (meta *MetaResource) ListResource(ctx context.Context) (ImportList, error) 
 		// Honor the ResourceName
 		name := meta.ResourceName
 		if name == "" {
-			name = fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, 0, meta.resourceNameSuffix)
+			name = meta.resourceNameExpander.Expand(res)
 		}
 
 		// Honor the ResourceType
@@ -146,20 +145,20 @@ func (meta *MetaResource) ListResource(ctx context.Context) (ImportList, error) 
 		}
 		l = append(l, item)
 	} else {
-		l = append(l, meta.toImportList(tfrl, 0)...)
+		l = append(l, meta.toImportList(tfrl)...)
 	}
-	l = append(l, meta.toImportList(tfel, len(tfrl))...)
+	l = append(l, meta.toImportList(tfpl)...)
 
 	l = meta.excludeImportList(l)
 	return l, nil
 }
 
-func (meta MetaResource) toImportList(rl []resourceset.TFResource, fromIdx int) ImportList {
+func (meta MetaResource) toImportList(rl []resourceset.TFResource) ImportList {
 	var l ImportList
-	for idx, res := range rl {
+	for _, res := range rl {
 		tfAddr := tfaddr.TFAddr{
 			Type: "",
-			Name: fmt.Sprintf("%s%d%s", meta.resourceNamePrefix, idx+fromIdx, meta.resourceNameSuffix),
+			Name: meta.resourceNameExpander.Expand(res),
 		}
 		item := ImportItem{
 			AzureResourceID: res.AzureId,
