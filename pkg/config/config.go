@@ -40,6 +40,27 @@ type OutputFileNames struct {
 	ImportBlockFileName string
 }
 
+// ConfigMode controls how aggressively the generated Terraform configuration
+// trims properties read back from the resource state.
+type ConfigMode string
+
+const (
+	// ConfigModeMinimal generates the smallest possible config by removing
+	// zero values, schema defaults, and Optional+Computed
+	// attributes/blocks.
+	ConfigModeMinimal ConfigMode = "minimal"
+
+	// ConfigModeLossless keeps Optional+Computed attributes/blocks (so the
+	// generated config matches the live state), while still removing schema
+	// defaults and (for SDKv2 providers) zero values that can be safely
+	// dropped without changing semantics.
+	ConfigModeLossless ConfigMode = "lossless"
+
+	// ConfigModeFull keeps every property, including zero values, schema
+	// defaults, and Optional+Computed attributes/blocks.
+	ConfigModeFull ConfigMode = "full"
+)
+
 type CommonConfig struct {
 	Logger *slog.Logger
 	// AuthConfig specifies the authentication config for provider
@@ -73,8 +94,8 @@ type CommonConfig struct {
 	// This is not used directly by aztfexport as the provider configs can be set by environment variable already.
 	// While it is useful for module users that want support multi-users scenarios in one process (in which case changing env vars affect the whole process).
 	ProviderConfig map[string]cty.Value
-	// FullConfig specifies whether to export all (non computed-only) Terarform properties when generating TF configs.
-	FullConfig bool
+	// ConfigMode controls how aggressively the generated TF config is trimmed. Defaults to ConfigModeMinimal.
+	ConfigMode ConfigMode
 	// MaskSensitive specifies whether to mask sensitive attributes when generating TF configs.
 	MaskSensitive bool
 	// Parallelism specifies the parallelism for the process

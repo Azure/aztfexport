@@ -35,7 +35,7 @@ type FlagSet struct {
 	flagProviderName                 string
 	flagBackendType                  string
 	flagBackendConfig                cli.StringSlice
-	flagFullConfig                   bool
+	flagConfigMode                   string
 	flagMaskSensitive                bool
 	flagParallelism                  int
 	flagContinue                     bool
@@ -144,8 +144,8 @@ func (flag FlagSet) DescribeCLI(mode Mode) string {
 	if flag.flagBackendType != "" {
 		args = append(args, "--backend-type="+flag.flagBackendType)
 	}
-	if flag.flagFullConfig {
-		args = append(args, "--full-properties=true")
+	if flag.flagConfigMode != "" && flag.flagConfigMode != string(config.ConfigModeMinimal) {
+		args = append(args, "--config-mode="+flag.flagConfigMode)
 	}
 	if flag.flagMaskSensitive {
 		args = append(args, "--mask-sensitive=true")
@@ -458,7 +458,7 @@ func (f FlagSet) BuildCommonConfig() (config.CommonConfig, error) {
 		ContinueOnError:           f.flagContinue,
 		BackendType:               f.flagBackendType,
 		BackendConfig:             f.flagBackendConfig.Value(),
-		FullConfig:                f.flagFullConfig,
+		ConfigMode:                config.ConfigMode(f.flagConfigMode),
 		MaskSensitive:             f.flagMaskSensitive,
 		Parallelism:               f.flagParallelism,
 		HCLOnly:                   f.flagHCLOnly,
