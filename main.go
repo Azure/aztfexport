@@ -155,12 +155,12 @@ func main() {
 			Usage:       "The Terraform backend config",
 			Destination: &flagset.flagBackendConfig,
 		},
-		&cli.BoolFlag{
-			Name:        "full-properties",
-			EnvVars:     []string{"AZTFEXPORT_FULL_PROPERTIES"},
-			Usage:       "Includes all non-computed properties in the Terraform configuration. This may require manual modifications to produce a valid config",
-			Value:       false,
-			Destination: &flagset.flagFullConfig,
+		&cli.StringFlag{
+			Name:        "config-mode",
+			EnvVars:     []string{"AZTFEXPORT_CONFIG_MODE"},
+			Usage:       `The trimming mode for the generated Terraform config. Can be one of "minimal" (most aggressive; trims zero values, schema defaults and Optional+Computed attributes), "lossless" (keeps Optional+Computed attributes so the config matches the live state) and "full" (keeps every property; may require manual edits to be valid)`,
+			Value:       string(config.ConfigModeMinimal),
+			Destination: &flagset.flagConfigMode,
 		},
 		&cli.BoolFlag{
 			Name:        "mask-sensitive",

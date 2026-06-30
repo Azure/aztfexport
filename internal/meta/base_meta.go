@@ -105,7 +105,7 @@ type baseMeta struct {
 	providerConfig    map[string]cty.Value
 
 	// tfadd options
-	fullConfig    bool
+	configMode    config.ConfigMode
 	maskSensitive bool
 
 	parallelism        int
@@ -287,6 +287,22 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		excludeAzureResources = append(excludeAzureResources, *re)
 	}
 
+	// Resolve ConfigMode.
+	configMode := cfg.ConfigMode
+	switch configMode {
+	case "":
+		configMode = config.ConfigModeMinimal
+	case config.ConfigModeMinimal, config.ConfigModeLossless, config.ConfigModeFull:
+		// ok
+	default:
+		return nil, fmt.Errorf("invalid ConfigMode %q: must be one of %q, %q, %q",
+			cfg.ConfigMode,
+			config.ConfigModeMinimal,
+			config.ConfigModeLossless,
+			config.ConfigModeFull,
+		)
+	}
+
 	meta := &baseMeta{
 		logger:             cfg.Logger,
 		subscriptionId:     cfg.SubscriptionId,
@@ -301,7 +317,7 @@ func NewBaseMeta(cfg config.CommonConfig) (*baseMeta, error) {
 		backendConfig:      cfg.BackendConfig,
 		providerConfig:     providerConfig,
 		providerName:       cfg.ProviderName,
-		fullConfig:         cfg.FullConfig,
+		configMode:         configMode,
 		maskSensitive:      cfg.MaskSensitive,
 		parallelism:        cfg.Parallelism,
 		preImportHook:      cfg.PreImportHook,
@@ -1029,6 +1045,37 @@ func (meta *baseMeta) importItem_notf(ctx context.Context, item *ImportItem, imp
 	return
 }
 
+// tfaddOptions translates the configured ConfigMode (plus the provider in use)
+// into the set of tfadd options that drive trimming behaviour.
+func (meta baseMeta) tfaddOptions() []tfadd.OptionSetter {
+	opts := []tfadd.OptionSetter{
+		tfadd.MaskSenstitive(meta.maskSensitive),
+	}
+
+	switch meta.configMode {
+	case config.ConfigModeFull:
+		opts = append(opts, tfadd.Full(true))
+	case config.ConfigModeLossless:
+		opts = append(opts,
+			tfadd.KeepOC(true),
+			// The azurerm provider currently uses Terraform Plugin SDKv2, which tolerates
+			// the mismatch between null and zero values, so zero values can be safely
+			// trimmed.
+			// The azapi provider uses Plugin Framework, which does NOT tolerate
+			// that mismatch, so zero values must be kept to produce a semantically
+			// equivalent config.
+			tfadd.KeepZero(meta.useAzAPI()),
+		)
+	case config.ConfigModeMinimal:
+		opts = append(opts,
+			// Same here.
+			tfadd.KeepZero(meta.useAzAPI()),
+		)
+	}
+
+	return opts
+}
+
 func (meta baseMeta) stateToConfig(ctx context.Context, list ImportList) (ConfigInfos, error) {
 	var out []ConfigInfo
 	var bs [][]byte
@@ -1039,6 +1086,7 @@ func (meta baseMeta) stateToConfig(ctx context.Context, list ImportList) (Config
 	if meta.useAzAPI() {
 		providerName = "registry.terraform.io/azure/azapi"
 	}
+	tfaddOpts := meta.tfaddOptions()
 
 	if meta.tfclient != nil {
 		for _, item := range importedList {
@@ -1059,8 +1107,7 @@ func (meta baseMeta) stateToConfig(ctx context.Context, list ImportList) (Config
 					ProviderName: providerName,
 					Value:        item.State,
 				},
-				tfadd.Full(meta.fullConfig),
-				tfadd.MaskSenstitive(meta.maskSensitive),
+				tfaddOpts...,
 			)
 			if err != nil {
 				return nil, fmt.Errorf("generating state for resource %s: %v", item.TFAddr, err)
@@ -1078,7 +1125,7 @@ func (meta baseMeta) stateToConfig(ctx context.Context, list ImportList) (Config
 		}
 
 		var err error
-		bs, err = tfadd.StateForTargets(ctx, meta.tf, addrs, tfadd.Full(meta.fullConfig), tfadd.MaskSenstitive(meta.maskSensitive))
+		bs, err = tfadd.StateForTargets(ctx, meta.tf, addrs, tfaddOpts...)
 		if err != nil {
 			return nil, fmt.Errorf("converting terraform state to config: %w", err)
 		}
@@ -1222,4 +1269,3 @@ func appendToFile(path, content string) error {
 	_, err = f.WriteString(content)
 	return err
 }
-
