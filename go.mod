@@ -3,8 +3,8 @@ module github.com/Azure/aztfexport
 go 1.25.0
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.0
-	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.9.0
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.21.1
+	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.1
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/keyvault/armkeyvault v1.5.0
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resourcegraph/armresourcegraph v0.9.0
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources v1.2.0
@@ -23,12 +23,12 @@ require (
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/magodo/armid v0.0.0-20240524082432-7ce06ae46c33
 	github.com/magodo/azlist v0.0.0-20250827005956-f76aa26d5fe5
-	github.com/magodo/aztft v0.3.1-0.20260402010004-4c2d2cacebe8
+	github.com/magodo/aztft v0.3.1-0.20260625235534-b710d5ecffdc
 	github.com/magodo/slog2hclog v0.0.0-20240614031327-090ebd72a033
 	github.com/magodo/spinner v0.0.0-20240524082745-3a2305db1bdc
 	github.com/magodo/terraform-client-go v0.0.0-20240804032252-6d93a97fabb2
 	github.com/magodo/textinput v0.0.0-20210913072708-7d24f2b4b0c0
-	github.com/magodo/tfadd v0.10.1-0.20260625074521-bfdd14b3d25b
+	github.com/magodo/tfadd v0.10.1-0.20260706234035-0f34bf6309b2
 	github.com/magodo/tfmerge v0.0.0-20221214062955-f52e46d03402
 	github.com/magodo/tfstate v0.0.0-20241016043929-2c95177bf0e6
 	github.com/magodo/workerpool v0.0.0-20240524082508-11838001bc35
@@ -36,7 +36,7 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1
 	github.com/muesli/reflow v0.3.0
 	github.com/pkg/profile v1.7.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/gjson v1.14.2
 	github.com/tidwall/sjson v1.2.5
 	github.com/urfave/cli/v2 v2.27.6
@@ -46,7 +46,7 @@ require (
 
 require (
 	code.cloudfoundry.org/clock v0.0.0-20180518195852-02e53af36e6c // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.1 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/internal v1.12.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/alertsmanagement/armalertsmanagement v0.10.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/apimanagement/armapimanagement/v3 v3.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers/v3 v3.1.0 // indirect
@@ -73,7 +73,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/kusto/armkusto/v2 v2.3.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/logic/armlogic v1.2.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/machinelearning/armmachinelearning/v4 v4.0.0 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/netapp/armnetapp/v7 v7.5.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/netapp/armnetapp/v10 v10.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork/v6 v6.2.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/operationalinsights/armoperationalinsights v1.2.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/oracledatabase/armoracledatabase v1.1.0 // indirect
@@ -94,7 +94,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/timeseriesinsights/armtimeseriesinsights v1.2.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/webpubsub/armwebpubsub v1.3.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/workloads/armworkloads v1.1.0 // indirect
-	github.com/AzureAD/microsoft-authentication-library-for-go v1.4.2 // indirect
+	github.com/AzureAD/microsoft-authentication-library-for-go v1.7.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
@@ -104,7 +104,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/felixge/fgprof v0.9.3 // indirect
-	github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/pprof v0.0.0-20211214055906-6f57359322fd // indirect
