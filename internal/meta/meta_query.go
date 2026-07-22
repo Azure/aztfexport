@@ -16,7 +16,7 @@ type MetaQuery struct {
 	argPredicate                 string
 	recursiveQuery               bool
 	resourceNameExpander         *nameExpander
-	includeRoleAssignment        bool
+	includeExtensions            []string
 	includeManagedResource       bool
 	includeResourceGroup         bool
 	argTable                     string
@@ -34,7 +34,7 @@ func NewMetaQuery(cfg config.Config) (*MetaQuery, error) {
 		baseMeta:                     *baseMeta,
 		argPredicate:                 cfg.ARGPredicate,
 		recursiveQuery:               cfg.RecursiveQuery,
-		includeRoleAssignment:        cfg.IncludeRoleAssignment,
+		includeExtensions:            cfg.IncludeExtensions,
 		includeManagedResource:       cfg.IncludeManagedResource,
 		includeResourceGroup:         cfg.IncludeResourceGroup,
 		argTable:                     cfg.ARGTable,
@@ -112,7 +112,7 @@ func (meta MetaQuery) queryResourceSet(ctx context.Context, predicate string, re
 		Parallelism:                 meta.parallelism,
 		Recursive:                   recursive,
 		IncludeResourceGroup:        meta.includeResourceGroup,
-		ExtensionResourceTypes:      extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
+		ExtensionResourceTypes:      extBuilder{includeExtensions: meta.includeExtensions}.Build(),
 		IncludeManaged:              meta.includeManagedResource,
 		ARGTable:                    meta.argTable,
 		ARGAuthorizationScopeFilter: meta.argAuthenticationScopeFilter,

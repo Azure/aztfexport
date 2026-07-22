@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/Azure/aztfexport/internal/meta"
 	"github.com/Azure/aztfexport/internal/utils"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resourcegraph/armresourcegraph"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
@@ -49,6 +50,12 @@ func commandBeforeFunc(fset *FlagSet, mode Mode) func(ctx *cli.Context) error {
 		if fset.hflagTFClientPluginPath != "" {
 			if !fset.flagHCLOnly {
 				return fmt.Errorf("`--tfclient-plugin-path` must be used together with `--hcl-only`")
+			}
+		}
+
+		for _, ext := range fset.flagIncludeExtension.Value() {
+			if !slices.Contains(meta.SupportedExtensionResourceTypes, ext) {
+				return fmt.Errorf("invalid value of `--include-extension`: %v is not supported", ext)
 			}
 		}
 

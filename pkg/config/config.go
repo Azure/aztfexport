@@ -154,8 +154,9 @@ type Config struct {
 	// Each expanded value is sanitized to be a valid Terraform identifier.
 	ResourceNamePattern string
 
-	// IncludeRoleAssignment specifies whether to include the role assignments assigned to the exported resources
-	IncludeRoleAssignment bool
+	// IncludeExtensions specifies the set of extension resource types to include for the exported resources.
+	// Supported values are defined in the meta package (e.g. "role-assignment").
+	IncludeExtensions []string
 
 	// IncludeManagedResource specifies whether to allow service team/3rd party managed resources to be exported
 	IncludeManagedResource bool
