@@ -52,7 +52,7 @@ type FlagSet struct {
 	flagExcludeTerraformResource     cli.StringSlice
 	flagExcludeTerraformResourceFile string
 	flagIncludeManagedResource       bool
-	flagIncludeRoleAssignment        bool
+	flagIncludeExtension             cli.StringSlice
 
 	// common flags (auth)
 	flagEnv                       string
@@ -229,8 +229,10 @@ func (flag FlagSet) DescribeCLI(mode Mode) string {
 	if flag.hflagTFClientPluginPath != "" {
 		args = append(args, "--tfclient-plugin-path="+flag.hflagTFClientPluginPath)
 	}
-	if flag.flagIncludeRoleAssignment {
-		args = append(args, "--include-role-assignment=true")
+	if v := flag.flagIncludeExtension.Value(); len(v) != 0 {
+		for _, e := range v {
+			args = append(args, "--include-extension="+e)
+		}
 	}
 	if flag.flagIncludeManagedResource {
 		args = append(args, "--include-managed-resource=true")

@@ -15,6 +15,7 @@ import (
 
 	"github.com/Azure/aztfexport/internal/cfgfile"
 	internalconfig "github.com/Azure/aztfexport/internal/config"
+	"github.com/Azure/aztfexport/internal/meta"
 	"github.com/Azure/aztfexport/pkg/telemetry"
 	"github.com/gofrs/uuid"
 	"github.com/pkg/profile"
@@ -258,11 +259,11 @@ func main() {
 			Usage:       "Path to a file recording the excluded resources from being exported based on the Terraform resource type, one per line",
 			Destination: &flagset.flagExcludeTerraformResourceFile,
 		},
-		&cli.BoolFlag{
-			Name:        "include-role-assignment",
-			EnvVars:     []string{"AZTFEXPORT_INCLUDE_ROLE_ASSIGNMENT"},
-			Usage:       `Whether to include role assignments assigned to the resources exported`,
-			Destination: &flagset.flagIncludeRoleAssignment,
+		&cli.StringSliceFlag{
+			Name:        "include-extension",
+			EnvVars:     []string{"AZTFEXPORT_INCLUDE_EXTENSION"},
+			Usage:       fmt.Sprintf(`Include extension resource types associated to the resources exported. Can be specified multiple times. Supported values: %v`, meta.SupportedExtensionResourceTypes),
+			Destination: &flagset.flagIncludeExtension,
 		},
 		&cli.BoolFlag{
 			Name:        "include-managed-resource",
@@ -611,7 +612,7 @@ func main() {
 						ResourceNamePattern:    flagset.flagPattern,
 						RecursiveQuery:         flagset.flagRecursive,
 						IncludeResourceGroup:   flagset.flagIncludeResourceGroup,
-						IncludeRoleAssignment:  flagset.flagIncludeRoleAssignment,
+						IncludeExtensions:      flagset.flagIncludeExtension.Value(),
 						IncludeManagedResource: flagset.flagIncludeManagedResource,
 					}
 
@@ -646,7 +647,7 @@ func main() {
 						ResourceGroupName:      rg,
 						ResourceNamePattern:    flagset.flagPattern,
 						RecursiveQuery:         true,
-						IncludeRoleAssignment:  flagset.flagIncludeRoleAssignment,
+						IncludeExtensions:      flagset.flagIncludeExtension.Value(),
 						IncludeManagedResource: flagset.flagIncludeManagedResource,
 					}
 
@@ -680,7 +681,7 @@ func main() {
 						ARGPredicate:                predicate,
 						ResourceNamePattern:         flagset.flagPattern,
 						RecursiveQuery:              flagset.flagRecursive,
-						IncludeRoleAssignment:       flagset.flagIncludeRoleAssignment,
+						IncludeExtensions:           flagset.flagIncludeExtension.Value(),
 						IncludeManagedResource:      flagset.flagIncludeManagedResource,
 						IncludeResourceGroup:        flagset.flagIncludeResourceGroup,
 						ARGTable:                    flagset.flagARGTable,

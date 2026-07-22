@@ -19,7 +19,7 @@ type MetaResource struct {
 	ResourceType         string
 	resourceNameExpander *nameExpander
 
-	includeRoleAssignment  bool
+	includeExtensions      []string
 	includeManagedResource bool
 	includeResourceGroup   bool
 	recursive              bool
@@ -48,7 +48,7 @@ func NewMetaResource(cfg config.Config) (*MetaResource, error) {
 		ResourceName:           cfg.TFResourceName,
 		ResourceType:           cfg.TFResourceType,
 		recursive:              cfg.RecursiveQuery,
-		includeRoleAssignment:  cfg.IncludeRoleAssignment,
+		includeExtensions:      cfg.IncludeExtensions,
 		includeManagedResource: cfg.IncludeManagedResource,
 		includeResourceGroup:   cfg.IncludeResourceGroup,
 	}
@@ -181,7 +181,7 @@ func (meta MetaResource) toImportList(rl []resourceset.TFResource) ImportList {
 func (meta MetaResource) listByIds(ctx context.Context, resources []resourceset.AzureResource) ([]resourceset.AzureResource, error) {
 	// In case only the specified resource ids are to list, no need to call azlist as the resource ids are already provided.
 	// This avoids the case that the schema in azlist is a bit behind, causing failed to find the API version for reading each resource.
-	if !meta.recursive && !meta.includeRoleAssignment && !meta.includeManagedResource && !meta.includeResourceGroup {
+	if !meta.recursive && len(meta.includeExtensions) == 0 && !meta.includeManagedResource && !meta.includeResourceGroup {
 		var rl []resourceset.AzureResource
 		for _, r := range resources {
 			res := resourceset.AzureResource{
@@ -198,7 +198,7 @@ func (meta MetaResource) listByIds(ctx context.Context, resources []resourceset.
 		Cred:                   meta.azureSDKCred,
 		ClientOpt:              meta.azureSDKClientOpt,
 		Parallelism:            meta.parallelism,
-		ExtensionResourceTypes: extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
+		ExtensionResourceTypes: extBuilder{includeExtensions: meta.includeExtensions}.Build(),
 		IncludeManaged:         meta.includeManagedResource,
 		IncludeResourceGroup:   meta.includeResourceGroup,
 		Recursive:              meta.recursive,

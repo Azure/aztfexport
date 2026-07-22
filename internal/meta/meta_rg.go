@@ -14,7 +14,7 @@ type MetaResourceGroup struct {
 	baseMeta
 	resourceGroup          string
 	resourceNameExpander   *nameExpander
-	includeRoleAssignment  bool
+	includeExtensions      []string
 	includeManagedResource bool
 }
 
@@ -28,7 +28,7 @@ func NewMetaResourceGroup(cfg config.Config) (*MetaResourceGroup, error) {
 	meta := &MetaResourceGroup{
 		baseMeta:               *baseMeta,
 		resourceGroup:          cfg.ResourceGroupName,
-		includeRoleAssignment:  cfg.IncludeRoleAssignment,
+		includeExtensions:      cfg.IncludeExtensions,
 		includeManagedResource: cfg.IncludeManagedResource,
 	}
 	meta.resourceNameExpander = newNameExpander(cfg.ResourceNamePattern)
@@ -97,7 +97,7 @@ func (meta MetaResourceGroup) queryResourceSet(ctx context.Context, rg string) (
 		Cred:                   meta.azureSDKCred,
 		ClientOpt:              meta.azureSDKClientOpt,
 		Parallelism:            meta.parallelism,
-		ExtensionResourceTypes: extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
+		ExtensionResourceTypes: extBuilder{includeExtensions: meta.includeExtensions}.Build(),
 		IncludeManaged:         meta.includeManagedResource,
 		ARGTable:               "ResourceContainers",
 	}
@@ -128,7 +128,7 @@ func (meta MetaResourceGroup) queryResourceSet(ctx context.Context, rg string) (
 		Cred:                   meta.azureSDKCred,
 		ClientOpt:              meta.azureSDKClientOpt,
 		Parallelism:            meta.parallelism,
-		ExtensionResourceTypes: extBuilder{includeRoleAssignment: meta.includeRoleAssignment}.Build(),
+		ExtensionResourceTypes: extBuilder{includeExtensions: meta.includeExtensions}.Build(),
 		IncludeManaged:         meta.includeManagedResource,
 		Recursive:              true,
 	}
