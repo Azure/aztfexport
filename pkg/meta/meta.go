@@ -8,6 +8,12 @@ import (
 	"github.com/Azure/aztfexport/pkg/config"
 )
 
+const (
+	ExtensionResourceTypeRoleAssignments    = meta.ExtensionResourceTypeRoleAssignments
+	ExtensionResourceTypeLocks              = meta.ExtensionResourceTypeLocks
+	ExtensionResourceTypeDiagnosticSettings = meta.ExtensionResourceTypeDiagnosticSettings
+)
+
 type ImportItem = meta.ImportItem
 type ImportList = meta.ImportList
 
