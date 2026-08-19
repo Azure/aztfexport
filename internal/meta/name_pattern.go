@@ -2,6 +2,7 @@ package meta
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -16,36 +17,71 @@ const (
 	phRootScope = "{root_scope}" // last name of the root scope (e.g. resource group name)
 )
 
-// nameExpander turns a resource name pattern (with placeholders and `*`) into
-// concrete resource names. It is stateful: it tracks per-prefix counts so the
-// indices produced via `*` are unique per expanded prefix/suffix pair.
+const (
+	// idxOptional expands to an incremental index only when the same name is
+	// shared by more than one resource, in which case the index starts from 2
+	// (i.e. the first occurrence has no index at all).
+	idxOptional = '*'
+	// idxAlways always expands to an incremental index, starting from 1.
+	idxAlways = '+'
+)
+
+// idxChars is the set of the index characters supported in a name pattern.
+var idxChars = string([]rune{idxOptional, idxAlways})
+
+// ValidateNamePattern validates the resource name pattern, which can contain at
+// most one index character, either `*` or `+`.
+func ValidateNamePattern(pattern string) error {
+	if n := strings.Count(pattern, string(idxOptional)) + strings.Count(pattern, string(idxAlways)); n > 1 {
+		return fmt.Errorf("the name pattern %q contains %d %q/%q, while at most one (exclusively) is allowed", pattern, n, string(idxOptional), string(idxAlways))
+	}
+	return nil
+}
+
 type nameExpander struct {
-	pattern string
-	counts  map[string]int
+	// prefix and suffix are the pattern segments before/after the index character.
+	prefix string
+	suffix string
+	// always indicates the index character is `+`, rather than `*`.
+	always bool
+	// counts counts the name per resource type.
+	counts map[string]map[string]int
 }
 
 func newNameExpander(pattern string) *nameExpander {
-	return &nameExpander{pattern: pattern, counts: map[string]int{}}
+	// An `*` is implicitly appended at the end when no index character is specified.
+	if !strings.ContainsAny(pattern, idxChars) {
+		pattern += string(idxOptional)
+	}
+
+	pos := strings.IndexAny(pattern, idxChars)
+	return &nameExpander{
+		prefix: pattern[:pos],
+		suffix: pattern[pos+1:],
+		always: rune(pattern[pos]) == idxAlways,
+		counts: map[string]map[string]int{},
+	}
 }
 
 // Expand returns the resource name produced by applying the pattern to the
 // given TF resource.
 func (e *nameExpander) Expand(res resourceset.TFResource) string {
-	expanded := expandPlaceholders(e.pattern, res)
+	prefix, suffix := expandPlaceholders(e.prefix, res), expandPlaceholders(e.suffix, res)
 
-	var name string
-	if pos := strings.LastIndex(expanded, "*"); pos != -1 {
-		prefix, suffix := expanded[:pos], expanded[pos+1:]
-		key := prefix + "\x00" + suffix
-		idx := e.counts[key]
-		e.counts[key] = idx + 1
-		name = fmt.Sprintf("%s%d%s", prefix, idx, suffix)
-	} else {
-		idx := e.counts[expanded]
-		e.counts[expanded] = idx + 1
-		name = fmt.Sprintf("%s%d", expanded, idx)
+	key := prefix + "\x00" + suffix
+
+	if e.counts[res.TFType] == nil {
+		e.counts[res.TFType] = map[string]int{}
 	}
-	return ensureValidTFName(name)
+	ic := e.counts[res.TFType]
+	ic[key]++
+
+	var idx string
+	if n := ic[key]; e.always || n > 1 {
+		idx = strconv.Itoa(n)
+	}
+
+	return toTFName(prefix + idx + suffix)
 }
 
 func expandPlaceholders(pattern string, res resourceset.TFResource) string {
@@ -134,11 +170,11 @@ func snakeCase(s string) string {
 	return strings.Trim(out, "_")
 }
 
-// ensureValidTFName makes sure the final name is a valid Terraform identifier.
+// toTFName makes sure the final name is a valid Terraform identifier.
 // Terraform identifiers must start with a letter or underscore and may then
 // contain letters, digits, underscores and dashes. We restrict ourselves to
 // the conservative subset [A-Za-z0-9_].
-func ensureValidTFName(s string) string {
+func toTFName(s string) string {
 	if s == "" {
 		return "res"
 	}
