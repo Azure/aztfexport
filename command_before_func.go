@@ -59,6 +59,10 @@ func commandBeforeFunc(fset *FlagSet, mode Mode) func(ctx *cli.Context) error {
 			}
 		}
 
+		if err := meta.ValidateNamePattern(fset.flagPattern); err != nil {
+			return fmt.Errorf("invalid value of `--name-pattern`: %v", err)
+		}
+
 		if err := conflictArgs([]argDesc{
 			{
 				name:  "--client-id",

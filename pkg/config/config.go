@@ -142,10 +142,16 @@ type Config struct {
 
 	// ResourceNamePattern specifies the resource name pattern.
 	//
-	// The pattern supports an incremental index via the '*' character (same
-	// semantic as Go's os.CreateTemp()), as well as the following per-resource
-	// placeholders, expanded based on the parsed Azure resource id and the
-	// recommended TF resource type:
+	// The pattern supports at most one index character, either '*' or '+'
+	// (exclusively):
+	//   '*'            - expands to an incremental index (starting from 2) only when the
+	//                    same name is shared by more than one resource. Otherwise, it
+	//                    expands to an empty string
+	//   '+'            - always expands to an incremental index, starting from 1
+	// If none is specified, a '*' is implicitly appended at the end of the pattern.
+	//
+	// The pattern also supports the following per-resource placeholders, expanded
+	// based on the parsed Azure resource id and the recommended TF resource type:
 	//   {type}         - last Azure resource type segment, snake_cased (e.g. "virtual_machines")
 	//   {rp}           - Azure resource provider namespace, snake_cased (e.g. "microsoft_compute")
 	//   {name}         - last name segment of the Azure resource id
