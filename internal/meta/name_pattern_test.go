@@ -71,7 +71,7 @@ func TestNameExpander(t *testing.T) {
 		// The `*` is implicitly appended.
 		e := newNameExpander("res")
 		got := []string{e.Expand(vm1), e.Expand(vm2), e.Expand(vnet)}
-		want := []string{"res", "res2", "res"}
+		want := []string{"res1", "res2", "res1"}
 		for i := range got {
 			if got[i] != want[i] {
 				t.Errorf("[%d] = %q, want %q", i, got[i], want[i])
@@ -125,7 +125,7 @@ func TestNameExpander(t *testing.T) {
 		e := newNameExpander("{type}")
 		got := []string{e.Expand(vm1), e.Expand(vm2), e.Expand(vnet)}
 		// Per-prefix counter restarts per distinct expanded prefix.
-		want := []string{"virtual_machines", "virtual_machines2", "virtual_networks"}
+		want := []string{"virtual_machines1", "virtual_machines2", "virtual_networks1"}
 		for i := range got {
 			if got[i] != want[i] {
 				t.Errorf("[%d] = %q, want %q", i, got[i], want[i])
@@ -136,7 +136,7 @@ func TestNameExpander(t *testing.T) {
 	t.Run("name-and-root_scope-placeholders", func(t *testing.T) {
 		e := newNameExpander("{root_scope}_{name}")
 		got := e.Expand(vm1)
-		want := "my_rg_vmone"
+		want := "my_rg_vmone1"
 		if got != want {
 			t.Errorf("= %q, want %q", got, want)
 		}
@@ -145,7 +145,7 @@ func TestNameExpander(t *testing.T) {
 	t.Run("rp-placeholder", func(t *testing.T) {
 		e := newNameExpander("{rp}_{type}")
 		got := e.Expand(vm1)
-		want := "microsoft_compute_virtual_machines"
+		want := "microsoft_compute_virtual_machines1"
 		if got != want {
 			t.Errorf("= %q, want %q", got, want)
 		}

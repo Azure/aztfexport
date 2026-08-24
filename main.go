@@ -92,7 +92,7 @@ func prepareConfigFile(ctx *cli.Context) error {
 	return nil
 }
 
-const namePatternUsage = `The pattern of the resource name. The pattern supports at most one index character, either '*' or '+' (exclusively): both expands to an incremental type-scoped index, '*' outputs no suffix for the first element, then 2, 3 and so on, where '+' output 1, 2, and so on. If none is specified, a '*' is implicitly appended at the end of the pattern. The pattern also supports a set of placeholders that are expanded per resource: {type} (the last Azure resource type segment, snake_cased, e.g. 'virtual_machines'), {rp} (the Azure resource provider namespace, snake_cased, e.g. 'microsoft_compute'), {name} (the last name segment of the Azure resource id, snake_cased), {root_scope} (the root scope of the resource, snake_cased, e.g. the resource group name). E.g. '{type}' may expand to 'virtual_machines', 'virtual_machines2', ...`
+const namePatternUsage = `The pattern of the resource name. The pattern supports at most one index character, either '*' or '+' (exclusively): both expands to an incremental type-scoped index, '*' outputs no suffix for the first element, then 2, 3 and so on, where '+' output 1, 2, and so on. If none is specified, a '+' is implicitly appended at the end of the pattern. The pattern also supports a set of placeholders that are expanded per resource: {type} (the last Azure resource type segment, snake_cased, e.g. 'virtual_machines'), {rp} (the Azure resource provider namespace, snake_cased, e.g. 'microsoft_compute'), {name} (the last name segment of the Azure resource id, snake_cased), {root_scope} (the root scope of the resource, snake_cased, e.g. the resource group name). E.g. '{type}*' may expand to 'virtual_machines', 'virtual_machines2', ...`
 
 func main() {
 	commonFlags := []cli.Flag{
@@ -424,7 +424,7 @@ func main() {
 			EnvVars:     []string{"AZTFEXPORT_NAME_PATTERN"},
 			Aliases:     []string{"p"},
 			Usage:       namePatternUsage + " (only works for multi-resource mode).",
-			Value:       "res-+",
+			Value:       "res-",
 			Destination: &flagset.flagPattern,
 		},
 		&cli.BoolFlag{
@@ -448,7 +448,7 @@ func main() {
 			EnvVars:     []string{"AZTFEXPORT_NAME_PATTERN"},
 			Aliases:     []string{"p"},
 			Usage:       namePatternUsage,
-			Value:       "res",
+			Value:       "res-",
 			Destination: &flagset.flagPattern,
 		},
 	}, commonFlags...)
@@ -459,7 +459,7 @@ func main() {
 			EnvVars:     []string{"AZTFEXPORT_NAME_PATTERN"},
 			Aliases:     []string{"p"},
 			Usage:       namePatternUsage,
-			Value:       "res-+",
+			Value:       "res-",
 			Destination: &flagset.flagPattern,
 		},
 		&cli.BoolFlag{

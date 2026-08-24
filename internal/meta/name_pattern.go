@@ -49,9 +49,9 @@ type nameExpander struct {
 }
 
 func newNameExpander(pattern string) *nameExpander {
-	// An `*` is implicitly appended at the end when no index character is specified.
+	// An `+` is implicitly appended at the end when no index character is specified.
 	if !strings.ContainsAny(pattern, idxChars) {
-		pattern += string(idxOptional)
+		pattern += string(idxAlways)
 	}
 
 	pos := strings.IndexAny(pattern, idxChars)

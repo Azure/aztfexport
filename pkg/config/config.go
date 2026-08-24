@@ -148,7 +148,7 @@ type Config struct {
 	//                    same name is shared by more than one resource. Otherwise, it
 	//                    expands to an empty string
 	//   '+'            - always expands to an incremental index, starting from 1
-	// If none is specified, a '*' is implicitly appended at the end of the pattern.
+	// If none is specified, a '+' is implicitly appended at the end of the pattern.
 	//
 	// The pattern also supports the following per-resource placeholders, expanded
 	// based on the parsed Azure resource id and the recommended TF resource type:
@@ -161,7 +161,7 @@ type Config struct {
 	ResourceNamePattern string
 
 	// IncludeExtensions specifies the set of extension resource types to include for the exported resources.
-	// Supported values are defined in the meta package (e.g. "role-assignment").
+	// Supported values are defined in the meta package (e.g. "role-assignments").
 	IncludeExtensions []string
 
 	// IncludeManagedResource specifies whether to allow service team/3rd party managed resources to be exported
