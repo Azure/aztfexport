@@ -23,7 +23,7 @@ provider "azurerm" {
 }
 resource "azurerm_resource_group" "test" {
   name     = "%[1]s"
-  location = "WestEurope"
+  location = "WestUS2"
 }
 
 resource "azurerm_storage_account" "test" {

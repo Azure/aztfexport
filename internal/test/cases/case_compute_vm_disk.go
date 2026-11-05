@@ -23,7 +23,7 @@ provider "azurerm" {
 }
 resource "azurerm_resource_group" "test" {
   name     = "%[1]s"
-  location = "WestEurope"
+  location = "WestUS2"
 }
 resource "azurerm_virtual_network" "test" {
   name                = "aztfexport-test-%[2]s"
